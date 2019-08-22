@@ -26,8 +26,12 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         try
         {
             DerpibooruResponse.Rootobject firstImages;
+            // if the channel is not on the list of NSFW enabled channels do not allow NSFW results.
+            // the second part checks if the command was executed in DMS, DM channels do not have to be added to the NSFW enabled list.
+            // In DMs the first check will fail, and so will the second, allowing for nsfw results to be displayed.
             if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
             {
+                
                 requestUrl = $"https://derpibooru.org/search.json?q={srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
             }
 
@@ -37,6 +41,8 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             }
             if (Global.searchesD.ContainsKey(Context.Channel.Id))
             {
+                //searchesD is a dictionary with the last search result in that channel, if applicable
+                //this adds the new search results, in json format, to the dictionary and then gives the deserialized form to a local variable. 
                 try
                 {
                     Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}1").Result;

@@ -17,7 +17,7 @@ public class Stick : ModuleBase<SocketCommandContext>
 
     public async Task IsnsfwAsync()
     {
-
+        //This checks the safeChannels List, despite it being named safechannels it is a list of NSFW enabled channels.
         if (Global.safeChannels.ContainsKey(Context.Channel.Id))
         {
 

@@ -148,12 +148,6 @@ namespace WagglesBot
             {
                 var context = new SocketCommandContext(_client, message);
                 string srch = message.Content;
-                //string shortened;
-                //string pattern = @"(\d+)+\.";
-                //string pattern2 = @"(\d+)+\.";
-                //Match results = Regex.Match(srch, pattern);
-                //shortened = results.Value.Trim(new Char[] { ' ', '.' });
-                //Global.links[context.Channel.Id] = shortened;
                 Global.checkURL(srch, context.Channel.Id);
                
 
@@ -211,13 +205,6 @@ namespace WagglesBot
                 await context.Channel.SendMessageAsync("https://www.youtube.com/watch?v=kJQP7kiw5Fk");
 
             }
-
-            /* if (message.Content.ToLower().Contains("&help&") && !message.HasStringPrefix("~", ref argPos) && message.Reactions )
-             {
-                 var context = new SocketCommandContext(_client, message);
-               await  context.Channel.SendMessageAsync("I know her! She's a cutie!");
-             }
-             */
 
         }
     }
