@@ -13,50 +13,50 @@ using WagglesBot.Modules;
 
 public class Vtick : ModuleBase<SocketCommandContext>
 {
+    // Server Image Directory.
+    // TODO: Make this a config file or environment variable option.
+    private const string imgDirectory = @"/var/www/waggles.org/html/img/";
+
     [Command("save")]
     public async Task OatsAsync(string link, string filename)
     {
-        WebClient Client = new WebClient();
-        if (File.Exists($@"/var/www/waggles.org/html/img/{ filename}.png") || File.Exists($@"/var/www/waggles.org/html/img/{ filename}.jpeg") || File.Exists($@"/var/www/waggles.org/html/img/{ filename}.jpg") || File.Exists($@"/var/www/waggles.org/html/img/{ filename}.gif") || (File.Exists($@"/var/www/waggles.org/html/img/{ filename}.gif")))
+        // Get the file extension from the link.
+        //   First, remove any URL query parameters. (Such as https://www.example.com/image.png?v=2)
+        //   Second, grab the file extension if one exists.
+        // @see: https://stackoverflow.com/a/23229959
+        Uri linkUri = new Uri(link);
+        string linkPath = linkUri.GetLeftPart(UriPartial.Path);
+        string linkExt = Path.GetExtension(linkPath).ToLower();
+
+        // Test if target filename already exists on the server first!
+        //   Implication: No files can share a base name, regardless of extension.
+        //   Example: Cat.png and Cat.jpg cannot coexist, for example.
+        var howManyFiles = Directory.GetFiles(this.imgDirectory, $@"{filename}.*").Length;
+        if (howManyFiles > 1)
         { await ReplyAsync("File already exists try a different name!"); return; }
-        if (link.Contains("png"))
-        {
-            Client.DownloadFile(link, $@"/var/www/waggles.org/html/img/{filename}.png");
 
-            await ReplyAsync($"Saved at <http://www.waggles.org/img/{filename}.png>");
+        switch (linkExt) {
+            case ".png":
+            case ".jpg":
+            case ".jpeg":
+            case ".webm":
+            case ".gif":
+                // Instantiate a WebClient, download the file, then automatically dispose of the client when finished.
+                using (WebClient client = new WebClient()) {
+                    client.DownloadFile(link, $@"{this.imgDirectory}{filename}{linkExt}");
+                }
+                await ReplyAsync($"Saved at <http://www.waggles.org/img/{filename}{linkExt}>");
+                break;
+            default:
+                await ReplyAsync("unsupported image type, ask Hoovier to fix this!");
+                break;
         }
-        else if (link.Contains(".jpeg"))
-        {
-            Client.DownloadFile(link, $@"/var/www/waggles.org/html/img/{filename}.jpeg");
-
-            await ReplyAsync($"Saved at <http://www.waggles.org/img/{filename}.jpeg>");
-        }
-        else if (link.Contains(".jpg"))
-        {
-            Client.DownloadFile(link, $@"/var/www/waggles.org/html/img/{filename}.jpg");
-
-            await ReplyAsync($"Saved at <http://www.waggles.org/img/{filename}.jpg>");
-        }
-        else if (link.Contains(".webm"))
-        {
-            Client.DownloadFile(link, $@"/var/www/waggles.org/html/img/{filename}.webm");
-
-            await ReplyAsync($"Saved at <http://www.waggles.org/img/{filename}.webm>");
-        }
-        else if (link.Contains(".gif"))
-        {
-            Client.DownloadFile(link, $@"/var/www/waggles.org/html/img/{filename}.gif");
-
-            await ReplyAsync($"Saved at <http://www.waggles.org/img/{filename}.gif>");
-        }
-        else { await ReplyAsync("unsupported image type, ask Hoovier to fix this!"); }
-
     }
     [Command("pick")]
     public async Task OatAsync()
     {
         var rand = new Random();
-        var files = Directory.GetFiles(@"/var/www/waggles.org/html/img");
+        var files = Directory.GetFiles(this.imgDirectory);
 
         var ponies = files[rand.Next(files.Length)];
 
@@ -66,9 +66,7 @@ public class Vtick : ModuleBase<SocketCommandContext>
     [Command("search")]
     public async Task SearcgAsync(string sear)
     {
-
-
-        var files = Directory.GetFiles(@"/var/www/waggles.org/html/img");
+        var files = Directory.GetFiles(this.imgDirectory);
 
         bool foundflag = false;
         string lonk = "404notfound.png";
@@ -101,21 +99,8 @@ public class Vtick : ModuleBase<SocketCommandContext>
     [Command("list")]
     public async Task ListAsync()
     {
-
-        var files = Directory.GetFiles(@"/var/www/waggles.org/html/img/");
-
-        var sb = new System.Text.StringBuilder();
-        for (int i = 0; i < files.Length; i++)
-        {
-
-            sb.Append(Path.GetFileName(files[i]));
-            sb.Append(" ");
-        }
-
-
-
-        await ReplyAsync(sb.ToString());
-
+        var files = Directory.GetFiles(this.imgDirectory);
+        await ReplyAsync(String.Join(" ", files));
     }
     
  }
