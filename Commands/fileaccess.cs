@@ -15,7 +15,7 @@ public class Vtick : ModuleBase<SocketCommandContext>
 {
     // Server Image Directory.
     // TODO: Make this a config file or environment variable option.
-    private const string imgDirectory = @"/var/www/waggles.org/html/img/";
+    private readonly string imgDirectory = @"/var/www/waggles.org/html/img/";
 
     [Command("save")]
     public async Task OatsAsync(string link, string filename)
