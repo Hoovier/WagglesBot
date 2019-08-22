@@ -31,9 +31,15 @@ public class Vtick : ModuleBase<SocketCommandContext>
         // Test if target filename already exists on the server first!
         //   Implication: No files can share a base name, regardless of extension.
         //   Example: Cat.png and Cat.jpg cannot coexist, for example.
-        var howManyFiles = Directory.GetFiles(this.imgDirectory, $@"{filename}.*").Length;
-        if (howManyFiles > 1)
-        { await ReplyAsync("File already exists try a different name!"); return; }
+        var files = Directory.GetFiles(this.imgDirectory);
+        foreach (string name in files)
+        {
+            if (filename == Path.GetFileNameWithoutExtension(name))
+            {
+                await ReplyAsync("File already exists try a different name!"); 
+                return;
+            }
+        }
 
         switch (linkExt) {
             case ".png":
