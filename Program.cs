@@ -33,9 +33,9 @@ namespace WagglesBot
             .AddSingleton(_client)
             .AddSingleton(_commands)
             .BuildServiceProvider();
-            var path = "List.JSON";
-            var path2 = "wlist.JSON";
-            var path3 = "extraComms.JSON";
+            var path = "JSONstorage/List.JSON";
+            var path2 = "JSONstorage/wlist.JSON";
+            var path3 = "JSONstorage/extraComms.JSON";
             Global.todo = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(path));
             Global.safeChannels = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText(path2));
             Global.excomm = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path3));
