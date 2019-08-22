@@ -110,6 +110,7 @@ public class Vtick : ModuleBase<SocketCommandContext>
         files = files.Select(file => Path.GetFileNameWithoutExtension(file)).ToArray();
         // Sort filenames alphabetically!
         Array.Sort(files, StringComparer.InvariantCulture);
+        // TODO: Save above results to a TXT file, and serve the file instead if the results get too large (above 2000 characters).
         await ReplyAsync(String.Join(" ", files));
     }
     
