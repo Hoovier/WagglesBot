@@ -100,6 +100,8 @@ public class Vtick : ModuleBase<SocketCommandContext>
     public async Task ListAsync()
     {
         var files = Directory.GetFiles(this.imgDirectory);
+        // Sort filenames alphabetically!
+        Array.Sort(files, StringComparer.InvariantCulture);
         await ReplyAsync(String.Join(" ", files));
     }
     
