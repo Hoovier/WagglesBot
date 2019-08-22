@@ -106,6 +106,8 @@ public class Vtick : ModuleBase<SocketCommandContext>
     public async Task ListAsync()
     {
         var files = Directory.GetFiles(this.imgDirectory);
+        // Map file names instead of full paths.
+        files = files.Select(file => Path.GetFileNameWithoutExtension(file)).ToArray();
         // Sort filenames alphabetically!
         Array.Sort(files, StringComparer.InvariantCulture);
         await ReplyAsync(String.Join(" ", files));
