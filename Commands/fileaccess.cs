@@ -70,26 +70,28 @@ public class Vtick : ModuleBase<SocketCommandContext>
     public async Task SearchAsync(string searchTerm)
     {
         // Get all image files, translate to file names without extensions.
-        var files = Directory.GetFiles(this.imgDirectory)
-                             .Select(filename => Path.GetFileNameWithoutExtension(filename));
+        var files = Directory.GetFiles(this.imgDirectory);
 
         // Set default result to a 404 image. Will be overwritten if a match is found.
         string linkResult = this.notFoundImage;
         // Our fuzzing threshold, find file names within X edits of the search term.
         int fuzz = 3;
 
-        foreach (string filename in files)
+        foreach (string filepath in files)
         {
+            // Get searchable name only for exact matches or levenstein. No extension.
+            string bareName = Path.GetFileNameWithoutExtension(filepath);
+
             // Automatically return and end function if exact match found.
-            if (searchTerm == filename) {
-                await ReplyAsync($"https://www.waggles.org/img/{Path.GetFileName(filename)}");
+            if (searchTerm == bareName) {
+                await ReplyAsync($"https://www.waggles.org/img/{Path.GetFileName(filepath)}");
                 return;
             }
 
             // Store closest match (minimum edit distance) link and distance.
-            if (levenshtein.Compute(filename, searchTerm) < fuzz) {
-                fuzz = levenshtein.Compute(filename, searchTerm);
-                linkResult = Path.GetFileName(filename);
+            if (levenshtein.Compute(bareName, searchTerm) < fuzz) {
+                fuzz = levenshtein.Compute(bareName, searchTerm);
+                linkResult = Path.GetFileName(filepath);
             }
         }
 
