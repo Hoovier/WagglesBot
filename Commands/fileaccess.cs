@@ -1,21 +1,17 @@
 ﻿using CoreWaggles;
 using Discord.Commands;
-using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
-using System.Drawing;
-using WagglesBot.Modules;
 
 public class Vtick : ModuleBase<SocketCommandContext>
 {
     // Server Image Directory.
     // TODO: Make this a config file or environment variable option.
     private readonly string imgDirectory = @"/var/www/waggles.org/html/img/";
+    private readonly string notFoundImage = "404notfound.png";
 
     [Command("save")]
     public async Task OatsAsync(string link, string filename)
@@ -31,14 +27,10 @@ public class Vtick : ModuleBase<SocketCommandContext>
         // Test if target filename already exists on the server first!
         //   Implication: No files can share a base name, regardless of extension.
         //   Example: Cat.png and Cat.jpg cannot coexist, for example.
-        var files = Directory.GetFiles(this.imgDirectory);
-        foreach (string name in files)
-        {
-            if (filename == Path.GetFileNameWithoutExtension(name))
-            {
-                await ReplyAsync("File already exists try a different name!"); 
-                return;
-            }
+        int howManyFiles = Directory.GetFiles(this.imgDirectory, $"{filename}.*").Length;
+        if (howManyFiles > 0) {
+            await ReplyAsync("File already exists try a different name!"); 
+            return;
         }
 
         switch (linkExt) {
@@ -53,8 +45,14 @@ public class Vtick : ModuleBase<SocketCommandContext>
                 }
                 await ReplyAsync($"Saved at <http://www.waggles.org/img/{filename}{linkExt}>");
                 break;
+            case null:
+            case "":
+                // Path.GetExtension() can return `null` or an empty string if a file extension or path failed.
+                // @see: https://docs.microsoft.com/en-us/dotnet/api/system.io.path.getextension
+                await ReplyAsync("Link missing extension, cannot detect file type! Let Hoovier know if I messed up.");
+                break;
             default:
-                await ReplyAsync("unsupported image type, ask Hoovier to fix this!");
+                await ReplyAsync($"Unsupported image type ('{linkExt}'), ask Hoovier to fix this!");
                 break;
         }
     }
@@ -63,44 +61,48 @@ public class Vtick : ModuleBase<SocketCommandContext>
     {
         var rand = new Random();
         var files = Directory.GetFiles(this.imgDirectory);
-
         var ponies = files[rand.Next(files.Length)];
 
         await ReplyAsync($"http://www.waggles.org/img/{Path.GetFileName(ponies)}");
 
     }
     [Command("search")]
-    public async Task SearcgAsync(string sear)
+    public async Task SearchAsync(string searchTerm)
     {
-        var files = Directory.GetFiles(this.imgDirectory);
+        // Get all image files, translate to file names without extensions.
+        var files = Directory.GetFiles(this.imgDirectory)
+                             .Select(filename => Path.GetFileNameWithoutExtension(filename));
 
-        bool foundflag = false;
-        string lonk = "404notfound.png";
+        // Set default result to a 404 image. Will be overwritten if a match is found.
+        string linkResult = this.notFoundImage;
+        // Our fuzzing threshold, find file names within X edits of the search term.
         int fuzz = 3;
+
         foreach (string filename in files)
         {
-            if (sear == Path.GetFileNameWithoutExtension(filename))
-            {
-                foundflag = true;
+            // Automatically return and end function if exact match found.
+            if (searchTerm == filename) {
                 await ReplyAsync($"https://www.waggles.org/img/{Path.GetFileName(filename)}");
-                break;
-            }
-            else if (levenshtein.Compute(Path.GetFileNameWithoutExtension(filename), sear) < fuzz)
-            {
-                fuzz = levenshtein.Compute(Path.GetFileNameWithoutExtension(filename), sear);
-                lonk = Path.GetFileName(filename);
+                return;
             }
 
-
+            // Store closest match (minimum edit distance) link and distance.
+            if (levenshtein.Compute(filename, searchTerm) < fuzz) {
+                fuzz = levenshtein.Compute(filename, searchTerm);
+                linkResult = Path.GetFileName(filename);
+            }
         }
-        if (!foundflag)
-        {
 
-            await ReplyAsync($"https://www.waggles.org/img/{Path.GetFileName(lonk)}");
+        // Default URL result return.
+        string message = $"https://www.waggles.org/img/{Path.GetFileName(linkResult)}";
+
+        // If it ended up being a close match and NOT a 404, give a friendly little preamble. :)
+        if (!linkResult.Equals(this.notFoundImage)) {
+            message = "Couldn't find an exact match, is this what you meant?\n" + message;
         }
 
-
-
+        // Return our message, be it 404 or a close match.
+        await ReplyAsync(message);
     }
     [Command("list")]
     public async Task ListAsync()
@@ -111,7 +113,6 @@ public class Vtick : ModuleBase<SocketCommandContext>
         // Sort filenames alphabetically!
         Array.Sort(files, StringComparer.InvariantCulture);
         // TODO: Save above results to a TXT file, and serve the file instead if the results get too large (above 2000 characters).
-        await ReplyAsync(String.Join(" ", files));
+        await ReplyAsync(String.Join(" | ", files));
     }
-    
  }
