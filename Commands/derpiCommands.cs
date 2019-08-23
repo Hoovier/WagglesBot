@@ -1,4 +1,3 @@
-﻿
 using Discord.Commands;
 using System;
 using System.Collections.Generic;
@@ -62,7 +61,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}").Result;
 
         // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
-        DerpibooruResponse.Rootobject DerpiResponse = DerpiHelper.JsonToDerpi(Global.searchesD[Context.Channel.Id]);
+        DerpibooruResponse.Rootobject DerpiResponse = JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
 
         // Actual request an. Try-catch to softly catch exceptions.
         try {
@@ -939,11 +938,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     Derpi Utility class to aggregate common functionality.
  */
 public class DerpiHelper {
-    // Deserializes JSON to a DerpibooruResponse object.
-    public static DerpibooruResponse.Rootobject JsonToDerpi(string json) {
-        return JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(json);
-    }
-
+    // TODO: make this a method of the DerpibooruComms class or find if it is more generic across command files.
     //Takes a base URL, and appends query parameters to it.
     public static string buildDerpiUrl(string url, IDictionary<string, string> queryParams) {
         // Takes the parameter pairs such as "perpage" and "50", and pairs them into strings "perpage=50".
