@@ -942,8 +942,3 @@ public class DerpiHelper {
     }
 
 }
-
-
- 
-
-
