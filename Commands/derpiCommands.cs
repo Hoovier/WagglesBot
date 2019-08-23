@@ -12,251 +12,106 @@ using CoreWaggles;
 
 public class DerpibooruComms : ModuleBase<SocketCommandContext>
 {
-    public CommandService _command { get; set; }
+    public readonly string baseURL = "https://derpibooru.org/search.json";
 
+    public readonly string[] sortingOptions = {"created_at", "wilson", "relevance", "random%3A1096362"};
+
+    public CommandService _command { get; set; }
     
+    [Command("derpi")]
+    [Alias("d")]
+    public async Task DerpiDefault([Remainder]string search) {
+        // Regular Derpi search should just be the Sorted one with a default sorting option.
+        await DerpiSorted(-1, search);
+    }
 
     [Command("derpi")]
     [Alias("d")]
-    public async Task DerpiAsync([Remainder]string srch)
-    {
+    public async Task DerpiSorted(int Sort, [Remainder]string search) {
+        // Broadcasts "User is typing..." message to Discord channel.
         await Context.Channel.TriggerTypingAsync();
-        string requestUrl;
-        int count;
-        try
-        {
-            DerpibooruResponse.Rootobject firstImages;
-            // if the channel is not on the list of NSFW enabled channels do not allow NSFW results.
-            // the second part checks if the command was executed in DMS, DM channels do not have to be added to the NSFW enabled list.
-            // In DMs the first check will fail, and so will the second, allowing for nsfw results to be displayed.
-            if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
-            {
-                
-                requestUrl = $"https://derpibooru.org/search.json?q={srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-            }
 
-            else
-            {
-                requestUrl = $"https://derpibooru.org/search.json?q={srch}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-            }
-            if (Global.searchesD.ContainsKey(Context.Channel.Id))
-            {
-                //searchesD is a dictionary with the last search result in that channel, if applicable
-                //this adds the new search results, in json format, to the dictionary and then gives the deserialized form to a local variable. 
-                try
-                {
-                    Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}1").Result;
-                    count =
-                   JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id])
-                       .Total;
-                    firstImages =
-                            JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
-                }
-                catch
-                {
-                    await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
-                    return;
-                }
+        // Choose sorting method from the available list.
+        // "score" is the default "unsorted" value from the prior version of this command.
+        string sortParam = (Sort >= 0 && Sort < this.sortingOptions.Length) ? this.sortingOptions[Sort] : "score";
 
-            }
-            else
-            {
-                Global.searchesD.Add(Context.Channel.Id, Get.Derpibooru($"{requestUrl}1").Result);
-                count = JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]).Total;
-                firstImages = JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
-            }
+        // Set up the base query parameters.
+        // "q" is our search terms
+        // "filter_id" is the filter against content banned by Discord TOS.
+        Dictionary<string,string> queryParams = new Dictionary<string,string>() {
+            {"filter_id", "164610"},
+            {"sf", sortParam}, 
+            {"sd", "desc"}, 
+            {"perpage", "50"},
+            {"page", ""},
+        };
 
-            List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
-            allimages.AddRange(firstImages.Search.ToList());
-            var rand = new Random();
-            if (allimages.Count == 0)
-            {
+        // If the channel is not on the list of NSFW enabled channels do not allow NSFW results.
+        // the second part checks if the command was executed in DMS, DM channels do not have to be added to the NSFW enabled list.
+        // In DMs the first check will fail, and so will the second, allowing for nsfw results to be displayed.
+        bool safeOnly = !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate;
+
+        // Add search to the parameters list, with "AND safe" if it failed the NSFW check.
+        queryParams.Add("q", safeOnly ? $"{search}+AND+safe" : search);
+
+        // Build the full request URL.
+        string requestUrl = DerpiHelper.buildDerpiUrl(this.baseURL, queryParams);
+        
+        // Global.searchesD is a dictionary-based cache with the last search result in that channel, if applicable.
+        // Always stores results globally for other commands like ~next to keep track.
+        Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}1").Result;
+
+        // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
+        DerpibooruResponse.Rootobject DerpiResponse = DerpiHelper.JsonToDerpi(Global.searchesD[Context.Channel.Id]);
+
+        // Actual request an. Try-catch to softly catch exceptions.
+        try {
+            // Convert Search Array to a List, to use List functionality.
+            List<DerpibooruResponse.Search> imageList = DerpiResponse.Search.ToList();
+            if (imageList.Count == 0) {
                 await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
                 return;
             }
-            int rd = rand.Next(allimages.Count);
-            Global.searched = rd + 1;
-            var pony = allimages.ElementAt(rd).created_at;
-            var filetype = allimages.ElementAt(rd).original_format;
-            var idofimg = allimages.ElementAt(rd).id;
+            // Get random number generator and random entry.
+            var rng = new Random();
+            int rand = rng.Next(imageList.Count);
+            Global.searched = rand + 1;
+            DerpibooruResponse.Search randomElement = imageList.ElementAt(rand);
 
-            if (Global.links.ContainsKey(Context.Channel.Id))
-            {
-                Global.links[Context.Channel.Id] = idofimg;
-            }
-            else
-            {
-                Global.links.Add(Context.Channel.Id, idofimg);
-            }
-            string arrsting = allimages.ElementAt(rd).tags;
-            string[] arrstingchoose = arrsting.Split(',');
-            var sb = new System.Text.StringBuilder();
-            string newresults = "Problem finding artist";
-            var results = Array.FindAll(arrstingchoose, s => s.Contains("artist:"));
-            if (results.Length == 1)
-            {
-                newresults = results[0].TrimStart();
-            }
-            else if (results.Length > 1)
-            {
-                for (int counter = 0; (counter < results.Length); counter++)
-                {
-                    sb.Append(results[counter]);
-                }
-                newresults = sb.ToString();
+            // Add image ID to Global.links.
+            // TODO: Describe where this is used better?
+            Global.links[Context.Channel.Id] = randomElement.id;
+
+            // Get all tags and try to locate artist tag.
+            string[] artistTags = randomElement.tags.Split(',');
+            artistTags = Array.FindAll(artistTags, tag => tag.Contains("artist:"));
+
+            // Parse artist tag results.
+            string artistResults;
+            switch (artistTags.Length) {
+                case 0:
+                    artistResults = "Problem finding artist"; break;
+                case 1:
+                    artistResults = artistTags[0].TrimStart(); break;
+                default:
+                    artistResults = String.Join(" ", artistTags); break;
             }
 
-            if (allimages.Count > 0)
-            {
-                //var newresults = results[0].TrimStart();
+            // Get the full image URL in the format "//derpicdn.net/img/view/YYYY/M/d/IMAGE_ID.png"
+            string imgLink = randomElement.representations.full;
 
-                pony = pony.Date;
-                string pony4 = pony.ToString("yyyy/M/d");
+            // TODO: REMOVE COMMENTS BELOW THIS IF ABOVE WORKS.
+            // Format Date and build image result link.
+            // string createdDate = randomElement.created_at.Date.ToString("yyyy/M/d");
+            // string imgLink = $"https://derpicdn.net/img/view/{createdDate}/{randomElement.id}.{randomElement.original_format}";
 
-                var pony2 = allimages.ElementAt(rd).representations.full;
-                string cliky = $"https://derpicdn.net/img/view/{pony4}/{idofimg}.{filetype}";
-                //pony2 = $"https:{pony2}";\n ugly link: {pony2}
-                // await ReplyAsync($"{count} matching images found! {cliky} and {pony2}");
-                await ReplyAsync($"{cliky} \n{newresults}");
+            await ReplyAsync($"https:{imgLink} \n{artistResults}");
 
-
-            }
-            else if (allimages.Count < 1)
-            {
-
-                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-            }
-        }
-        catch {
+        } catch {
             await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
             return;
         }
     }
-    
-    [Command("derpi")]
-    [Alias("d")]
-    
-    public async Task DerpispecificAsync(int Sort, [Remainder]string srch)
-    {
-        
-        await Context.Channel.TriggerTypingAsync();
-        string requestUrl;
-        
-        string result = "score";
-        int count;
-        
-        DerpibooruResponse.Rootobject firstImages;
-        switch (Sort)
-        {
-            case 0:
-                result = "created_at";
-                break;
-            case 1:
-                result = "wilson";
-                break;
-            case 2:
-                result = "relevance";
-                break;
-            case 3:
-                result = "random%3A1096362";
-                break;
-        }
-        if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
-        {
-            requestUrl =
-                      $"https://derpibooru.org/search.json?q={srch}+AND+safe&filter_id=164610&sf={result}&sd=desc&perpage=50&page=";
-
-
-        }
-
-        else
-        {
-            requestUrl =
-                       $"https://derpibooru.org/search.json?q={srch}&filter_id=164610&sf={result}&sd=desc&perpage=50&page=";
-        }
-        if(Global.searchesD.ContainsKey(Context.Channel.Id))
-        {
-            Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}1").Result;
-            count =
-           JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id])
-               .Total;
-            firstImages =
-                    JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
-        }
-        else
-        {
-            Global.searchesD.Add(Context.Channel.Id, Get.Derpibooru($"{requestUrl}1").Result);
-            count =
-           JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id])
-               .Total;
-            firstImages =
-                    JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
-        }
-        
-        List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
-        allimages.AddRange(firstImages.Search.ToList());
-        var rand = new Random();
-        if (allimages.Count == 0)
-        {
-            await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-            return;
-        }
-
-        int rd = rand.Next(allimages.Count);
-        Global.searched = rd + 1;
-        var pony = allimages.ElementAt(rd).created_at;
-        var filetype = allimages.ElementAt(rd).original_format;
-        var idofimg = allimages.ElementAt(rd).id;
-        if(Global.links.ContainsKey(Context.Channel.Id))
-        {
-            Global.links[Context.Channel.Id] = idofimg;
-        }
-        else
-        {
-            Global.links.Add(Context.Channel.Id, idofimg);
-        }
-        
-        string arrsting = allimages.ElementAt(rd).tags;
-        string[] arrstingchoose = arrsting.Split(',');
-        var sb = new System.Text.StringBuilder();
-        string newresults = "Problem finding artist";
-        var results = Array.FindAll(arrstingchoose, s => s.Contains("artist:"));
-        if (results.Length == 1)
-        {
-            newresults = results[0].TrimStart();
-        }
-        else if (results.Length > 1 && results.Length < 10)
-        {
-            for (int counter = 0; (counter < results.Length); counter++)
-            {
-                sb.Append(results[counter]);
-            }
-            newresults = sb.ToString();
-        }
-        else if (results.Length > 10)
-        {
-            newresults = "Too many artist to list.";
-        }
-
-        if (allimages.Count > 0)
-        {
-            //var newresults = results[0].TrimStart();
-            pony = pony.Date;
-            string pony4 = pony.ToString("yyyy/M/d");
-
-            var pony2 = allimages.ElementAt(rd).representations.full;
-            string cliky = $"https://derpicdn.net/img/view/{pony4}/{idofimg}.{filetype}";
-            //pony2 = $"https:{pony2}";\n ugly link: {pony2}
-            // await ReplyAsync($"{count} matching images found! {cliky} and {pony2}");
-            await ReplyAsync($"{cliky} \n{newresults}");
-        }
-        else if (allimages.Count < 1)
-        {
-
-            await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-        }
-    }
-   
 
     [Command("next")]
     [Alias("n")]
@@ -1078,13 +933,34 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         }
     }
 
-
-
-
 }
 
+/**
+    Derpi Utility class to aggregate common functionality.
+ */
+public class DerpiHelper {
+    // Deserializes JSON to a DerpibooruResponse object.
+    public static DerpibooruResponse.Rootobject JsonToDerpi(string json) {
+        return JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(json);
+    }
 
+    //Takes a base URL, and appends query parameters to it.
+    public static string buildDerpiUrl(string url, IDictionary<string, string> queryParams) {
+        // Takes the parameter pairs such as "perpage" and "50", and pairs them into strings "perpage=50".
+        string[] queryPairs = queryParams.Select(entry => $"{entry.Key}={entry.Value}").ToArray();
+        
+        // Joins together the above parameter pairs into one string such as "perpage=50&page=6".
+        string paramString = string.Join("&", queryPairs);
 
+        // Detect if the current URL has a query string.
+        // If so, append with "&", else append with "?" to start it off.
+        url = $"{url}{(url.Contains("?") ? "&" : "?")}{paramString}";
+
+        // Return a web-safe encoded URL.
+        return System.Web.HttpUtility.UrlEncode(url);
+    }
+
+}
 
 
  

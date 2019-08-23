@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace WagglesBot.Modules
 {
-    class DerpibooruResponse
+    public class DerpibooruResponse
     {
         public class Rootobject
         {
