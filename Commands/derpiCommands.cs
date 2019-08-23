@@ -59,7 +59,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         
         // Global.searchesD is a dictionary-based cache with the last search result in that channel, if applicable.
         // Always stores results globally for other commands like ~next to keep track.
-        Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}1").Result;
+        Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}").Result;
 
         // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
         DerpibooruResponse.Rootobject DerpiResponse = DerpiHelper.JsonToDerpi(Global.searchesD[Context.Channel.Id]);
