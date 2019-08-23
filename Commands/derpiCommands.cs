@@ -93,11 +93,12 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             string artistResults;
             switch (artistTags.Length) {
                 case 0:
-                    artistResults = "Problem finding artist"; break;
+                    bool isScreencap = randomElement.tags.Contains("screencap");
+                    artistResults = isScreencap ? "" : "\nProblem finding artist"; break;
                 case 1:
-                    artistResults = artistTags[0].TrimStart(); break;
+                    artistResults = "\n" + artistTags[0].TrimStart(); break;
                 default:
-                    artistResults = String.Join(" ", artistTags); break;
+                    artistResults = "\n" + String.Join(" ", artistTags); break;
             }
 
             // Get the full image URL in the format "//derpicdn.net/img/view/YYYY/M/d/IMAGE_ID.png"
@@ -108,7 +109,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             // string createdDate = randomElement.created_at.Date.ToString("yyyy/M/d");
             // string imgLink = $"https://derpicdn.net/img/view/{createdDate}/{randomElement.id}.{randomElement.original_format}";
 
-            await ReplyAsync($"https:{imgLink} \n{artistResults}");
+            await ReplyAsync($"https:{imgLink}{artistResults}");
 
         } catch {
             await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
@@ -942,8 +943,3 @@ public class DerpiHelper {
     }
 
 }
-
-
- 
-
-
