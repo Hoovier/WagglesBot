@@ -43,7 +43,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             {"sf", sortParam}, 
             {"sd", "desc"}, 
             {"perpage", "50"},
-            {"page", ""},
+            {"page", "1"},
         };
 
         // If the channel is not on the list of NSFW enabled channels do not allow NSFW results.
@@ -954,10 +954,7 @@ public class DerpiHelper {
 
         // Detect if the current URL has a query string.
         // If so, append with "&", else append with "?" to start it off.
-        url = $"{url}{(url.Contains("?") ? "&" : "?")}{paramString}";
-
-        // Return a web-safe encoded URL.
-        return System.Web.HttpUtility.UrlEncode(url);
+        return $"{url}{(url.Contains("?") ? "&" : "?")}{paramString}";
     }
 
 }
