@@ -14,10 +14,15 @@ using DerpiSearch = WagglesBot.Modules.DerpibooruResponse.Search;
 
 public class DerpibooruComms : ModuleBase<SocketCommandContext>
 {
-    
+    // TODO: Make a better endpoint reference repository.
+    // The Derpibooru API endpoint.
     public readonly string baseURL = "https://derpibooru.org/search.json";
+    // The Derpibooru Reverse Image Search endpoint.
+    public readonly string reverseURL = "https://derpibooru.org/search/reverse.json?scraper_url=";
 
-    public readonly string[] sortingOptions = {"created_at", "wilson", "relevance", "random%3A1096362"};
+    // Available sorting methods for Derpibooru.
+    // "score" is the default "unsorted" value from the prior version of this command.
+    public readonly string[] sortingOptions = {"created_at", "wilson", "relevance", "random%3A1096362", "score"};
 
     public CommandService _command { get; set; }
     
@@ -25,18 +30,27 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     [Alias("d")]
     public async Task DerpiDefault([Remainder]string search) {
         // Regular Derpi search should just be the Sorted one with a default sorting option.
-        await DerpiSorted(-1, search);
+        await DerpiMaster(false, 5, search);
     }
 
     [Command("derpi")]
     [Alias("d")]
     public async Task DerpiSorted(int Sort, [Remainder]string search) {
+        await DerpiMaster(false, Sort, search);
+    }
+
+    // "Master" Derpibooru/~derpi searching method. Not a discord-accessible method.
+    public async Task DerpiMaster(bool artistAsLink, int Sort, string search) {
         // Broadcasts "User is typing..." message to Discord channel.
         await Context.Channel.TriggerTypingAsync();
 
+        // Validate that a valid sorting option was chosen.
+        if (Sort < 0 || Sort >= this.sortingOptions.Length) {
+            await ReplyAsync("Invalid sorting option: " + Sort + ". Please try again");
+            return;
+        }
         // Choose sorting method from the available list.
-        // "score" is the default "unsorted" value from the prior version of this command.
-        string sortParam = (Sort >= 0 && Sort < this.sortingOptions.Length) ? this.sortingOptions[Sort] : "score";
+        string sortParam = this.sortingOptions[Sort];
 
         // Set up the base query parameters.
         // "q" is our search terms
@@ -58,7 +72,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         queryParams.Add("q", safeOnly ? $"{search}+AND+safe" : search);
 
         // Build the full request URL.
-        string requestUrl = DerpiHelper.buildDerpiUrl(this.baseURL, queryParams);
+        string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, queryParams);
         
         // Global.searchesD is a dictionary-based cache with the last search result in that channel, if applicable.
         // Always stores results globally for other commands like ~next to keep track.
@@ -98,16 +112,14 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                 case 1:
                     artistResults = "\n" + artistTags[0].TrimStart(); break;
                 default:
-                    artistResults = "\n" + String.Join(" ", artistTags); break;
+                    bool tooMany = artistTags.Length > 10;
+                    artistResults = "\n";
+                    artistResults += tooMany ? "Too many artists to list." : String.Join(' ', artistTags); 
+                    break;
             }
 
             // Get the full image URL in the format "//derpicdn.net/img/view/YYYY/M/d/IMAGE_ID.png"
             string imgLink = randomElement.representations.full;
-
-            // TODO: REMOVE COMMENTS BELOW THIS IF ABOVE WORKS.
-            // Format Date and build image result link.
-            // string createdDate = randomElement.created_at.Date.ToString("yyyy/M/d");
-            // string imgLink = $"https://derpicdn.net/img/view/{createdDate}/{randomElement.id}.{randomElement.original_format}";
 
             await ReplyAsync($"https:{imgLink}{artistResults}");
 
@@ -119,37 +131,44 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
     [Command("next")]
     [Alias("n")]
-    public async Task DerpiantoherAsync()
+    public async Task DerpiNext()
     {
         await Context.Channel.TriggerTypingAsync();
-        string individualquery;
-        individualquery = Global.searchesD[Context.Channel.Id];
  
-        DerpiRoot firstImages = JsonConvert.DeserializeObject<DerpiRoot>(individualquery);
-        List<DerpiSearch> allimages = new List<DerpiSearch>();
-        allimages.AddRange(firstImages.Search.ToList());
+        DerpiRoot DerpiResponse;
+
+        // Check if an a "~derpi" search has been made in this channel yet.
+        if (Global.searchesD.ContainsKey(Context.Channel.Id)) {
+            DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
+        } else {
+             await ReplyAsync("You need to call `~derpi` (`~d` for short) to get some results before I can hoof you over more silly!");
+            return;
+        }
+
+        // Convert Search array to a List, to use List functionality.
+        List<DerpiSearch> imageList = DerpiResponse.Search.ToList();
         
-        if (allimages.Count == 0)
-        {
+        if (imageList.Count == 0) {
             await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
             return;
         }
-        if(Global.searched + 1 > allimages.Count())
-        {
+
+        // If ~next goes off the globally cached page, loop around the beginning again.
+        if(Global.searched + 1 > imageList.Count()) {
             Global.searched = 0;
         }
+
+        // TODO, try to normalize image picking code between ~derpi and ~next!
         int rd = Global.searched++;
+        DerpiSearch randomElement = imageList.ElementAt(rd);
         var pony = allimages.ElementAt(rd).created_at;
         var filetype = allimages.ElementAt(rd).original_format;
         var idofimg = allimages.ElementAt(rd).id;
-        if (Global.links.ContainsKey(Context.Channel.Id))
-        {
-            Global.links[Context.Channel.Id] = idofimg;
-        }
-        else
-        {
-            Global.links.Add(Context.Channel.Id, idofimg);
-        }
+
+        // Add image ID to Global.links.
+        // TODO: Describe where this is used better?
+        Global.links[Context.Channel.Id] = randomElement.id;
+        
         string arrsting = allimages.ElementAt(rd).tags;
         
         string[] arrstingchoose = arrsting.Split(',');
@@ -930,7 +949,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 public class DerpiHelper {
     // TODO: make this a method of the DerpibooruComms class or find if it is more generic across command files.
     //Takes a base URL, and appends query parameters to it.
-    public static string buildDerpiUrl(string url, IDictionary<string, string> queryParams) {
+    public static string BuildDerpiUrl(string url, IDictionary<string, string> queryParams) {
         // Takes the parameter pairs such as "perpage" and "50", and pairs them into strings "perpage=50".
         string[] queryPairs = queryParams.Select(entry => $"{entry.Key}={entry.Value}").ToArray();
         
@@ -940,6 +959,31 @@ public class DerpiHelper {
         // Detect if the current URL has a query string.
         // If so, append with "&", else append with "?" to start it off.
         return $"{url}{(url.Contains("?") ? "&" : "?")}{paramString}";
+    }
+
+    // Takes a Derpibooru singular search result node and returns a string message to be sent to Discord.
+    public static string BuildDiscordResponse(DerpiSearch element) {
+        
+        // Get the full image URL in the format "//derpicdn.net/img/view/YYYY/M/d/IMAGE_ID.png"
+        // Prepend the protocol, HTTPS, to the incomplete URL representation.
+        string results = "https:" + element.representations.full;
+
+        // Get a distilled list of artist tags from the full tag listing.
+        string[] artistTags = element.tags.Split(',');
+        artistTags = Array.FindAll(artistTags, tag => tag.Contains("artist:"));
+
+        // Parse artist tag response accordingly.
+        switch (artistTags.Length) {
+            case 0:
+                // Unedited screencaps uploaded have no artist tags.
+                bool isScreencap = element.tags.Contains("screencap");
+                results += isScreencap ? "" : "\nProblem finding artist";
+                return results;
+            case 1:
+                results += "\n" + artistTags[0].TrimStart(); break;
+            default:
+                results += String.Join(' ', artistTags); break;
+        }
     }
 
 }
