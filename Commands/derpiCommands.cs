@@ -8,9 +8,13 @@ using WagglesBot.Modules;
 using System.Text.RegularExpressions;
 using CoreWaggles;
 
+// Alias for Derpibooru Response objects.
+using DerpiRoot = WagglesBot.Modules.DerpibooruResponse.Rootobject;
+using DerpiSearch = WagglesBot.Modules.DerpibooruResponse.Search;
 
 public class DerpibooruComms : ModuleBase<SocketCommandContext>
 {
+    
     public readonly string baseURL = "https://derpibooru.org/search.json";
 
     public readonly string[] sortingOptions = {"created_at", "wilson", "relevance", "random%3A1096362"};
@@ -61,12 +65,12 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}").Result;
 
         // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
-        DerpibooruResponse.Rootobject DerpiResponse = JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
+        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
 
         // Actual request an. Try-catch to softly catch exceptions.
         try {
             // Convert Search Array to a List, to use List functionality.
-            List<DerpibooruResponse.Search> imageList = DerpiResponse.Search.ToList();
+            List<DerpiSearch> imageList = DerpiResponse.Search.ToList();
             if (imageList.Count == 0) {
                 await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
                 return;
@@ -75,7 +79,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             var rng = new Random();
             int rand = rng.Next(imageList.Count);
             Global.searched = rand + 1;
-            DerpibooruResponse.Search randomElement = imageList.ElementAt(rand);
+            DerpiSearch randomElement = imageList.ElementAt(rand);
 
             // Add image ID to Global.links.
             // TODO: Describe where this is used better?
@@ -120,8 +124,8 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         string individualquery;
         individualquery = Global.searchesD[Context.Channel.Id];
  
-        DerpibooruResponse.Rootobject firstImages = JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(individualquery);
-        List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
+        DerpiRoot firstImages = JsonConvert.DeserializeObject<DerpiRoot>(individualquery);
+        List<DerpiSearch> allimages = new List<DerpiSearch>();
         allimages.AddRange(firstImages.Search.ToList());
         
         if (allimages.Count == 0)
@@ -200,9 +204,8 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
         individualquery = Global.searchesD[Context.Channel.Id];
 
-        DerpibooruResponse.Rootobject firstImages =
-                 JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(individualquery);
-        List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
+        DerpiRoot firstImages = JsonConvert.DeserializeObject<DerpiRoot>(individualquery);
+        List<DerpiSearch> allimages = new List<DerpiSearch>();
         allimages.AddRange(firstImages.Search.ToList());
 
         if (allimages.Count == 0)
@@ -285,12 +288,9 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             requestUrl =
                        $"https://derpibooru.org/search.json?q={srch}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
         }
-        int count =
-            JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(WagglesBot.Modules.Get.Derpibooru($"{requestUrl}1").Result)
-                .Total;
-        DerpibooruResponse.Rootobject firstImages =
-                 JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Get.Derpibooru($"{requestUrl}1").Result);
-        List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
+        DerpiRoot firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}1").Result);
+        int count = firstImages.Total;
+        List<DerpiSearch> allimages = new List<DerpiSearch>();
         allimages.AddRange(firstImages.Search.ToList());
 
 
@@ -348,11 +348,11 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
             }
             int count =
-                JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(WagglesBot.Modules.Get.Derpibooru($"{requestUrl}1").Result)
+                JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}1").Result)
                     .Total;
-            DerpibooruResponse.Rootobject firstImages =
-                     JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Get.Derpibooru($"{requestUrl}1").Result);
-            List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
+            DerpiRoot firstImages =
+                     JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}1").Result);
+            List<DerpiSearch> allimages = new List<DerpiSearch>();
             allimages.AddRange(firstImages.Search.ToList());
             var rand = new Random();
             if (allimages.Count == 0)
@@ -418,11 +418,11 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         string requestUrl;
         requestUrl = $"https://derpibooru.org/search.json?q=id:{Global.links[Context.Channel.Id]}&filter_id=164610";
         int count =
-               JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(WagglesBot.Modules.Get.Derpibooru($"{requestUrl}").Result)
+               JsonConvert.DeserializeObject<DerpiRoot>(WagglesBot.Modules.Get.Derpibooru($"{requestUrl}").Result)
                    .Total;
-            DerpibooruResponse.Rootobject firstImages =
-                     JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Get.Derpibooru($"{requestUrl}").Result);
-            List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
+            DerpiRoot firstImages =
+                     JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}").Result);
+            List<DerpiSearch> allimages = new List<DerpiSearch>();
             allimages.AddRange(firstImages.Search.ToList());
 
             if (allimages.Count == 0)
@@ -493,11 +493,11 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             string requestUrl;
             requestUrl =$"https://derpibooru.org/search.json?q=id:{Global.links[Context.Channel.Id]}&filter_id=164610";
             int count =
-                   JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(WagglesBot.Modules.Get.Derpibooru($"{requestUrl}").Result)
+                   JsonConvert.DeserializeObject<DerpiRoot>(WagglesBot.Modules.Get.Derpibooru($"{requestUrl}").Result)
                        .Total;
-                DerpibooruResponse.Rootobject firstImages =
-                         JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Get.Derpibooru($"{requestUrl}").Result);
-                List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
+                DerpiRoot firstImages =
+                         JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}").Result);
+                List<DerpiSearch> allimages = new List<DerpiSearch>();
                 allimages.AddRange(firstImages.Search.ToList());
                 var lop = allimages.ElementAt(0).tags;
                 string arrsting = allimages.ElementAt(0).tags;
@@ -631,13 +631,9 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                     }
 
                 }
-
-                int count =
-                    JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(WagglesBot.Modules.Get.Derpibooru($"{requestUrl}1").Result)
-                        .Total;
-                DerpibooruResponse.Rootobject firstImages =
-                         JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Get.Derpibooru($"{requestUrl}1").Result);
-                List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
+                DerpiRoot firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}1").Result);
+                int count = firstImages.Total;
+                List<DerpiSearch> allimages = new List<DerpiSearch>();
                 allimages.AddRange(firstImages.Search.ToList());
                 var lop = allimages.ElementAt(0).tags;
                 string arrsting = allimages.ElementAt(0).tags;
@@ -702,7 +698,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             
             try
             {
-                DerpibooruResponse.Rootobject firstImages;
+                DerpiRoot firstImages;
                 if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
                 {
                     requestUrl = $"https://derpibooru.org/search.json?q={srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
@@ -718,17 +714,14 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                     try
                     {
                         string tempsrch = Get.Derpibooru($"{requestUrl}1").Result;
-                        int amt = JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(tempsrch)
+                        int amt = JsonConvert.DeserializeObject<DerpiRoot>(tempsrch)
                            .Total;
                         int pages = amt / 50;
                         var randim = new Random();
                         paige = randim.Next(pages);
                         Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}{paige}").Result;
-                        count =
-                       JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id])
-                           .Total;
-                        firstImages =
-                                JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
+                        firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
+                        count = firstImages.Total;
                     }
                     catch
                     {
@@ -740,17 +733,16 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                 else
                 {
                     string tempsrch = Get.Derpibooru($"{requestUrl}1").Result;
-                    int amt = JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(tempsrch)
-                       .Total;
+                    int amt = JsonConvert.DeserializeObject<DerpiRoot>(tempsrch).Total;
                     int pages = amt / 50;
                     var randim = new Random();
                     paige = randim.Next(pages);
                     Global.searchesD.Add(Context.Channel.Id, Get.Derpibooru($"{requestUrl}{paige}").Result);
-                    count = JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]).Total;
-                    firstImages = JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
+                    count = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]).Total;
+                    firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
                 }
 
-                List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
+                List<DerpiSearch> allimages = new List<DerpiSearch>();
                 allimages.AddRange(firstImages.Search.ToList());
                 var rand = new Random();
                 if (allimages.Count == 0)
@@ -814,7 +806,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             int paige = 420;
             try
             {
-                DerpibooruResponse.Rootobject firstImages;
+                DerpiRoot firstImages;
                 if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
                 {
                     requestUrl = $"https://derpibooru.org/search.json?q={srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
@@ -830,17 +822,14 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                     try
                     {
                         string tempsrch = Get.Derpibooru($"{requestUrl}1").Result;
-                        int amt = JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(tempsrch)
+                        int amt = JsonConvert.DeserializeObject<DerpiRoot>(tempsrch)
                            .Total;
                         int pages = amt / 50;
                         var randim = new Random();
                         paige = randim.Next(pages);
                         Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}{paige}").Result;
-                        count =
-                       JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id])
-                           .Total;
-                        firstImages =
-                                JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
+                        firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
+                        count = firstImages.Total;
                     }
                     catch
                     {
@@ -852,17 +841,17 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                 else
                 {
                     string tempsrch = Get.Derpibooru($"{requestUrl}1").Result;
-                    int amt = JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(tempsrch)
+                    int amt = JsonConvert.DeserializeObject<DerpiRoot>(tempsrch)
                        .Total;
                     int pages = amt / 50;
                     var randim = new Random();
                     paige = randim.Next(pages);
                     Global.searchesD.Add(Context.Channel.Id, Get.Derpibooru($"{requestUrl}{paige}").Result);
-                    count = JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]).Total;
-                    firstImages = JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
+                    count = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]).Total;
+                    firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
                 }
 
-                List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
+                List<DerpiSearch> allimages = new List<DerpiSearch>();
                 allimages.AddRange(firstImages.Search.ToList());
                 var rand = new Random();
                 if (allimages.Count == 0)
