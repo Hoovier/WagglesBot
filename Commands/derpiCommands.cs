@@ -67,7 +67,19 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             }
         }
     }
-
+    [Command("reverse")]
+    [Alias("r")]
+    public async Task DerpiReverseNoArg()
+    {
+        if (Global.miscLinks.ContainsKey(Context.Channel.Id))
+        {
+            await DerpiReverse(Global.miscLinks[Context.Channel.Id]);
+        }
+        else
+        {
+            await ReplyAsync("There are no links in my memory! Post one first!");
+        }
+    }
     [Command("derpi")]
     [Alias("d")]
     public async Task DerpiDefault([Remainder]string search) {
