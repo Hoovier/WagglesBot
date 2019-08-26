@@ -266,6 +266,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         return;
 
     }
+   
     [Command("artist")]
     [Alias("a")]
     public async Task ArtistAsync([Remainder]string srch)
@@ -377,276 +378,277 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             }
         }
     
-        [Command("artist")]
-        [Alias("a")]
-        public async Task Nolink()
+    [Command("artist")]
+    [Alias("a")]
+    public async Task Nolink()
+    {
+        await Context.Channel.TriggerTypingAsync();
+    
+    string requestUrl;
+    requestUrl = $"https://derpibooru.org/search.json?q=id:{Global.links[Context.Channel.Id]}&filter_id=164610";
+    int count =
+            JsonConvert.DeserializeObject<DerpiRoot>(WagglesBot.Modules.Get.Derpibooru($"{requestUrl}").Result)
+                .Total;
+        DerpiRoot firstImages =
+                    JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}").Result);
+        List<DerpiSearch> allimages = new List<DerpiSearch>();
+        allimages.AddRange(firstImages.Search.ToList());
+
+        if (allimages.Count == 0)
+        {
+            await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+            return;
+        }
+        var rand = new Random();
+        int rd = rand.Next(allimages.Count);
+        var pony = allimages.ElementAt(rd).created_at;
+        var filetype = allimages.ElementAt(rd).original_format;
+        var idofimg = allimages.ElementAt(rd).id;
+
+    if (Global.links.ContainsKey(Context.Channel.Id))
+    {
+        Global.links[Context.Channel.Id] = idofimg;
+    }
+    else
+    {
+        Global.links.Add(Context.Channel.Id, idofimg);
+    }
+    string arrsting = allimages.ElementAt(rd).tags;
+        string[] arrstingchoose = arrsting.Split(',');
+        var sb = new System.Text.StringBuilder();
+        string newresults = "Problem finding artist";
+        var results = Array.FindAll(arrstingchoose, s => s.Contains("artist:"));
+        // if (results.Length == 1)
+        //{
+        //  newresults = results[0].TrimStart();
+        //}
+        if (results.Length > 0)
+        {
+            for (int counter = 0; (counter < results.Length); counter++)
+            {
+                sb.Append($"https://derpibooru.org/tags/{results[counter].Replace("-", "-dash-").Replace(":", "-colon-").TrimStart().Replace(" ", "+") } ");
+            }
+            newresults = sb.ToString();
+        }
+
+        if (allimages.Count > 0)
+        {
+            //var newresults = results[0].TrimStart();
+            pony = pony.Date;
+            string pony4 = pony.ToString("yyyy/M/d");
+
+            var pony2 = allimages.ElementAt(rd).representations.full;
+            string cliky = $"https://derpibooru.org/{idofimg}";
+            //pony2 = $"https:{pony2}";\n ugly link: {pony2}
+            // await ReplyAsync($"{count} matching images found! {cliky} and {pony2}");
+            await ReplyAsync($"{cliky} \n{newresults}");
+        }
+        else if (allimages.Count < 1)
+        {
+
+            await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+        }
+    }
+
+    // Get tags for the image in global cache.
+    // Not a single Derpibooru call made, all non-cache cases return a helpful message.
+    [Command("derpitags")]
+    [Alias("dt")]
+    public async Task DerpiTagsNoLink() {
+        // Trigger "user is typing..." message.
+        await Context.Channel.TriggerTypingAsync();
+
+         DerpiRoot DerpiResponse;
+
+        // Check if an a "~derpi" search has been made in this channel yet.
+        if (Global.searchesD.ContainsKey(Context.Channel.Id)) {
+            DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
+        } else {
+            await ReplyAsync("You need to call `~derpi` (`~d` for short) to get some results before I can hoof over the tags!");
+            return;
+        }
+
+        // Check if prior "~derpi" response had results.
+        if (DerpiResponse.Search.Length < 1) {
+            await ReplyAsync("No results found, please call `~derpi` again to get new results. Then I can fetch tags for you!");
+            return;
+        }
+
+        // Get "Info" block, made up of the Artists list and Image Rating.
+        string artists = DerpiHelper.BuildAristTags(DerpiResponse.Search[0]);
+        string rating = DerpiHelper.GetImageRating(DerpiResponse.Search[0]);
+        
+        // Display `~dt` info block and all image tags.
+        await ReplyAsync($"Info: **{rating}, {artists}**\n\nAll tags: ```{DerpiResponse.Search[0].tags}```");
+    }
+
+    // Get tags for the provided image ID or URL.
+    [Command("derpitags")]
+    [Alias("dt")]
+    public async Task DerpiTags([Remainder]string search) {
+        // First, check if search term is an image ID. An integer.
+        if (int.TryParse(search, out int imageID)) {
+            // 1. Derpibooru GET request. Search = $"id:{imageID}"
+            // 2. Attempt to use parsing method from `DerpiTagsNoLink` above
+        } 
+        // Second, if not an integer, test if it is a valid Booru URL.
+        // REPLACE FALSE CONDITIONAL BELOW WITH A CALL TO A URL CHECK AND/OR REGEX FOR GETTING THE INTEGER ID.
+        else if (false) {
+            // 1. Parse Integer ID from Booru URL.
+            // 2. Do the same as the int.TryParse case above.
+        }
+        // If not a valid Booru URL or ID, output a gentle error message.
+        else {
+            await ReplyAsync("Sorry, I couldn't understand the URL you gave me. Please try again with another URL, or contact Hoovier if something is wrong.");
+        }
+    }
+
+    [Group("derpitags")]
+    [Alias("dt")]
+    public class Repsonsetest : ModuleBase<SocketCommandContext>
+    {
+        [Command]
+        public async Task RegitagsAsync([Remainder]string srch)
         {
             await Context.Channel.TriggerTypingAsync();
-        
-        string requestUrl;
-        requestUrl = $"https://derpibooru.org/search.json?q=id:{Global.links[Context.Channel.Id]}&filter_id=164610";
-        int count =
-               JsonConvert.DeserializeObject<DerpiRoot>(WagglesBot.Modules.Get.Derpibooru($"{requestUrl}").Result)
-                   .Total;
-            DerpiRoot firstImages =
-                     JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}").Result);
+            string requestUrl = $"https://derpibooru.org/search.json?q=id:{srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+            string shortened = srch;
+        if(srch.Contains("?"))
+        {
+            string pattern = @"(\d+)+\?";
+            Match result = Regex.Match(srch, pattern);
+            shortened = result.Value.Trim(new Char[] { ' ', '.', '?' });
+            ulong chanelid = 480105955552395285;
+            if (Context.Channel.Id == chanelid)
+            {
+                requestUrl =
+                            $"https://derpibooru.org/search.json?q=id:{shortened}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+
+
+            }
+
+            else
+            {
+                requestUrl =
+                            $"https://derpibooru.org/search.json?q=id:{shortened}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+            }
+        }
+        else if(srch.Contains("booru"))
+        {
+            string pattern = @"(\d+)";
+            Match result = Regex.Match(srch, pattern);
+            shortened = result.Value.Trim(new Char[] { ' ', '.', '?' });
+            ulong chanelid = 480105955552395285;
+            if (Context.Channel.Id == chanelid)
+            {
+                requestUrl =
+                            $"https://derpibooru.org/search.json?q=id:{shortened}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+
+
+            }
+
+            else
+            {
+                requestUrl =
+                            $"https://derpibooru.org/search.json?q=id:{shortened}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+            }
+        }
+
+        else    if (srch.Contains("https"))
+            {
+                string pattern = @"(\d+)+\.";
+                Match result = Regex.Match(srch, pattern);
+                shortened = result.Value.Trim(new Char[] { ' ', '.' });
+                ulong chanelid = 480105955552395285;
+                if (Context.Channel.Id == chanelid)
+                {
+                    requestUrl =
+                                $"https://derpibooru.org/search.json?q=id:{shortened}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+
+
+                }
+
+                else
+                {
+                    requestUrl =
+                                $"https://derpibooru.org/search.json?q=id:{shortened}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+                }
+
+            }
+            else
+            {
+                await ReplyAsync("Non-url detected, trying now.");
+                ulong chanelid = 480105955552395285;
+                if (Context.Channel.Id == chanelid)
+                {
+                    requestUrl =
+                                $"https://derpibooru.org/search.json?q={shortened}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+
+
+                }
+
+                else
+                {
+                    requestUrl =
+                                $"https://derpibooru.org/search.json?q={shortened}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+                }
+
+            }
+            DerpiRoot firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}1").Result);
+            int count = firstImages.Total;
             List<DerpiSearch> allimages = new List<DerpiSearch>();
             allimages.AddRange(firstImages.Search.ToList());
-
-            if (allimages.Count == 0)
-            {
-                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-                return;
-            }
-            var rand = new Random();
-            int rd = rand.Next(allimages.Count);
-            var pony = allimages.ElementAt(rd).created_at;
-            var filetype = allimages.ElementAt(rd).original_format;
-            var idofimg = allimages.ElementAt(rd).id;
-
-        if (Global.links.ContainsKey(Context.Channel.Id))
-        {
-            Global.links[Context.Channel.Id] = idofimg;
-        }
-        else
-        {
-            Global.links.Add(Context.Channel.Id, idofimg);
-        }
-        string arrsting = allimages.ElementAt(rd).tags;
+            var lop = allimages.ElementAt(0).tags;
+            string arrsting = allimages.ElementAt(0).tags;
             string[] arrstingchoose = arrsting.Split(',');
             var sb = new System.Text.StringBuilder();
-            string newresults = "Problem finding artist";
             var results = Array.FindAll(arrstingchoose, s => s.Contains("artist:"));
-            // if (results.Length == 1)
-            //{
-            //  newresults = results[0].TrimStart();
-            //}
-            if (results.Length > 0)
+            int rightIndex = 0;
+            var ratingIndexplicit = Array.FindIndex(arrstingchoose, s => s.Contains("explicit"));
+            var ratingIndexsafe = Array.FindIndex(arrstingchoose, s => s.Contains("safe"));
+            var ratingIndexquesti = Array.FindIndex(arrstingchoose, s => s.Contains("questionable"));
+            var ratingIndexsuggestive = Array.FindIndex(arrstingchoose, s => s.Contains("suggestive"));
+            string newresults = "Problem finding artist";
+            if (ratingIndexplicit != -1)
             {
-                for (int counter = 0; (counter < results.Length); counter++)
-                {
-                    sb.Append($"https://derpibooru.org/tags/{results[counter].Replace("-", "-dash-").Replace(":", "-colon-").TrimStart().Replace(" ", "+") } ");
-                }
-                newresults = sb.ToString();
+                rightIndex = ratingIndexplicit;
+            }
+            else if (ratingIndexsafe != -1)
+            {
+                rightIndex = ratingIndexsafe;
+            }
+            else if (ratingIndexsuggestive != -1)
+            {
+                rightIndex = ratingIndexsuggestive;
+            }
+            else if (ratingIndexquesti != -1)
+            {
+                rightIndex = ratingIndexquesti;
             }
 
-            if (allimages.Count > 0)
+            if (results.Length == 1)
             {
-                //var newresults = results[0].TrimStart();
-                pony = pony.Date;
-                string pony4 = pony.ToString("yyyy/M/d");
-
-                var pony2 = allimages.ElementAt(rd).representations.full;
-                string cliky = $"https://derpibooru.org/{idofimg}";
-                //pony2 = $"https:{pony2}";\n ugly link: {pony2}
-                // await ReplyAsync($"{count} matching images found! {cliky} and {pony2}");
-                await ReplyAsync($"{cliky} \n{newresults}");
+                newresults = results[0].TrimStart();
             }
-            else if (allimages.Count < 1)
+            else if (results.Length > 1)
             {
+                newresults = string.Join(",", results);
 
-                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+
             }
+
+            await ReplyAsync($"Info: **{arrstingchoose[rightIndex].TrimStart(' ')}, {newresults}** \n \n All tags: ```{lop.TrimStart(' ')}```");
+            return;
+
         }
-    
-        
-        [Group("derpitags")]
-        [Alias("dt")]
-        public class Repsonsetest : ModuleBase<SocketCommandContext>
-        {
-            [Command]
-            async Task Nolink()
-            {
-                await Context.Channel.TriggerTypingAsync();
-            string requestUrl;
-            requestUrl =$"https://derpibooru.org/search.json?q=id:{Global.links[Context.Channel.Id]}&filter_id=164610";
-            int count =
-                   JsonConvert.DeserializeObject<DerpiRoot>(WagglesBot.Modules.Get.Derpibooru($"{requestUrl}").Result)
-                       .Total;
-                DerpiRoot firstImages =
-                         JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}").Result);
-                List<DerpiSearch> allimages = new List<DerpiSearch>();
-                allimages.AddRange(firstImages.Search.ToList());
-                var lop = allimages.ElementAt(0).tags;
-                string arrsting = allimages.ElementAt(0).tags;
-                string[] arrstingchoose = arrsting.Split(',');
-                var sb = new System.Text.StringBuilder();
-                var results = Array.FindAll(arrstingchoose, s => s.Contains("artist:"));
-                int rightIndex = 0;
-                var ratingIndexplicit = Array.FindIndex(arrstingchoose, s => s.Contains("explicit"));
-                var ratingIndexsafe = Array.FindIndex(arrstingchoose, s => s.Contains("safe"));
-                var ratingIndexquesti = Array.FindIndex(arrstingchoose, s => s.Contains("questionable"));
-                var ratingIndexsuggestive = Array.FindIndex(arrstingchoose, s => s.Contains("suggestive"));
-                string newresults = "Problem finding artist";
-                if (ratingIndexplicit != -1)
-                {
-                    rightIndex = ratingIndexplicit;
-                }
-                else if (ratingIndexsafe != -1)
-                {
-                    rightIndex = ratingIndexsafe;
-                }
-                else if (ratingIndexsuggestive != -1)
-                {
-                    rightIndex = ratingIndexsuggestive;
-                }
-                else if (ratingIndexquesti != -1)
-                {
-                    rightIndex = ratingIndexquesti;
-                }
-
-                if (results.Length == 1)
-                {
-                    newresults = results[0].TrimStart();
-                }
-                else if (results.Length > 1)
-                {
-                    newresults = string.Join(",", results);
+    }
 
 
-                }
-
-                await ReplyAsync($"Info: **{arrstingchoose[rightIndex].TrimStart(' ')}, {newresults}** \n \n All tags: ```{lop.TrimStart(' ')}```");
-                return;
 
 
-            }
-            [Command]
-            public async Task RegitagsAsync([Remainder]string srch)
-
-            {
-                await Context.Channel.TriggerTypingAsync();
-                string requestUrl = $"https://derpibooru.org/search.json?q=id:{srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-                string shortened = srch;
-            if(srch.Contains("?"))
-            {
-                string pattern = @"(\d+)+\?";
-                Match result = Regex.Match(srch, pattern);
-                shortened = result.Value.Trim(new Char[] { ' ', '.', '?' });
-                ulong chanelid = 480105955552395285;
-                if (Context.Channel.Id == chanelid)
-                {
-                    requestUrl =
-                              $"https://derpibooru.org/search.json?q=id:{shortened}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
 
 
-                }
 
-                else
-                {
-                    requestUrl =
-                               $"https://derpibooru.org/search.json?q=id:{shortened}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-                }
-            }
-            else if(srch.Contains("booru"))
-            {
-                string pattern = @"(\d+)";
-                Match result = Regex.Match(srch, pattern);
-                shortened = result.Value.Trim(new Char[] { ' ', '.', '?' });
-                ulong chanelid = 480105955552395285;
-                if (Context.Channel.Id == chanelid)
-                {
-                    requestUrl =
-                              $"https://derpibooru.org/search.json?q=id:{shortened}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-
-
-                }
-
-                else
-                {
-                    requestUrl =
-                               $"https://derpibooru.org/search.json?q=id:{shortened}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-                }
-            }
-
-            else    if (srch.Contains("https"))
-                {
-                    string pattern = @"(\d+)+\.";
-                    Match result = Regex.Match(srch, pattern);
-                    shortened = result.Value.Trim(new Char[] { ' ', '.' });
-                    ulong chanelid = 480105955552395285;
-                    if (Context.Channel.Id == chanelid)
-                    {
-                        requestUrl =
-                                  $"https://derpibooru.org/search.json?q=id:{shortened}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-
-
-                    }
-
-                    else
-                    {
-                        requestUrl =
-                                   $"https://derpibooru.org/search.json?q=id:{shortened}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-                    }
-
-                }
-                else
-                {
-                    await ReplyAsync("Non-url detected, trying now.");
-                    ulong chanelid = 480105955552395285;
-                    if (Context.Channel.Id == chanelid)
-                    {
-                        requestUrl =
-                                  $"https://derpibooru.org/search.json?q={shortened}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-
-
-                    }
-
-                    else
-                    {
-                        requestUrl =
-                                   $"https://derpibooru.org/search.json?q={shortened}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-                    }
-
-                }
-                DerpiRoot firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}1").Result);
-                int count = firstImages.Total;
-                List<DerpiSearch> allimages = new List<DerpiSearch>();
-                allimages.AddRange(firstImages.Search.ToList());
-                var lop = allimages.ElementAt(0).tags;
-                string arrsting = allimages.ElementAt(0).tags;
-                string[] arrstingchoose = arrsting.Split(',');
-                var sb = new System.Text.StringBuilder();
-                var results = Array.FindAll(arrstingchoose, s => s.Contains("artist:"));
-                int rightIndex = 0;
-                var ratingIndexplicit = Array.FindIndex(arrstingchoose, s => s.Contains("explicit"));
-                var ratingIndexsafe = Array.FindIndex(arrstingchoose, s => s.Contains("safe"));
-                var ratingIndexquesti = Array.FindIndex(arrstingchoose, s => s.Contains("questionable"));
-                var ratingIndexsuggestive = Array.FindIndex(arrstingchoose, s => s.Contains("suggestive"));
-                string newresults = "Problem finding artist";
-                if (ratingIndexplicit != -1)
-                {
-                    rightIndex = ratingIndexplicit;
-                }
-                else if (ratingIndexsafe != -1)
-                {
-                    rightIndex = ratingIndexsafe;
-                }
-                else if (ratingIndexsuggestive != -1)
-                {
-                    rightIndex = ratingIndexsuggestive;
-                }
-                else if (ratingIndexquesti != -1)
-                {
-                    rightIndex = ratingIndexquesti;
-                }
-
-                if (results.Length == 1)
-                {
-                    newresults = results[0].TrimStart();
-                }
-                else if (results.Length > 1)
-                {
-                    newresults = string.Join(",", results);
-
-
-                }
-
-                await ReplyAsync($"Info: **{arrstingchoose[rightIndex].TrimStart(' ')}, {newresults}** \n \n All tags: ```{lop.TrimStart(' ')}```");
-                return;
-
-            }
-        }
     [Group("imfeelinglucky")]
     [Alias("lucky")]
     public class Resonsetest : ModuleBase<SocketCommandContext>
@@ -965,7 +967,7 @@ public class DerpiHelper {
     /// <param name="artistAsLink">Whether or not to render it as a list of tags, or a list of links.</param>
     /// <param name="NSFW">Only valid if "artistAsLink" is true, then we need to flag if we are showing SFW results or not.</param>
     /// <returns>A string, either a list of artist names, or a list of URLs to artist tagged works.</returns>
-    public static string BuildAristTags(DerpiSearch element, bool artistAsLink, bool NSFW = false) {
+    public static string BuildAristTags(DerpiSearch element, bool artistAsLink = false, bool NSFW = false) {
         string artistResult;
 
         // Get a distilled list of artist tags from the full tag listing.
@@ -1004,6 +1006,34 @@ public class DerpiHelper {
         }
         // If no "safe" tag found, return false.
         return false;
+    }
+
+    // Get Derpibooru Image Rating.
+    public static string GetImageRating(DerpiSearch element) {
+        // All known Derpibooru Rating Tags.
+        string[] ratings = {
+            "safe", 
+            "suggestive", 
+            "questionable", 
+            "explicit", 
+            "semi-grimdark", 
+            "grimdark", 
+            "grotesque",
+            };
+
+        // Get Image tags, cross reference with Rating Tags.
+        foreach (string tag in element.tags.Split(",")) {
+            foreach (string rate in ratings) {
+                // Return the image rating if a rating tag matches.
+                if (tag.Trim().Equals(rate)) {
+                    return rate;
+                }
+            }
+        }
+        
+        // Return "Unrated" if an image is somehow missing a rating.
+        // All caps because it shouldn't be possible/exist in Derpi's systems.
+        return "UNRATED";
     }
 
 }
