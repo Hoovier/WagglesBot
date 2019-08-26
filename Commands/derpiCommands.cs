@@ -72,7 +72,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     [Alias("d")]
     public async Task DerpiDefault([Remainder]string search) {
         // Regular Derpi search should just be the Sorted one with a default sorting option.
-        await DerpiMaster(false, 5, search);
+        await DerpiMaster(false, 4, search);
     }
 
     [Command("derpi")]
