@@ -19,6 +19,7 @@ namespace CoreWaggles
         internal static Dictionary<ulong, string> searchesD = new Dictionary<ulong, string>();
         internal static Dictionary<ulong, string> links = new Dictionary<ulong, string>();
         internal static Dictionary<string, string> excomm = new Dictionary<string, string>();
+        internal static Dictionary<ulong, string> miscLinks = new Dictionary<ulong, string>();
         internal static int searched;
        internal static void checkURL(string srch, ulong id)
         {

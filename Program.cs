@@ -152,6 +152,11 @@ namespace WagglesBot
                
 
             }
+            if(message.Content.ToLower().Contains("https://") && !message.Content.ToLower().Contains("https://derpi"))
+            {
+                var context = new SocketCommandContext(_client, message);
+                Global.miscLinks[context.Channel.Id] = message.Content;
+            }
             if (message.HasStringPrefix("~", ref argPos) && message.Author.Id != 141016540240805888 && !message.HasStringPrefix("~~", ref argPos))
             {
                 
