@@ -980,7 +980,14 @@ public class DerpiHelper {
     // TODO: ADD BETTER DOCUMENT/SUMMARY.
     // Check if a Derpibooru Search result is SFW, by way of scanning for a "safe" tag.
     public static bool IsElementSafe(DerpiSearch element) {
-        return element.tags.Split(',').Any("safe".Contains);
+        foreach (string tag in element.tags.Split(',')) {
+            // If a "safe" tag is found, return true.
+            if (tag.Trim().Equals("safe")) {
+                return true;
+            }
+        }
+        // If no "safe" tag found, return false.
+        return false;
     }
 
 }
