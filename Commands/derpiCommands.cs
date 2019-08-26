@@ -1,5 +1,6 @@
 using Discord.Commands;
 using System;
+using System.Net;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -26,6 +27,47 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
     public CommandService _command { get; set; }
     
+    [Command("reverse")]
+    [Alias("r")]
+    public async Task DerpiReverse([Remainder]string url) {
+         // Broadcasts "User is typing..." message to Discord channel.
+        await Context.Channel.TriggerTypingAsync();
+
+        // Validate that the user input a URL.
+        if (string.IsNullOrEmpty(url)) {
+            await ReplyAsync("No URL given, please provide a valid URL!");
+            return;
+        } else if (DerpiHelper.ValidateUrl(url)) {
+            await ReplyAsync("Invalid or inaccessible URL: `" + url + "`\nPlease try again, or contact Hoovier!");
+            return;
+        }
+
+        // If we have a URL, then make a scraper request.
+        // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
+        string DerpiJson = Get.Derpibooru($"{this.reverseURL}{url}").Result;
+        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(DerpiJson);
+
+        // Convert Search Array to a List, to use List functionality.
+        List<DerpiSearch> imageList = DerpiResponse.Search.ToList();
+        if (imageList.Count == 0) {
+            await ReplyAsync("Could not find the image on Derpibooru.org!");
+        } else {
+            // Get search result element. First element if there are more than one.
+            DerpiSearch element =  imageList.First();
+            // Determine if Channel allows NSFW content or not.
+            bool safeOnly = !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate;
+            
+            if (safeOnly && !DerpiHelper.IsElementSafe(element)) {
+                // If there is a NSFW artwork searched on a SFW channel, do not display result and inform the user.
+                await ReplyAsync("Result found, but is NSFW. Please enable NSFW on this channel to view result, or ask again on an approved channel or private message.");
+            } else {
+                // Display the image link if allowed!
+                string derpiURL = "https://derpibooru.org/" + imageList.First().id;
+                await ReplyAsync("Result found on Derpibooru here: " + derpiURL);
+            }
+        }
+    }
+
     [Command("derpi")]
     [Alias("d")]
     public async Task DerpiDefault([Remainder]string search) {
@@ -99,29 +141,9 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             // TODO: Describe where this is used better?
             Global.links[Context.Channel.Id] = randomElement.id;
 
-            // Get all tags and try to locate artist tag.
-            string[] artistTags = randomElement.tags.Split(',');
-            artistTags = Array.FindAll(artistTags, tag => tag.Contains("artist:"));
-
-            // Parse artist tag results.
-            string artistResults;
-            switch (artistTags.Length) {
-                case 0:
-                    bool isScreencap = randomElement.tags.Contains("screencap");
-                    artistResults = isScreencap ? "" : "\nProblem finding artist"; break;
-                case 1:
-                    artistResults = "\n" + artistTags[0].TrimStart(); break;
-                default:
-                    bool tooMany = artistTags.Length > 10;
-                    artistResults = "\n";
-                    artistResults += tooMany ? "Too many artists to list." : String.Join(' ', artistTags); 
-                    break;
-            }
-
-            // Get the full image URL in the format "//derpicdn.net/img/view/YYYY/M/d/IMAGE_ID.png"
-            string imgLink = randomElement.representations.full;
-
-            await ReplyAsync($"https:{imgLink}{artistResults}");
+            await ReplyAsync(
+                DerpiHelper.BuildDiscordResponse(randomElement, artistAsLink, !safeOnly)
+            );
 
         } catch {
             await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
@@ -129,166 +151,76 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         }
     }
 
+    // Cycles through the page of ~derpi results.
     [Command("next")]
     [Alias("n")]
     public async Task DerpiNext()
+    {       
+        DerpiRoot DerpiResponse;
+
+        // Check if an a "~derpi" search has been made in this channel yet.
+        // We need to deserialize this in order to get the result set size.
+        // TODO: Store the result size globally? To avoid deserializing so soon.
+        if (Global.searchesD.ContainsKey(Context.Channel.Id)) {
+            DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
+        } else {
+            await ReplyAsync("You need to call `~derpi` (`~d` for short) to get some results before I can hoof you over more silly!");
+            return;
+        }
+
+        // If ~next goes off the globally cached page, loop around the beginning again.
+        if(Global.searched + 1 > DerpiResponse.Search.Count()) {
+            Global.searched = 0;
+        }
+
+        // The `~next` command is basically `~next {CurrentIndex + 1}`, lets treat it that way.
+        await DerpiNextPick(++Global.searched);
+    }
+
+    // Allows you to select an item on the page of results by index number.
+    [Command("next")]
+    [Alias("n")]
+    public async Task DerpiNextPick(int index)
     {
         await Context.Channel.TriggerTypingAsync();
- 
+
         DerpiRoot DerpiResponse;
 
         // Check if an a "~derpi" search has been made in this channel yet.
         if (Global.searchesD.ContainsKey(Context.Channel.Id)) {
             DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
         } else {
-             await ReplyAsync("You need to call `~derpi` (`~d` for short) to get some results before I can hoof you over more silly!");
+            await ReplyAsync("You need to call `~derpi` (`~d` for short) to get some results before I can hoof you over more silly!");
             return;
         }
-
-        // Convert Search array to a List, to use List functionality.
-        List<DerpiSearch> imageList = DerpiResponse.Search.ToList();
-        
-        if (imageList.Count == 0) {
+       
+        if (DerpiResponse.Search.Count() == 0) {
+            // No Results Message.
             await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+            return;
+        } else if (index < 0 || index >= DerpiResponse.Search.Count()) {
+            // Out of Bounds Message.
+            await ReplyAsync("Your selection is out of range! Valid values are between 0 and " + (DerpiResponse.Search.Count() - 1));
             return;
         }
 
         // If ~next goes off the globally cached page, loop around the beginning again.
-        if(Global.searched + 1 > imageList.Count()) {
+        if(Global.searched + 1 > DerpiResponse.Search.Count()) {
             Global.searched = 0;
         }
 
-        // TODO, try to normalize image picking code between ~derpi and ~next!
-        int rd = Global.searched++;
-        DerpiSearch randomElement = imageList.ElementAt(rd);
-        var pony = allimages.ElementAt(rd).created_at;
-        var filetype = allimages.ElementAt(rd).original_format;
-        var idofimg = allimages.ElementAt(rd).id;
+        // Get element at specified index.
+        DerpiSearch chosenElement = DerpiResponse.Search.ElementAt(index);
 
         // Add image ID to Global.links.
         // TODO: Describe where this is used better?
-        Global.links[Context.Channel.Id] = randomElement.id;
-        
-        string arrsting = allimages.ElementAt(rd).tags;
-        
-        string[] arrstingchoose = arrsting.Split(',');
-        var sb = new System.Text.StringBuilder();
-        string newresults = "Problem finding artist";
-        var results = Array.FindAll(arrstingchoose, s => s.Contains("artist:"));
-        if (results.Length == 1)
-        {
-            newresults = results[0].TrimStart();
-        }
-        else if (results.Length > 1 && results.Length < 10)
-        {
-            for (int counter = 0; (counter < results.Length); counter++)
-            {
-                sb.Append(results[counter]);
-            }
-            newresults = sb.ToString();
-        }
-        else if (results.Length > 10)
-        {
-            newresults = "Too many artist to list.";
-        }
+        Global.links[Context.Channel.Id] = chosenElement.id;
 
-        if (allimages.Count > 0)
-        {
-            //var newresults = results[0].TrimStart();
-
-            pony = pony.Date;
-            string pony4 = pony.ToString("yyyy/M/d");
-
-            var pony2 = allimages.ElementAt(rd).representations.full;
-            string cliky = $"https://derpicdn.net/img/view/{pony4}/{idofimg}.{filetype}";
-            //pony2 = $"https:{pony2}";\n ugly link: {pony2}
-            // await ReplyAsync($"{count} matching images found! {cliky} and {pony2}");
-            await ReplyAsync($"{cliky} \n{newresults}");
-        }
-        else if (allimages.Count < 1)
-        {
-
-            await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-        }
+        await ReplyAsync(
+            DerpiHelper.BuildDiscordResponse(chosenElement)
+        );
     }
-    [Command("next")]
-    [Alias("n")]
-    public async Task DerpianotheroverloadAsync(int chose)
-    {
-        await Context.Channel.TriggerTypingAsync();
 
-       
-        string individualquery;
-
-
-
-        individualquery = Global.searchesD[Context.Channel.Id];
-
-        DerpiRoot firstImages = JsonConvert.DeserializeObject<DerpiRoot>(individualquery);
-        List<DerpiSearch> allimages = new List<DerpiSearch>();
-        allimages.AddRange(firstImages.Search.ToList());
-
-        if (allimages.Count == 0)
-        {
-            await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-            return;
-        }
-        if (Global.searched + 1 > allimages.Count())
-        {
-            Global.searched = 0;
-        }
-        int rd = chose;
-        var pony = allimages.ElementAt(rd).created_at;
-        var filetype = allimages.ElementAt(rd).original_format;
-        var idofimg = allimages.ElementAt(rd).id;
-        if (Global.links.ContainsKey(Context.Channel.Id))
-        {
-            Global.links[Context.Channel.Id] = idofimg;
-        }
-        else
-        {
-            Global.links.Add(Context.Channel.Id, idofimg);
-        }
-        string arrsting = allimages.ElementAt(rd).tags;
-        string[] arrstingchoose = arrsting.Split(',');
-        var sb = new System.Text.StringBuilder();
-        string newresults = "Problem finding artist";
-        var results = Array.FindAll(arrstingchoose, s => s.Contains("artist:"));
-        if (results.Length == 1)
-        {
-            newresults = results[0].TrimStart();
-        }
-        else if (results.Length > 1 && results.Length < 10)
-        {
-            for (int counter = 0; (counter < results.Length); counter++)
-            {
-                sb.Append(results[counter]);
-            }
-            newresults = sb.ToString();
-        }
-        else if (results.Length > 10)
-        {
-            newresults = "Too many artist to list.";
-        }
-        if (allimages.Count > 0)
-        {
-            //var newresults = results[0].TrimStart();
-
-            pony = pony.Date;
-            string pony4 = pony.ToString("yyyy/M/d");
-
-            var pony2 = allimages.ElementAt(rd).representations.full;
-            string cliky = $"https://derpicdn.net/img/view/{pony4}/{idofimg}.{filetype} ";
-            //pony2 = $"https:{pony2}";\n ugly link: {pony2}
-            // await ReplyAsync($"{count} matching images found! {cliky} and {pony2}");
-            await ReplyAsync($"{cliky} \n{newresults}");
-        }
-        else if (allimages.Count < 1)
-        {
-
-            await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-        }
-    }
     [Command("derpist")]
     [Alias("st")]
     public async Task DerpistAsync([Remainder]string srch)
@@ -945,10 +877,14 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
 /**
     Derpi Utility class to aggregate common functionality.
+    TODO: make this a method of the DerpibooruComms class or find if it is more generic across command files.
  */
 public class DerpiHelper {
-    // TODO: make this a method of the DerpibooruComms class or find if it is more generic across command files.
-    //Takes a base URL, and appends query parameters to it.
+
+    /// <summary>Takes a base URL, and appends query parameters to it.</summary>
+    /// <param name="url">A base URL string. May also have existing parameters.</param>
+    /// <param name="queryParams">A Dictionary of Key-Value pairs for HTML paramters.</param>
+    /// <returns>The fully built search URL.</returns>
     public static string BuildDerpiUrl(string url, IDictionary<string, string> queryParams) {
         // Takes the parameter pairs such as "perpage" and "50", and pairs them into strings "perpage=50".
         string[] queryPairs = queryParams.Select(entry => $"{entry.Key}={entry.Value}").ToArray();
@@ -961,12 +897,60 @@ public class DerpiHelper {
         return $"{url}{(url.Contains("?") ? "&" : "?")}{paramString}";
     }
 
+    /// <summary>Validate that a given string is a URL.</summary>
+    /// <param name="url">A string that may or may not be a URL.</param>
+    /// <returns>TRUE if the string is a reachable URL, FALSE if it isn't.</returns>
+    /// <see>https://stackoverflow.com/a/3808841</see>
+    public static bool ValidateUrl(string url) {
+        try
+        {
+            //Creating the HttpWebRequest
+            HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
+            //Setting the Request method HEAD, you can also use GET too.
+            request.Method = "HEAD";
+            //Getting the Web Response.
+            HttpWebResponse response = request.GetResponse() as HttpWebResponse;
+            //Returns TRUE if the Status code == 200
+            response.Close();
+            return (response.StatusCode == HttpStatusCode.OK);
+        }
+        catch
+        {
+            //Any exception will returns false.
+            return false;
+        }
+    }
+
     // Takes a Derpibooru singular search result node and returns a string message to be sent to Discord.
-    public static string BuildDiscordResponse(DerpiSearch element) {
+    /// <summary>Builds the artist tag section of most Derpibooru results.</summary>
+    /// <param name="element">A Derpibooru Search Result Element.</param>
+    /// <param name="artistAsLink">Whether or not to render it as a list of tags, or a list of links.</param>
+    /// <param name="NSFW">Only valid if "artistAsLink" is true, then we need to flag if we are showing SFW results or not.</param>
+    /// <returns>A string response consisting of the image element itself, and an artist tags block.</returns>
+    public static string BuildDiscordResponse(DerpiSearch element, bool artistAsLink = false, bool NSFW = false) {
         
         // Get the full image URL in the format "//derpicdn.net/img/view/YYYY/M/d/IMAGE_ID.png"
         // Prepend the protocol, HTTPS, to the incomplete URL representation.
         string results = "https:" + element.representations.full;
+
+        // Get the artist block.
+        string artistBlock = DerpiHelper.BuildAristTags(element, artistAsLink, NSFW);
+
+        // Add a newline in between if there are any results.
+        if (!String.IsNullOrEmpty(artistBlock)) {
+            artistBlock = "\n" + artistBlock;
+        }
+
+        return results + artistBlock;
+    }
+
+    /// <summary>Builds the artist tag section of most Derpibooru results.</summary>
+    /// <param name="element">A Derpibooru Search Result Element.</param>
+    /// <param name="artistAsLink">Whether or not to render it as a list of tags, or a list of links.</param>
+    /// <param name="NSFW">Only valid if "artistAsLink" is true, then we need to flag if we are showing SFW results or not.</param>
+    /// <returns>A string, either a list of artist names, or a list of URLs to artist tagged works.</returns>
+    public static string BuildAristTags(DerpiSearch element, bool artistAsLink, bool NSFW = false) {
+        string artistResult;
 
         // Get a distilled list of artist tags from the full tag listing.
         string[] artistTags = element.tags.Split(',');
@@ -977,13 +961,26 @@ public class DerpiHelper {
             case 0:
                 // Unedited screencaps uploaded have no artist tags.
                 bool isScreencap = element.tags.Contains("screencap");
-                results += isScreencap ? "" : "\nProblem finding artist";
-                return results;
+                artistResult = isScreencap ? String.Empty : "Problem finding artist";
+                break;
             case 1:
-                results += "\n" + artistTags[0].TrimStart(); break;
+                artistResult = artistTags[0].TrimStart();
+                if (artistAsLink) {
+                    artistResult = $"https://derpibooru.org/search?q={artistResult}";
+                    artistResult += NSFW ? String.Empty : "+AND+safe";
+                }
+                break;
             default:
-                results += String.Join(' ', artistTags); break;
+                artistResult = String.Join(' ', artistTags); break;
         }
+
+        return artistResult;
+    }
+
+    // TODO: ADD BETTER DOCUMENT/SUMMARY.
+    // Check if a Derpibooru Search result is SFW, by way of scanning for a "safe" tag.
+    public static bool IsElementSafe(DerpiSearch element) {
+        return element.tags.Split(',').Any("safe".Contains);
     }
 
 }
