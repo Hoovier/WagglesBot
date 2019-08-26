@@ -237,35 +237,31 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         );
     }
 
+    
+    // Gets the number of search results for a query.
     [Command("derpist")]
     [Alias("st")]
-    public async Task DerpistAsync([Remainder]string srch)
+    public async Task DerpistAsync([Remainder]string search)
     {
         await Context.Channel.TriggerTypingAsync();
-        string requestUrl;
-        if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
-        {
-            requestUrl =
-                      $"https://derpibooru.org/search.json?q={srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
 
+        // Same base query as ~derpi, discounting sorting and asking for less results.
+        Dictionary<string,string> queryParams = new Dictionary<string,string>() {
+            {"filter_id", "164610"},
+            {"perpage", "1"},
+            {"page", "1"},
+            {"q", search},
+        };
 
-        }
+        // Build the full request URL.
+        string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, queryParams);
 
-        else
-        {
-            requestUrl =
-                       $"https://derpibooru.org/search.json?q={srch}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-        }
-        DerpiRoot firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}1").Result);
-        int count = firstImages.Total;
-        List<DerpiSearch> allimages = new List<DerpiSearch>();
-        allimages.AddRange(firstImages.Search.ToList());
+        // Make the request, and parse the JSON into a C#-friendly object.
+        DerpiRoot results = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}").Result);
 
-
-        await ReplyAsync($"Total results: {count}");
-        return;
-
+        await ReplyAsync($"Total results: {results.Total}");
     }
+
     [Command("artist")]
     [Alias("a")]
     public async Task ArtistAsync([Remainder]string srch)
