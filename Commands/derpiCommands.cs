@@ -174,7 +174,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         }
 
         // The `~next` command is basically `~next {CurrentIndex + 1}`, lets treat it that way.
-        await DerpiNextPick(++Global.searched);
+        await DerpiNextPick(Global.searched++);
     }
 
     // Allows you to select an item on the page of results by index number.
@@ -198,6 +198,10 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             // No Results Message.
             await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
             return;
+        } else if (DerpiResponse.Search.Count() == 1) {
+            // Only a single result, no pagination.
+            await ReplyAsync("Only a single result in this image set.\n");
+            // No return, let it continue to parsing the image below.
         } else if (index < 0 || index >= DerpiResponse.Search.Count()) {
             // Out of Bounds Message.
             await ReplyAsync("Your selection is out of range! Valid values are between 0 and " + (DerpiResponse.Search.Count() - 1));
@@ -980,7 +984,7 @@ public class DerpiHelper {
     // TODO: ADD BETTER DOCUMENT/SUMMARY.
     // Check if a Derpibooru Search result is SFW, by way of scanning for a "safe" tag.
     public static bool IsElementSafe(DerpiSearch element) {
-        foreach (string tag in element.tags.Split(',')) {
+        foreach (string tag in element.tags.Split(",")) {
             // If a "safe" tag is found, return true.
             if (tag.Trim().Equals("safe")) {
                 return true;
