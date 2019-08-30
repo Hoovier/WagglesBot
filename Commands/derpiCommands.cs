@@ -913,7 +913,7 @@ public class DerpiHelper {
     // Test if string is indeed a Derpibooru or valid URL.
     // Quick validation, is this in either Derpi* domain, and can it possibly contain a valid ID?
     public static bool IsBooruUrl(string search) {
-        return ((search.Contains("derpicdn.net") || search.Contains("derpibooru.org")) && search.Any(char.IsDigit);
+        return (search.Contains("derpicdn.net") || search.Contains("derpibooru.org")) && search.Any(char.IsDigit);
     }
 
     // Assumes the URL is a valid DerpiBooru domain.
