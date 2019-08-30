@@ -467,7 +467,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         if (DerpiResponse.Search.Length < 1) {
             await ReplyAsync("No results found, please call `~derpi` again to get new results. Then I can fetch tags for you!");
         } else {
-             await DerpiTagsDisplay(DerpiResponse.Search[0]);
+             await DerpiTagsDisplay(DerpiResponse.Search[Global.searched - 1]);
         }
     }
 
