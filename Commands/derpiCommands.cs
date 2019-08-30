@@ -376,6 +376,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         }
     }
 
+
     // Formatter for the results of both ~dt variants. Not a discord-accessible method.
     private async Task DerpiTagsDisplay(DerpiSearch element) {
         // Get "Info" block, made up of the Artists list and Image Rating.
@@ -724,12 +725,12 @@ public class DerpiHelper {
             case 1:
                 artistResult = artistTags[0].TrimStart();
                 if (artistAsLink) {
-                    artistResult = $"https://derpibooru.org/search?q={artistResult}{safetySuffix}";
+                    artistResult = $"https://derpibooru.org/search?q={artistResult}{safetySuffix}&filter_id=164610";
                 }
                 break;
             default:
                 artistResult = artistAsLink 
-                    ? String.Join("\n", artistTags.Select(t => $"{t}{safetySuffix}"))
+                    ? String.Join("\n", artistTags.Select(t => $"{t}{safetySuffix}&filter_id=164610"))
                     : String.Join(' ', artistTags);
                 break;
         }
