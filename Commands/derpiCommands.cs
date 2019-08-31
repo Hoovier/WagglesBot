@@ -277,6 +277,12 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Get last Derpibooru Image ID from global cache.
         int imageID;
         
+        // Check if an a "~derpi" search has been made in this channel yet.
+        if (!Global.links.ContainsKey(Context.Channel.Id)) {
+            await ReplyAsync("You need to call `~derpi` (`~d` for short) to get some results before I can hoof you over more silly!");
+            return;
+        }
+
         // Try to parse the global cache into an integer ID.
         if (int.TryParse(Global.links[Context.Channel.Id], out imageID)) {
             string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, new Dictionary<string,string>() {
