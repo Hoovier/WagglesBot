@@ -289,7 +289,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                 {"filter_id", "164610"},
                 {"q", $"id:{imageID}"},
             });
-            string DerpiJson = Get.Derpibooru($"{this.baseURL}{requestUrl}").Result;
+            string DerpiJson = Get.Derpibooru(requestUrl).Result;
             DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(DerpiJson);
 
             if (DerpiResponse.Search.Length == 0) {
