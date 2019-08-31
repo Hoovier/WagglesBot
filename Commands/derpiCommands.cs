@@ -734,7 +734,7 @@ public class DerpiHelper {
                 break;
             default:
                 artistResult = artistAsLink 
-                    ? String.Join("\n", artistTags.Select(t => $"{t}{safetySuffix}&filter_id=164610"))
+                    ? String.Join("\n", artistTags.Select(t => $"https://derpibooru.org/search?q={t}{safetySuffix}&filter_id=164610"))
                     : String.Join(' ', artistTags);
                 break;
         }
