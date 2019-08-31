@@ -300,7 +300,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
         }
     }
-
+    
     // Get tags for the image in global cache.
     // Not a single Derpibooru call made, all non-cache cases return a helpful message.
     [Command("derpitags")]
@@ -323,7 +323,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         if (DerpiResponse.Search.Length < 1) {
             await ReplyAsync("No results found, please call `~derpi` again to get new results. Then I can fetch tags for you!");
         } else {
-             await DerpiTagsDisplay(DerpiResponse.Search[0]);
+             await DerpiTagsDisplay(DerpiResponse.Search[Global.searched - 1]);
         }
     }
 
@@ -375,7 +375,6 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             await DerpiTagsDisplay(DerpiResponse.Search[0]);
         }
     }
-
 
     // Formatter for the results of both ~dt variants. Not a discord-accessible method.
     private async Task DerpiTagsDisplay(DerpiSearch element) {
@@ -628,7 +627,6 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             }
         }
     }
-
 }
 
 /**
@@ -775,7 +773,7 @@ public class DerpiHelper {
     // Test if string is indeed a Derpibooru or valid URL.
     // Quick validation, is this in either Derpi* domain, and can it possibly contain a valid ID?
     public static bool IsBooruUrl(string search) {
-        return ((search.Contains("derpicdn.net") || search.Contains("derpibooru.org")) && search.Any(char.IsDigit);
+        return (search.Contains("derpicdn.net") || search.Contains("derpibooru.org")) && search.Any(char.IsDigit);
     }
 
     // Assumes the URL is a valid DerpiBooru domain.
