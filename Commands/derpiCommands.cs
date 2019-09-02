@@ -23,7 +23,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
     // Available sorting methods for Derpibooru.
     // "score" is the default "unsorted" value from the prior version of this command.
-    public readonly string[] sortingOptions = {"created_at", "wilson", "relevance", "random%3A1096362", "score"};
+    public readonly string[] sortingOptions = {"created_at", "wilson", "relevance", "random", "score"};
 
     public CommandService _command { get; set; }
     
@@ -414,7 +414,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Sorted randomly, gets "num" amount of items!
         Dictionary<string,string> queryParams = new Dictionary<string,string>() {
             {"filter_id", "164610"},
-            {"sf", "random%3A7134839"}, 
+            {"sf", "random"}, 
             {"sd", "desc"}, 
             {"perpage", num.ToString()},
             {"page", "1"},
@@ -450,7 +450,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             message += String.Join("\n", 
                 DerpiResponse.Search.Select(
                     element => "https:" + element.representations.full));
-                    
+
             await ReplyAsync(message);
 
         } catch {
