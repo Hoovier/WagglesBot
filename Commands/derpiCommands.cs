@@ -23,7 +23,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
     // Available sorting methods for Derpibooru.
     // "score" is the default "unsorted" value from the prior version of this command.
-    public readonly string[] sortingOptions = {"created_at", "wilson", "relevance", "random%3A1096362", "score"};
+    public readonly string[] sortingOptions = {"created_at", "wilson", "relevance", "random", "score"};
 
     public CommandService _command { get; set; }
     
@@ -392,245 +392,70 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         await ReplyAsync($"Info: **{rating}, {artists}**\n\nAll tags: ```{element.tags}```");
     }
 
-    [Group("imfeelinglucky")]
+    [Command("imfeelinglucky")]
     [Alias("lucky")]
-    public class Resonsetest : ModuleBase<SocketCommandContext>
-    {
-        [Command]
-        public async Task luck(int num, [Remainder]string srch)
-        {
-            await Context.Channel.TriggerTypingAsync();
-            string requestUrl;
-            int count;
-            int paige = 420;
-            if(num == 0 || num > 5)
-            {
-                await ReplyAsync("You need to pick a number bigger than 0 and no more than 5");
-                return;
-            }
-            
-            try
-            {
-                DerpiRoot firstImages;
-                if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
-                {
-                    requestUrl = $"https://derpibooru.org/search.json?q={srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-                }
+    public async Task DerpiLuckySearch([Remainder]string search) {
+        await DerpiLuckyMulti(1, search);
+    }
 
-                else
-                {
-                    requestUrl = $"https://derpibooru.org/search.json?q={srch}&filter_id=164610&sf=random&sd=desc&perpage=50&page=";
-                }
+    [Command("imfeelinglucky")]
+    [Alias("lucky")]
+    public async Task DerpiLuckyMulti(int num, [Remainder]string search) {
+        // Broadcasts "User is typing..." message to Discord channel.
+        await Context.Channel.TriggerTypingAsync();
 
-                if (Global.searchesD.ContainsKey(Context.Channel.Id))
-                {
-                    try
-                    {
-                        string tempsrch = Get.Derpibooru($"{requestUrl}1").Result;
-                        int amt = JsonConvert.DeserializeObject<DerpiRoot>(tempsrch)
-                           .Total;
-                        int pages = amt / 50;
-                        var randim = new Random();
-                        paige = randim.Next(pages);
-                        Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}{paige}").Result;
-                        firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
-                        count = firstImages.Total;
-                    }
-                    catch
-                    {
-                        await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
-                        return;
-                    }
-
-                }
-                else
-                {
-                    string tempsrch = Get.Derpibooru($"{requestUrl}1").Result;
-                    int amt = JsonConvert.DeserializeObject<DerpiRoot>(tempsrch).Total;
-                    int pages = amt / 50;
-                    var randim = new Random();
-                    paige = randim.Next(pages);
-                    Global.searchesD.Add(Context.Channel.Id, Get.Derpibooru($"{requestUrl}{paige}").Result);
-                    count = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]).Total;
-                    firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
-                }
-
-                List<DerpiSearch> allimages = new List<DerpiSearch>();
-                allimages.AddRange(firstImages.Search.ToList());
-                var rand = new Random();
-                if (allimages.Count == 0)
-                {
-                    await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-                    return;
-                }
-                int rd = rand.Next(allimages.Count);
-                List<int> chosen = new List<int>();
-                if(num > allimages.Count)
-                {
-                   await ReplyAsync("Not enough results to post " + num);
-                    return;
-                }
-                string added = $"Listing {num} results";
-                if (allimages.Count > num)
-                {
-                    for (int counting = 0; counting < num; counting++) {
-                        rd = rand.Next(allimages.Count);
-                        while (chosen.Contains(rd))
-                        {
-                            rd = rand.Next(allimages.Count);
-                        }
-                        chosen.Add(rd);
-                        added = $"{added}\nhttps://derpicdn.net/img/view/{allimages.ElementAt(rd).created_at.Date.ToString("yyyy/M/d")}/{allimages.ElementAt(rd).id}.{allimages.ElementAt(rd).original_format}";
-                    }
-                }
-                Global.searched = rd + 1;
-                
-
-                
-                
-
-                if (allimages.Count > 0)
-                {
-                    //var newresults = results[0].TrimStart();
-
-                   
-                    await ReplyAsync(added);
-
-
-                }
-                else if (allimages.Count < 1)
-                {
-
-                    await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-                }
-            }
-            catch
-            {
-                await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
-                return;
-            }
+        // Limit ~lucky amounts.
+        if (num < 1 || num > 5) {
+            await ReplyAsync("You need to pick a number bigger than 0 and no more than 5");
+            return;
         }
-        [Command]
-        public async Task luckmulti([Remainder]string srch)
-        {
-            await Context.Channel.TriggerTypingAsync();
-            string requestUrl;
-            int count;
-            int paige = 420;
-            try
-            {
-                DerpiRoot firstImages;
-                if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
-                {
-                    requestUrl = $"https://derpibooru.org/search.json?q={srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-                }
 
-                else
-                {
-                    requestUrl = $"https://derpibooru.org/search.json?q={srch}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
-                }
+        // Set up the base query parameters.
+        // Sorted randomly, gets "num" amount of items!
+        Dictionary<string,string> queryParams = new Dictionary<string,string>() {
+            {"filter_id", "164610"},
+            {"sf", "random"}, 
+            {"sd", "desc"}, 
+            {"perpage", num.ToString()},
+            {"page", "1"},
+        };
 
-                if (Global.searchesD.ContainsKey(Context.Channel.Id))
-                {
-                    try
-                    {
-                        string tempsrch = Get.Derpibooru($"{requestUrl}1").Result;
-                        int amt = JsonConvert.DeserializeObject<DerpiRoot>(tempsrch)
-                           .Total;
-                        int pages = amt / 50;
-                        var randim = new Random();
-                        paige = randim.Next(pages);
-                        Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}{paige}").Result;
-                        firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
-                        count = firstImages.Total;
-                    }
-                    catch
-                    {
-                        await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
-                        return;
-                    }
+        // If the channel is not on the list of NSFW enabled channels do not allow NSFW results.
+        // the second part checks if the command was executed in DMS, DM channels do not have to be added to the NSFW enabled list.
+        // In DMs the first check will fail, and so will the second, allowing for nsfw results to be displayed.
+        bool safeOnly = !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate;
 
-                }
-                else
-                {
-                    string tempsrch = Get.Derpibooru($"{requestUrl}1").Result;
-                    int amt = JsonConvert.DeserializeObject<DerpiRoot>(tempsrch)
-                       .Total;
-                    int pages = amt / 50;
-                    var randim = new Random();
-                    paige = randim.Next(pages);
-                    Global.searchesD.Add(Context.Channel.Id, Get.Derpibooru($"{requestUrl}{paige}").Result);
-                    count = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]).Total;
-                    firstImages = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
-                }
+        // Add search to the parameters list, with "AND safe" if it failed the NSFW check.
+        queryParams.Add("q", safeOnly ? $"{search}+AND+safe" : search);
 
-                List<DerpiSearch> allimages = new List<DerpiSearch>();
-                allimages.AddRange(firstImages.Search.ToList());
-                var rand = new Random();
-                if (allimages.Count == 0)
-                {
-                    await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-                    return;
-                }
-                int rd = rand.Next(allimages.Count);
+        // Build the full request URL.
+        string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, queryParams);
 
-                Global.searched = rd + 1;
-                var pony = allimages.ElementAt(rd).created_at;
-                var filetype = allimages.ElementAt(rd).original_format;
-                var idofimg = allimages.ElementAt(rd).id;
+        // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
+        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}").Result);
 
-                if (Global.links.ContainsKey(Context.Channel.Id))
-                {
-                    Global.links[Context.Channel.Id] = idofimg;
-                }
-                else
-                {
-                    Global.links.Add(Context.Channel.Id, idofimg);
-                }
-                string arrsting = allimages.ElementAt(rd).tags;
-                string[] arrstingchoose = arrsting.Split(',');
-                var sb = new System.Text.StringBuilder();
-                string newresults = "Problem finding artist";
-                var results = Array.FindAll(arrstingchoose, s => s.Contains("artist:"));
-                if (results.Length == 1)
-                {
-                    newresults = results[0].TrimStart();
-                }
-                else if (results.Length > 1)
-                {
-                    for (int counter = 0; (counter < results.Length); counter++)
-                    {
-                        sb.Append(results[counter]);
-                    }
-                    newresults = sb.ToString();
-                }
-
-                if (allimages.Count > 0)
-                {
-                    //var newresults = results[0].TrimStart();
-
-                    pony = pony.Date;
-                    string pony4 = pony.ToString("yyyy/M/d");
-
-                    var pony2 = allimages.ElementAt(rd).representations.full;
-                    string cliky = $"https://derpicdn.net/img/view/{pony4}/{idofimg}.{filetype}";
-                    //pony2 = $"https:{pony2}";\n ugly link: {pony2}
-                    // await ReplyAsync($"{count} matching images found! {cliky} and {pony2}");
-                    await ReplyAsync($"{cliky} \n:paintbrush:{newresults} :page_facing_up:Found on page {paige}");
-
-
-                }
-                else if (allimages.Count < 1)
-                {
-
-                    await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-                }
-            }
-            catch
-            {
-                await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
+        // Actual request an. Try-catch to softly catch exceptions.
+        try {
+            if (DerpiResponse.Search.Length == 0) {
+                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
                 return;
             }
+            else if (DerpiResponse.Search.Length < num) {
+                await ReplyAsync($"Not enough results to post {num}, but here is what we have found!");
+            }
+
+            // Print all results of the search!
+            // Sorted randomly by Derpibooru already, and will be between 1-5 elements.
+            string message = $"Listing {DerpiResponse.Search.Length} results\n";
+            message += String.Join("\n", 
+                DerpiResponse.Search.Select(
+                    element => "https:" + element.representations.full));
+
+            await ReplyAsync(message);
+
+        } catch {
+            await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
+            return;
         }
     }
 }
@@ -640,6 +465,12 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     TODO: make this a method of the DerpibooruComms class or find if it is more generic across command files.
  */
 public class DerpiHelper {
+
+    // Pick a random element from a List.
+    // Todo: Remove? Make more IEnumerable/generic for Array/Linq usage?
+    public static List<T> GetRandomElements<T>(IEnumerable<T> list, int elementsCount) {
+        return list.OrderBy(arg => Guid.NewGuid()).Take(elementsCount).ToList();
+    }
 
     /// <summary>Takes a base URL, and appends query parameters to it.</summary>
     /// <param name="url">A base URL string. May also have existing parameters.</param>
