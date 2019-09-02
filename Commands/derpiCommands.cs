@@ -404,11 +404,25 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Broadcasts "User is typing..." message to Discord channel.
         await Context.Channel.TriggerTypingAsync();
 
+        // Limit ~lucky amounts.
+        if (num < 1 || num > 5) {
+            await ReplyAsync("You need to pick a number bigger than 0 and no more than 5");
+            return;
+        }
+
+        // Set up the base query parameters.
+        // Sorted randomly, gets "num" amount of items!
         Dictionary<string,string> queryParams = new Dictionary<string,string>() {
             {"filter_id", "164610"},
-            {"random_image", "y"},
+            {"sf", "random%3A7134839"}, 
+            {"sd", "desc"}, 
+            {"perpage", num.ToString()},
+            {"page", "1"},
         };
 
+        // If the channel is not on the list of NSFW enabled channels do not allow NSFW results.
+        // the second part checks if the command was executed in DMS, DM channels do not have to be added to the NSFW enabled list.
+        // In DMs the first check will fail, and so will the second, allowing for nsfw results to be displayed.
         bool safeOnly = !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate;
 
         // Add search to the parameters list, with "AND safe" if it failed the NSFW check.
@@ -416,54 +430,33 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
         // Build the full request URL.
         string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, queryParams);
-        
-        List<int> resultImages = new List<int>();
 
-        // Make the random image request using the search query.
-        // Same URL gives a random result each time it's called.
-        for (int i = 0; i < num; i++) {
-            using (WebClient wc = new WebClient())
-            {
-                // Anonymous class, define a container for the JSON result.
-                // In this case it is simply { "id": "1111111" }" format.
-                // If an image is NOT found, then it returns a different result set, containing a {"total": "0"} response.
-                var definition = new { id = "", total ="" };
-                // A GET request to load the JSON API result.
-                var json = wc.DownloadString(requestUrl);
-                // Deserialize the JSON into the custom ID container we defined above.
-                var result = JsonConvert.DeserializeAnonymousType(json, definition);
-                
-                // Catch the case where there are no results. Will have a result.total value that isn't blank.
-                // Quit the search entirely if zero results.
-                if (!String.IsNullOrEmpty(result.total) && result.total.Equals("0")) {
-                    await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-                    return;
-                }
-                // Catch the proper case where a random image is found!
-                // Continue until `num` calls have been made.
-                else if (!String.IsNullOrEmpty(result.id) && int.TryParse(result.id, out int imageId)) {
-                    resultImages.Add(imageId);
-                }
-                // Otherwise, something odd is afoot, alert the channel.
-                // Break and display whatever results were found up to this point, if any.
-                else {
-                    await ReplyAsync("Something odd happened, please try again. If this continues, please contact Hoovier!");
-                    break;
-                }
+        // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
+        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}").Result);
+
+        // Actual request an. Try-catch to softly catch exceptions.
+        try {
+            if (DerpiResponse.Search.Length == 0) {
+                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+                return;
             }
+            else if (DerpiResponse.Search.Length < num) {
+                await ReplyAsync($"Not enough results to post {num}, but here is what we have found!");
+            }
+
+            // Print all results of the search!
+            // Sorted randomly by Derpibooru already, and will be between 1-5 elements.
+            string message = $"Listing {DerpiResponse.Search.Length} results\n";
+            message += String.Join("\n", 
+                DerpiResponse.Search.Select(
+                    element => "https:" + element.representations.full));
+                    
+            await ReplyAsync(message);
+
+        } catch {
+            await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
+            return;
         }
-
-        // Filter out possible duplicates.
-        resultImages = resultImages.Distinct().ToList();
-
-        // In case we end up finding less images than they wanted.
-        if (resultImages.Count() < num) {
-            await ReplyAsync($"Not enough results to post {num}, but here is what we have found!");
-        }
-
-        // Return all random image results.
-        string resultMessage = String.Join("\n", resultImages.Select(imageId => $"https://derpibooru.org/{imageId}"));
-        await ReplyAsync(resultMessage);
     }
 }
 
@@ -472,6 +465,12 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     TODO: make this a method of the DerpibooruComms class or find if it is more generic across command files.
  */
 public class DerpiHelper {
+
+    // Pick a random element from a List.
+    // Todo: Remove? Make more IEnumerable/generic for Array/Linq usage?
+    public static List<T> GetRandomElements<T>(IEnumerable<T> list, int elementsCount) {
+        return list.OrderBy(arg => Guid.NewGuid()).Take(elementsCount).ToList();
+    }
 
     /// <summary>Takes a base URL, and appends query parameters to it.</summary>
     /// <param name="url">A base URL string. May also have existing parameters.</param>
