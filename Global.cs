@@ -21,6 +21,9 @@ namespace CoreWaggles
         internal static Dictionary<string, string> excomm = new Dictionary<string, string>();
         internal static Dictionary<ulong, string> miscLinks = new Dictionary<ulong, string>();
         internal static int searched;
+        // The Featured Derpibooru Image, and the Timestamp to track when it was last stored.
+        internal static int featuredId = 0;
+        internal static long featuredLastFetch = 0;
        internal static void checkURL(string srch, ulong id)
         {
             string requestUrl = $"https://derpibooru.org/search.json?q=id:{srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";

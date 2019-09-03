@@ -1,6 +1,7 @@
 using Discord.Commands;
 using System;
 using System.Net;
+using System.Net.Http;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,7 +24,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
     // Available sorting methods for Derpibooru.
     // "score" is the default "unsorted" value from the prior version of this command.
-    public readonly string[] sortingOptions = {"created_at", "wilson", "relevance", "random%3A1096362", "score"};
+    public readonly string[] sortingOptions = {"created_at", "wilson", "relevance", "random", "score"};
 
     public CommandService _command { get; set; }
     
@@ -404,11 +405,25 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Broadcasts "User is typing..." message to Discord channel.
         await Context.Channel.TriggerTypingAsync();
 
+        // Limit ~lucky amounts.
+        if (num < 1 || num > 5) {
+            await ReplyAsync("You need to pick a number bigger than 0 and no more than 5");
+            return;
+        }
+
+        // Set up the base query parameters.
+        // Sorted randomly, gets "num" amount of items!
         Dictionary<string,string> queryParams = new Dictionary<string,string>() {
             {"filter_id", "164610"},
-            {"random_image", "y"},
+            {"sf", "random"}, 
+            {"sd", "desc"}, 
+            {"perpage", num.ToString()},
+            {"page", "1"},
         };
 
+        // If the channel is not on the list of NSFW enabled channels do not allow NSFW results.
+        // the second part checks if the command was executed in DMS, DM channels do not have to be added to the NSFW enabled list.
+        // In DMs the first check will fail, and so will the second, allowing for nsfw results to be displayed.
         bool safeOnly = !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate;
 
         // Add search to the parameters list, with "AND safe" if it failed the NSFW check.
@@ -416,54 +431,95 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
         // Build the full request URL.
         string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, queryParams);
-        
-        List<int> resultImages = new List<int>();
 
-        // Make the random image request using the search query.
-        // Same URL gives a random result each time it's called.
-        for (int i = 0; i < num; i++) {
-            using (WebClient wc = new WebClient())
-            {
-                // Anonymous class, define a container for the JSON result.
-                // In this case it is simply { "id": "1111111" }" format.
-                // If an image is NOT found, then it returns a different result set, containing a {"total": "0"} response.
-                var definition = new { id = "", total ="" };
-                // A GET request to load the JSON API result.
-                var json = wc.DownloadString(requestUrl);
-                // Deserialize the JSON into the custom ID container we defined above.
-                var result = JsonConvert.DeserializeAnonymousType(json, definition);
-                
-                // Catch the case where there are no results. Will have a result.total value that isn't blank.
-                // Quit the search entirely if zero results.
-                if (!String.IsNullOrEmpty(result.total) && result.total.Equals("0")) {
-                    await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-                    return;
-                }
-                // Catch the proper case where a random image is found!
-                // Continue until `num` calls have been made.
-                else if (!String.IsNullOrEmpty(result.id) && int.TryParse(result.id, out int imageId)) {
-                    resultImages.Add(imageId);
-                }
-                // Otherwise, something odd is afoot, alert the channel.
-                // Break and display whatever results were found up to this point, if any.
-                else {
-                    await ReplyAsync("Something odd happened, please try again. If this continues, please contact Hoovier!");
-                    break;
-                }
+        // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
+        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}").Result);
+
+        // Actual request an. Try-catch to softly catch exceptions.
+        try {
+            if (DerpiResponse.Search.Length == 0) {
+                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+                return;
+            }
+            else if (DerpiResponse.Search.Length < num) {
+                await ReplyAsync($"Not enough results to post {num}, but here is what we have found!");
+            }
+
+            // Print all results of the search!
+            // Sorted randomly by Derpibooru already, and will be between 1-5 elements.
+            string message = $"Listing {DerpiResponse.Search.Length} results\n";
+            message += String.Join("\n", 
+                DerpiResponse.Search.Select(
+                    element => "https:" + element.representations.full));
+
+            await ReplyAsync(message);
+
+        } catch {
+            await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
+            return;
+        }
+    }
+
+    // TODO: Send byte[] a message asking how Featured Images work, and if there is an API Way to do it.
+    // TODO: Confirm that "featured image" tag, sorted by "updated_at", will give us the current featured image.
+    [Command("featured")]
+    [Alias("f")]
+    public async Task DerpiFeatured() {
+        // Get current timestamp.
+        long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        // Our "freshness" interval (6 hours).
+        long interval = 60 * 60 * 6;
+
+        // Was the featured image ever looked up at all?
+        bool neverRan = Global.featuredId == 0 || Global.featuredLastFetch == 0;
+        // Is our current featured ID stale? Do we need to refresh it?
+        bool isStale = (Global.featuredLastFetch + interval) < currentTime;
+        
+        if (neverRan || isStale) {
+            Global.featuredId = await FetchFeatured();
+            if (Global.featuredId == 0) {
+                // If the featuredId was not updated, or was un-fetchable, return an error.
+                // Do NOT update fetch timestamp.
+                await ReplyAsync("Sorry, I was unable to get the Featured Image. Derpibooru might be down, if it isn't, please try again and let Hoovier know if you still see this message.");
+                return;
+            } else {
+                // Update timestamp to post-fetch time if successful.
+                Global.featuredLastFetch = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             }
         }
+        // Return the stored Featured Image.
+        await ReplyAsync("https://derpibooru.org/" + Global.featuredId);
+    }
 
-        // Filter out possible duplicates.
-        resultImages = resultImages.Distinct().ToList();
+    // Fetch the Derpibooru.org home page, parse the `data-image-id` of the Featured Box.
+    // TODO: Replace this task with a Bash/Cron job outside of waggles that scrapes instead?
+    // TODO-ref: curl -s https://derpibooru.org | grep -oE -m1 'data-image-id=\"([0-9]+)\"'  | head -1 | grep -oE '[0-9]*'
+    private async Task<int> FetchFeatured() {
+        try
+        {
+            // Get an HTTPClient, fetch Derpibooru page, get content body from response.
+            using (HttpClient client = new HttpClient())
+            {
+                // Set max timeout in order to not stress out Waggles!
+                client.Timeout = TimeSpan.FromSeconds(30);
 
-        // In case we end up finding less images than they wanted.
-        if (resultImages.Count() < num) {
-            await ReplyAsync($"Not enough results to post {num}, but here is what we have found!");
+                // Get the page HTML text.
+                // TODO: Stream until we get our result, then abort downloading the rest?
+                string result = await client.GetStringAsync("https://derpibooru.org");
+
+                // Get the first image ID match, which is our featured image ID.
+                // Has a max timeout of 30 seconds to parse the full site HTML before giving up.
+                Regex pattern = new Regex(@"data-image-id=\""(?<imageId>\d+)\""", RegexOptions.None, TimeSpan.FromSeconds(30));
+                Match match = pattern.Match(result);
+                return int.Parse(match.Groups["imageId"].Value);
+            }
         }
-
-        // Return all random image results.
-        string resultMessage = String.Join("\n", resultImages.Select(imageId => $"https://derpibooru.org/{imageId}"));
-        await ReplyAsync(resultMessage);
+        catch {
+            // If `client.GetStringAsync` fails to reach Derpibooru.org.
+            // If `pattern.Match` takes too long to parse.
+            // If `int.Parse()` fails to parse a readable image ID.
+            return 0;
+        }
     }
 }
 
@@ -472,6 +528,12 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     TODO: make this a method of the DerpibooruComms class or find if it is more generic across command files.
  */
 public class DerpiHelper {
+
+    // Pick a random element from a List.
+    // Todo: Remove? Make more IEnumerable/generic for Array/Linq usage?
+    public static List<T> GetRandomElements<T>(IEnumerable<T> list, int elementsCount) {
+        return list.OrderBy(arg => Guid.NewGuid()).Take(elementsCount).ToList();
+    }
 
     /// <summary>Takes a base URL, and appends query parameters to it.</summary>
     /// <param name="url">A base URL string. May also have existing parameters.</param>
