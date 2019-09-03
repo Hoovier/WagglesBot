@@ -131,7 +131,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         
         // Global.searchesD is a dictionary-based cache with the last search result in that channel, if applicable.
         // Always stores results globally for other commands like ~next to keep track.
-        Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}").Result;
+        Global.searchesD[Context.Channel.Id] = Get.Derpibooru(requestUrl).Result;
 
         // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
         DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
@@ -257,7 +257,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, queryParams);
 
         // Make the request, and parse the JSON into a C#-friendly object.
-        DerpiRoot results = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}").Result);
+        DerpiRoot results = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru(requestUrl).Result);
 
         await ReplyAsync($"Total results: {results.Total}");
     }
@@ -372,7 +372,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             {"filter_id", "164610"},
             {"q", $"id:{imageID}"},
         });
-        string DerpiJson = Get.Derpibooru($"{this.baseURL}{requestUrl}").Result;
+        string DerpiJson = Get.Derpibooru(requestUrl).Result;
         DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(DerpiJson);
 
         if (DerpiResponse.Search.Length == 0) {
@@ -433,7 +433,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, queryParams);
 
         // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
-        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru($"{requestUrl}").Result);
+        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru(requestUrl).Result);
 
         // Actual request an. Try-catch to softly catch exceptions.
         try {
