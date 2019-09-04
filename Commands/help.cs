@@ -15,14 +15,10 @@ public class Repsonsetest : ModuleBase<SocketCommandContext>
     {
         RestUserMessage msg = await Context.Channel.
             SendMessageAsync("**__Hi there! I'm Waggles, let me show you what I can do!__** \n I don't wanna cloud your view, so I made a machine to help me help you. All you have to do is react with one of the following emojis to get its corresponding page. \n :wrench: - My admin tools! \n :tada: - The funnest commands! \n :house: - Takes you to the homepage. \n :horse: - Derpibooru commands!");
-        IEmote horse = new Emoji("🐴");
-        IEmote wrench = new Emoji("🔧");
-        IEmote fun = new Emoji("🎉");
-        IEmote home = new Emoji("🏠");
-        await msg.AddReactionAsync(wrench);
-        await msg.AddReactionAsync(fun);
-        await msg.AddReactionAsync(home);
-        await msg.AddReactionAsync(horse);
+        await msg.AddReactionAsync(new Emoji("🔧"));
+        await msg.AddReactionAsync(new Emoji("🎉"));
+        await msg.AddReactionAsync(new Emoji("🏠"));
+        await msg.AddReactionAsync(new Emoji("🐴"));
         Global.MessageIdToTrack = msg.Id;
         Global.MessageTotrack = msg;
     }
