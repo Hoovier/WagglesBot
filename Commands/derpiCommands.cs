@@ -266,7 +266,10 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     [Alias("a")]
     public async Task ArtistAsync([Remainder]string srch)
     {
-        await DerpiMaster(true, this.sortingOptions.Length - 1, srch);
+        // Get image ID from art URL.
+        int imageID = DerpiHelper.ExtractBooruId(srch);
+        // Get Derpibooru search on this specific ID. Display artist as link!
+        await DerpiMaster(true, this.sortingOptions.Length - 1, $"id:{imageID}");
     }
     
     [Command("artist")]
