@@ -6,13 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using WagglesBot.Modules;
 using System.Text.RegularExpressions;
 using CoreWaggles;
 
 // Alias for Derpibooru Response objects.
 using DerpiRoot = WagglesBot.Modules.DerpibooruResponse.Rootobject;
 using DerpiSearch = WagglesBot.Modules.DerpibooruResponse.Search;
+
 
 public class DerpibooruComms : ModuleBase<SocketCommandContext>
 {
@@ -45,7 +45,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
         // If we have a URL, then make a scraper request.
         // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
-        string DerpiJson = Get.Derpibooru($"{this.reverseURL}{url}").Result;
+        string DerpiJson = DerpiHelper.MakeDerpiRequest($"{this.reverseURL}{url}").Result;
         DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(DerpiJson);
 
         // Convert Search Array to a List, to use List functionality.
@@ -131,7 +131,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         
         // Global.searchesD is a dictionary-based cache with the last search result in that channel, if applicable.
         // Always stores results globally for other commands like ~next to keep track.
-        Global.searchesD[Context.Channel.Id] = Get.Derpibooru(requestUrl).Result;
+        Global.searchesD[Context.Channel.Id] = DerpiHelper.MakeDerpiRequest(requestUrl).Result;
 
         // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
         DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
@@ -257,7 +257,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, queryParams);
 
         // Make the request, and parse the JSON into a C#-friendly object.
-        DerpiRoot results = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru(requestUrl).Result);
+        DerpiRoot results = JsonConvert.DeserializeObject<DerpiRoot>(DerpiHelper.MakeDerpiRequest(requestUrl).Result);
 
         await ReplyAsync($"Total results: {results.Total}");
     }
@@ -290,7 +290,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                 {"filter_id", "164610"},
                 {"q", $"id:{imageID}"},
             });
-            string DerpiJson = Get.Derpibooru(requestUrl).Result;
+            string DerpiJson = DerpiHelper.MakeDerpiRequest(requestUrl).Result;
             DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(DerpiJson);
 
             if (DerpiResponse.Search.Length == 0) {
@@ -372,7 +372,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             {"filter_id", "164610"},
             {"q", $"id:{imageID}"},
         });
-        string DerpiJson = Get.Derpibooru(requestUrl).Result;
+        string DerpiJson = DerpiHelper.MakeDerpiRequest(requestUrl).Result;
         DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(DerpiJson);
 
         if (DerpiResponse.Search.Length == 0) {
@@ -433,7 +433,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, queryParams);
 
         // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
-        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru(requestUrl).Result);
+        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(DerpiHelper.MakeDerpiRequest(requestUrl).Result);
 
         // Actual request an. Try-catch to softly catch exceptions.
         try {
@@ -703,6 +703,25 @@ public class DerpiHelper {
 
         // If we make it here, throw -1 as an invalid result flag.
         return -1;
+    }
+
+    public static async Task<string> MakeDerpiRequest(string url) {
+        // Set Handler to allow for GZIP or Deflate compressed HTTP responses.
+        HttpClientHandler handler = new HttpClientHandler();
+        handler.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
+
+        // Set up the HTTP Client for fielding the Derpibooru JSON API.
+        using (HttpClient client = new HttpClient(handler)) {
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+            client.DefaultRequestHeaders.Add("Accept-Encoding", "gzip, deflate");
+            
+            HttpResponseMessage response = await client.GetAsync(url);
+
+            if (response.IsSuccessStatusCode){
+                return await response.Content.ReadAsStringAsync();
+            }
+            return string.Empty;
+        }
     }
 }
 
