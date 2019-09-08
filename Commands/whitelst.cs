@@ -7,19 +7,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
+
 public class Stick : ModuleBase<SocketCommandContext>
 {
+    public readonly string path = "JSONstorage/wlist.JSON";
     [Command("isnsfw")]
     [Alias("woona", "nsfw")]
     public async Task IsnsfwAsync()
     {
-        //This checks the safeChannels List, despite it being named safechannels it is a list of NSFW enabled channels.
-        if (Global.safeChannels.ContainsKey(Context.Channel.Id))
-        {
-            await ReplyAsync("This channel is NSFW.");
-        }
-        else
-            await ReplyAsync("This channel is not NSFW.");
+        string isIt = Global.safeChannels.ContainsKey(Context.Channel.Id) ? "is" : "is not";
+        await ReplyAsync($"This channel {isIt} NSFW.");
     }
 
     [Command("stab")]
@@ -44,7 +41,6 @@ public class Stick : ModuleBase<SocketCommandContext>
                     {
                         Global.safeChannels.Add(channel.Id, Context.Guild.Id);
                         string channelObject = JsonConvert.SerializeObject(Global.safeChannels);
-                        var path = "JSONstorage/wlist.JSON";
                         if (File.Exists(path))
                         {
                             File.WriteAllText(path, channelObject);
@@ -64,7 +60,6 @@ public class Stick : ModuleBase<SocketCommandContext>
                     else
                     {
                         Global.safeChannels.Remove(channel.Id);
-                        var path = "JSONstorage/wlist.JSON";
                         string channelObject = JsonConvert.SerializeObject(Global.safeChannels);
                         if (File.Exists(path))
                         {
@@ -135,7 +130,6 @@ public class Stick : ModuleBase<SocketCommandContext>
                         }
                     }
                     string channelObject = JsonConvert.SerializeObject(Global.safeChannels);
-                    var path = "JSONstorage/wlist.JSON";
                     if (File.Exists(path))
                     {
                         File.WriteAllText(path, channelObject);
