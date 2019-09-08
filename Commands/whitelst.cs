@@ -3,48 +3,36 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 
 public class Stick : ModuleBase<SocketCommandContext>
 {
     [Command("isnsfw")]
     [Alias("woona", "nsfw")]
-
-
     public async Task IsnsfwAsync()
     {
         //This checks the safeChannels List, despite it being named safechannels it is a list of NSFW enabled channels.
         if (Global.safeChannels.ContainsKey(Context.Channel.Id))
         {
-
             await ReplyAsync("This channel is NSFW.");
         }
         else
             await ReplyAsync("This channel is not NSFW.");
-
-
     }
 
     [Command("stab")]
-
     public async Task StabAsync(SocketGuildUser name)
     {
-
         await ReplyAsync($"{Context.User.Mention} stabbed {name.Username}!");
-
-
     }
+
     [Command("wlist")]
     [RequireUserPermission(GuildPermission.ManageChannels)]
-
-    public async Task WlistAsync(string pony, SocketGuildChannel channel)
+    public async Task WlistAsync(string action, SocketGuildChannel channel)
     {
-
-        switch (pony)
+        switch (action)
         {
             case "add":
                 {
@@ -55,13 +43,11 @@ public class Stick : ModuleBase<SocketCommandContext>
                     else
                     {
                         Global.safeChannels.Add(channel.Id, Context.Guild.Id);
-                        string pony2 = JsonConvert.SerializeObject(Global.safeChannels);
-                        var path = "wlist.JSON";
+                        string channelObject = JsonConvert.SerializeObject(Global.safeChannels);
+                        var path = "JSONstorage/wlist.JSON";
                         if (File.Exists(path))
                         {
-
-                            File.WriteAllText(path, pony2);
-
+                            File.WriteAllText(path, channelObject);
                         }
                         else
                             await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
@@ -78,15 +64,11 @@ public class Stick : ModuleBase<SocketCommandContext>
                     else
                     {
                         Global.safeChannels.Remove(channel.Id);
-                        var path = "wlist.JSON";
-                        string pony2 = JsonConvert.SerializeObject(Global.safeChannels);
+                        var path = "JSONstorage/wlist.JSON";
+                        string channelObject = JsonConvert.SerializeObject(Global.safeChannels);
                         if (File.Exists(path))
                         {
-
-                            File.WriteAllText(path, pony2);
-                            // await ReplyAsync("Succesfully found and wrote to the file!");
-                            //Dictionary<ulong, ulong> newList = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText(path));
-                            // await ReplyAsync($"I have {newList.Count} channels in my saved file!");
+                            File.WriteAllText(path, channelObject);
                         }
                         else
                             await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
@@ -103,32 +85,27 @@ public class Stick : ModuleBase<SocketCommandContext>
                         // do something with entry.Value or entry.Key
                         if (entry.Value == Context.Guild.Id)
                         {
-
                             response = $"{response} \n<#{entry.Key}> ";
                         }
                     }
                     await ReplyAsync(response);
                     break;
                 }
+            default:
+                {
+                    await ReplyAsync("Did you forget an action argument? I can ``wlist add #channel``, ``wlist remove #channel``, or even ``wlist list all``.");
+                    break;
+                }
         }
-
-
     }
     [Command("wlist")]
     [RequireUserPermission(GuildPermission.ManageChannels)]
-
-
     public async Task WlistnoargAsync(string arg)
     {
-        /* //
-
-         // await ReplyAsync($"I'm holding {links} ID's and {strings} search strings!");
-         */
         string added = "added: ";
         string notadded = "not added";
         switch (arg)
         {
-
             case "list":
                 {
                     string response = "Contents: ";
@@ -137,7 +114,6 @@ public class Stick : ModuleBase<SocketCommandContext>
                         // do something with entry.Value or entry.Key
                         if (entry.Value == Context.Guild.Id)
                         {
-
                             response = $"{response} \n<#{entry.Key}> ";
                         }
                     }
@@ -148,7 +124,6 @@ public class Stick : ModuleBase<SocketCommandContext>
                 {
                     foreach (SocketGuildChannel channel in Context.Guild.TextChannels)
                     {
-
                         if (Global.safeChannels.ContainsKey(channel.Id))
                         {
                             notadded = $"{notadded} \n<#{channel.Id}> ";
@@ -158,13 +133,12 @@ public class Stick : ModuleBase<SocketCommandContext>
                             Global.safeChannels.Add(channel.Id, Context.Guild.Id);
                             added = $"{added} \n<#{channel.Id}> ";
                         }
-
                     }
-                    string pony = JsonConvert.SerializeObject(Global.safeChannels);
-                    var path = "wlist.JSON";
+                    string channelObject = JsonConvert.SerializeObject(Global.safeChannels);
+                    var path = "JSONstorage/wlist.JSON";
                     if (File.Exists(path))
                     {
-                        File.WriteAllText(path, pony);
+                        File.WriteAllText(path, channelObject);
                         await ReplyAsync("Succesfully found and wrote to the file!");
                         Dictionary<ulong, ulong> newList = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText(path));
                         await ReplyAsync($"I have {newList.Count} channels in my saved file!");
@@ -174,23 +148,25 @@ public class Stick : ModuleBase<SocketCommandContext>
                     await ReplyAsync($"{notadded} \n{added}");
                     break;
                 }
+            default:
+                {
+                    await ReplyAsync("Did you forget an action argument? I can ``wlist list``, ``wlist all``.");
+                    break;
+                }
         }
     }
     [Command("todo")]
-
-
     public async Task TodoAsync(string check, [Remainder] string thingToAdd)
     {
-        string testvar = "woah";
         switch (check)
         {
             case "add":
                 {
                     Global.todo.Add(thingToAdd);
                     await ReplyAsync($"Added: ``{thingToAdd}``");
-                    var path = "List.JSON";
-                    string pony = JsonConvert.SerializeObject(Global.todo);
-                    File.WriteAllText(path, pony);
+                    var path = "JSONstorage/List.JSON";
+                    string channelObject = JsonConvert.SerializeObject(Global.todo);
+                    File.WriteAllText(path, channelObject);
                     break;
                 }
             case "list":
@@ -222,8 +198,5 @@ public class Stick : ModuleBase<SocketCommandContext>
                     break;
                 }
         }
-        //await ReplyAsync($"I'm holding {links} ID's and {strings} search strings!");
     }
-
-  
 }
