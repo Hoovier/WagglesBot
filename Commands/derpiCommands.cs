@@ -589,10 +589,13 @@ public class DerpiHelper {
         // Get the full image URL in the format "//derpicdn.net/img/view/YYYY/M/d/IMAGE_ID.png"
         // Prepend the protocol, HTTPS, to the incomplete URL representation.
         string results = "https:" + element.representations.full;
+
+        //if its an ~artist command, respond with derpibooru/id link instead of derpicdn one
         if (artistAsLink)
         {
              results = "https://derpibooru.org/" + element.id;
         }
+
         // Get the artist block.
         string artistBlock = DerpiHelper.BuildArtistTags(element, artistAsLink, NSFW);
 
