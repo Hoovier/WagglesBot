@@ -585,10 +585,16 @@ public class DerpiHelper {
     /// <param name="NSFW">Only valid if "artistAsLink" is true, then we need to flag if we are showing SFW results or not.</param>
     /// <returns>A string response consisting of the image element itself, and an artist tags block.</returns>
     public static string BuildDiscordResponse(DerpiSearch element, bool artistAsLink = false, bool NSFW = false) {
-        
+
         // Get the full image URL in the format "//derpicdn.net/img/view/YYYY/M/d/IMAGE_ID.png"
         // Prepend the protocol, HTTPS, to the incomplete URL representation.
         string results = "https:" + element.representations.full;
+
+        //if its an ~artist command, respond with derpibooru/id link instead of derpicdn one
+        if (artistAsLink)
+        {
+             results = "https://derpibooru.org/" + element.id;
+        }
 
         // Get the artist block.
         string artistBlock = DerpiHelper.BuildArtistTags(element, artistAsLink, NSFW);
