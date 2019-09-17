@@ -240,7 +240,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
     // Gets the number of search results for a query.
     [Command("derpist")]
-    [Alias("st")]
+    [Alias("st", "count", "amount")]
     public async Task DerpistAsync([Remainder]string search)
     {
         await Context.Channel.TriggerTypingAsync();
@@ -314,7 +314,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     // Get tags for the image in global cache.
     // Not a single Derpibooru call made, all non-cache cases return a helpful message.
     [Command("derpitags")]
-    [Alias("dt")]
+    [Alias("dt", "tags", "tag")]
     public async Task DerpiTagsNoLink() {
         // Trigger "user is typing..." message.
         await Context.Channel.TriggerTypingAsync();
@@ -339,7 +339,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
     // Get tags for the provided image ID or URL.
     [Command("derpitags")]
-    [Alias("dt")]
+    [Alias("dt", "tags", "tag")]
     public async Task DerpiTags([Remainder]string search) {
          // Broadcasts "User is typing..." message to Discord channel.
         await Context.Channel.TriggerTypingAsync();
