@@ -149,9 +149,14 @@ namespace WagglesBot
             // If URL posted is a Derpibooru URL, extract the ID and save to `links` cache.
             if (Global.IsBooruUrl(lowerCaseMessage))
             {
+                // Grab context for Channel info.
                 var context = new SocketCommandContext(_client, message);
-                string srch = message.Content;
-                Global.checkURL(srch, context.Channel.Id);
+                // Extract the Derpibooru image ID.
+                int derpiID = Global.ExtractBooruId(message.Content);
+                // If an ID is able to be parsed out, add it to the `links` cache for the Channel.
+                if (derpiID != -1) {
+                    Global.links[context.Channel.Id] = derpiID.ToString();
+                }
             }
             // If a URL that is NOT booru related, then just save to `miscLinks` cache.
             else if(lowerCaseMessage.Contains("https://") && !Global.IsBooruUrl(lowerCaseMessage))

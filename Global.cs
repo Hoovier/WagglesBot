@@ -24,38 +24,40 @@ namespace CoreWaggles
         // The Featured Derpibooru Image, and the Timestamp to track when it was last stored.
         internal static int featuredId = 0;
         internal static long featuredLastFetch = 0;
-       internal static void checkURL(string srch, ulong id)
-        {
-            string shortened = srch;
-            if (srch.Contains("?"))
-            {
-                string pattern = @"(\d+)+\?";
-                Match result = Regex.Match(srch, pattern);
-                shortened = result.Value.Trim(new Char[] { ' ', '.', '?' });
-                links[id] = shortened; 
-            }
-            else if (srch.Contains("booru"))
-            {
-                string pattern = @"(\d+)";
-                Match result = Regex.Match(srch, pattern);
-                shortened = result.Value.Trim(new Char[] { ' ', '.', '?' });
-                links[id] = shortened;
-            }
-
-            else if (srch.Contains("https"))
-            {
-                string pattern = @"(\d+)+\.";
-                Match result = Regex.Match(srch, pattern);
-                shortened = result.Value.Trim(new Char[] { ' ', '.' });
-                links[id] = shortened;
-            }
-            else{ }
-        }
 
         // Test if string is indeed a Derpibooru or valid URL.
         // Quick validation, is this in either Derpi* domain, and can it possibly contain a valid ID?
         public static bool IsBooruUrl(string search) {
             return (search.Contains("derpicdn.net") || search.Contains("derpibooru.org")) && search.Any(char.IsDigit);
+        }
+
+        // Assumes the URL is a valid DerpiBooru domain.
+        // Returns the Image ID, if possible, from the URL.
+        public static int ExtractBooruId(string url) {
+            // Test case Regex Patterns.
+            string[] patterns = {       
+                // Easy case, a direct "derpibooru.org/IMAGE_ID" URL.
+                @"(?i)derpibooru.org\/(\d+)",
+                // Straight-foward case, direct full-size "derpicdn.net/----/IMAGE_ID.XYZ" URL.
+                // Support .png, .gif, .webm, or any other URL's derpi supports.
+                @"(?i)derpicdn.net\/.*?(\d+)\.[a-z]{3,4}",
+                // "Sized" representations, like ".../IMAGE_ID/tiny_thumb.XYZ"
+                @"(?i)derpicdn.net\/.*?(\d+)\/[a-z_]+\.[a-z0-9]{3,4}",
+                // "Full", really long image name. ".../IMAGE_ID__safe_tag1+tag2+tag3.XYZ"
+                @"(?i)derpicdn.net\/.*?(\d+)__",
+            };
+            Match match;
+            foreach (string pattern in patterns) {
+                // The match data is stored in "match", then tested for success.
+                if ((match = Regex.Match(url, pattern)).Success) {
+                // If the pattern matches, exist early with the value of "match".
+                // Groups[0] is always the value of the initial string. Groups[1] is the first match.
+                return int.Parse(match.Groups[1].Value);
+                }
+            }
+
+            // If we make it here, throw -1 as an invalid result flag.
+            return -1;
         }
     }
 
