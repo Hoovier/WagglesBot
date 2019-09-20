@@ -2,8 +2,6 @@
 using Discord;
 using Discord.Commands;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 using Discord.WebSocket;
@@ -13,6 +11,7 @@ using System.Text.RegularExpressions;
 using CoreWaggles;
 using Newtonsoft.Json;
 using System.IO;
+using System.Linq;
 
 namespace WagglesBot
 {
@@ -143,20 +142,24 @@ namespace WagglesBot
                 var context = new SocketCommandContext(_client, message);
                 await context.Channel.SendMessageAsync("Youre not my supervisor!");
             }
+
+            // We case-insensitive search and compare key phrases of the message.
+            string lowerCaseMessage = message.Content.ToLower();
           
-            if (message.Content.ToLower().Contains("https://derpi"))
+            // If URL posted is a Derpibooru URL, extract the ID and save to `links` cache.
+            if (Global.IsBooruUrl(lowerCaseMessage))
             {
                 var context = new SocketCommandContext(_client, message);
                 string srch = message.Content;
                 Global.checkURL(srch, context.Channel.Id);
-               
-
             }
-            if(message.Content.ToLower().Contains("https://") && !message.Content.ToLower().Contains("https://derpi"))
+            // If a URL that is NOT booru related, then just save to `miscLinks` cache.
+            else if(lowerCaseMessage.Contains("https://") && !Global.IsBooruUrl(lowerCaseMessage))
             {
                 var context = new SocketCommandContext(_client, message);
                 Global.miscLinks[context.Channel.Id] = message.Content;
             }
+
             if (message.HasStringPrefix("~", ref argPos) && message.Author.Id != 141016540240805888 && !message.HasStringPrefix("~~", ref argPos))
             {
                 
@@ -212,6 +215,6 @@ namespace WagglesBot
             }
 
         }
+
     }
-    
 }

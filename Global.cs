@@ -26,7 +26,6 @@ namespace CoreWaggles
         internal static long featuredLastFetch = 0;
        internal static void checkURL(string srch, ulong id)
         {
-            string requestUrl = $"https://derpibooru.org/search.json?q=id:{srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
             string shortened = srch;
             if (srch.Contains("?"))
             {
@@ -51,6 +50,12 @@ namespace CoreWaggles
                 links[id] = shortened;
             }
             else{ }
+        }
+
+        // Test if string is indeed a Derpibooru or valid URL.
+        // Quick validation, is this in either Derpi* domain, and can it possibly contain a valid ID?
+        public static bool IsBooruUrl(string search) {
+            return (search.Contains("derpicdn.net") || search.Contains("derpibooru.org")) && search.Any(char.IsDigit);
         }
     }
 

@@ -352,7 +352,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             // Continue as normal, imageID is stored in the variable.
         } 
         // Second, if not an integer, test if it is a valid Booru URL.
-        else if (DerpiHelper.IsBooruUrl(search)) {
+        else if (Global.IsBooruUrl(search)) {
             // 1. Attempt to parse Integer ID from Booru URL.
             imageID = DerpiHelper.ExtractBooruId(search);
             // 2a. Unparseable, quit early and apologize to user.
@@ -677,12 +677,6 @@ public class DerpiHelper {
         // Return "Unrated" if an image is somehow missing a rating.
         // All caps because it shouldn't be possible/exist in Derpi's systems.
         return "UNRATED";
-    }
-
-    // Test if string is indeed a Derpibooru or valid URL.
-    // Quick validation, is this in either Derpi* domain, and can it possibly contain a valid ID?
-    public static bool IsBooruUrl(string search) {
-        return (search.Contains("derpicdn.net") || search.Contains("derpibooru.org")) && search.Any(char.IsDigit);
     }
 
     // Assumes the URL is a valid DerpiBooru domain.
