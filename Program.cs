@@ -24,21 +24,21 @@ namespace WagglesBot
         private DiscordSocketClient _client;
         private CommandService _commands;
         private IServiceProvider _services;
+        public readonly string todoPath = "JSONstorage/List.JSON";
+        public readonly string safeChannelsPath = "JSONstorage/wlist.JSON";
+        public readonly string extraCommsPath = "JSONstorage/extraComms.JSON";
 
         public async Task runBotAsync()
         {
             _client = new DiscordSocketClient();
             _commands = new CommandService();
             _services = new ServiceCollection()
-            .AddSingleton(_client)
-            .AddSingleton(_commands)
-            .BuildServiceProvider();
-            var path = "JSONstorage/List.JSON";
-            var path2 = "JSONstorage/wlist.JSON";
-            var path3 = "JSONstorage/extraComms.JSON";
-            Global.todo = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(path));
-            Global.safeChannels = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText(path2));
-            Global.excomm = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path3));
+                .AddSingleton(_client)
+                .AddSingleton(_commands)
+                .BuildServiceProvider();
+            Global.todo = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(this.todoPath));
+            Global.safeChannels = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText(this.safeChannelsPath));
+            Global.excomm = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(this.extraCommsPath));
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
             string botToken = keys[1];
@@ -213,4 +213,5 @@ namespace WagglesBot
 
         }
     }
+    
 }
