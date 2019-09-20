@@ -2,8 +2,6 @@
 using Discord;
 using Discord.Commands;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 using Discord.WebSocket;
@@ -13,6 +11,7 @@ using System.Text.RegularExpressions;
 using CoreWaggles;
 using Newtonsoft.Json;
 using System.IO;
+using System.Linq;
 
 namespace WagglesBot
 {
@@ -24,21 +23,21 @@ namespace WagglesBot
         private DiscordSocketClient _client;
         private CommandService _commands;
         private IServiceProvider _services;
+        public readonly string todoPath = "JSONstorage/List.JSON";
+        public readonly string safeChannelsPath = "JSONstorage/wlist.JSON";
+        public readonly string extraCommsPath = "JSONstorage/extraComms.JSON";
 
         public async Task runBotAsync()
         {
             _client = new DiscordSocketClient();
             _commands = new CommandService();
             _services = new ServiceCollection()
-            .AddSingleton(_client)
-            .AddSingleton(_commands)
-            .BuildServiceProvider();
-            var path = "JSONstorage/List.JSON";
-            var path2 = "JSONstorage/wlist.JSON";
-            var path3 = "JSONstorage/extraComms.JSON";
-            Global.todo = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(path));
-            Global.safeChannels = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText(path2));
-            Global.excomm = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(path3));
+                .AddSingleton(_client)
+                .AddSingleton(_commands)
+                .BuildServiceProvider();
+            Global.todo = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(this.todoPath));
+            Global.safeChannels = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText(this.safeChannelsPath));
+            Global.excomm = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(this.extraCommsPath));
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
             string botToken = keys[1];
@@ -143,20 +142,29 @@ namespace WagglesBot
                 var context = new SocketCommandContext(_client, message);
                 await context.Channel.SendMessageAsync("Youre not my supervisor!");
             }
-          
-            if (message.Content.ToLower().Contains("https://derpi"))
-            {
-                var context = new SocketCommandContext(_client, message);
-                string srch = message.Content;
-                Global.checkURL(srch, context.Channel.Id);
-               
 
+            // We case-insensitive search and compare key phrases of the message.
+            string lowerCaseMessage = message.Content.ToLower();
+          
+            // If URL posted is a Derpibooru URL, extract the ID and save to `links` cache.
+            if (Global.IsBooruUrl(lowerCaseMessage))
+            {
+                // Grab context for Channel info.
+                var context = new SocketCommandContext(_client, message);
+                // Extract the Derpibooru image ID.
+                int derpiID = Global.ExtractBooruId(message.Content);
+                // If an ID is able to be parsed out, add it to the `links` cache for the Channel.
+                if (derpiID != -1) {
+                    Global.links[context.Channel.Id] = derpiID.ToString();
+                }
             }
-            if(message.Content.ToLower().Contains("https://") && !message.Content.ToLower().Contains("https://derpi"))
+            // If a URL that is NOT booru related, then just save to `miscLinks` cache.
+            else if(lowerCaseMessage.Contains("https://") && !Global.IsBooruUrl(lowerCaseMessage))
             {
                 var context = new SocketCommandContext(_client, message);
                 Global.miscLinks[context.Channel.Id] = message.Content;
             }
+
             if (message.HasStringPrefix("~", ref argPos) && message.Author.Id != 141016540240805888 && !message.HasStringPrefix("~~", ref argPos))
             {
                 
@@ -212,5 +220,6 @@ namespace WagglesBot
             }
 
         }
+
     }
 }
