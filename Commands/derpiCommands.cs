@@ -319,21 +319,23 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Trigger "user is typing..." message.
         await Context.Channel.TriggerTypingAsync();
 
-         DerpiRoot DerpiResponse;
-
         // Check if an a "~derpi" search has been made in this channel yet.
-        if (Global.searchesD.ContainsKey(Context.Channel.Id)) {
-            DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
-        } else {
-            await ReplyAsync("You need to call `~derpi` (`~d` for short) to get some results before I can hoof over the tags!");
-            return;
-        }
+        if (Global.links.ContainsKey(Context.Channel.Id)) {
+            // Handmade link + the channel ID to get the last stored ID.
+            string builtLink = "https://derpibooru.org/search.json?q=id%3A" + Global.links[Context.Channel.Id];
+            // Retrieves JSON and saves as string.
+            string JSONresponse = Get.Derpibooru(builtLink).Result;
+            // Finally makes the derpibooru object to leverage DerpiTagsDisplay().
+            DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(JSONresponse);
 
-        // Check if prior "~derpi" response had results.
-        if (DerpiResponse.Search.Length < 1) {
-            await ReplyAsync("No results found, please call `~derpi` again to get new results. Then I can fetch tags for you!");
+            // Check if the ID existed or yielded any results.
+            if (DerpiResponse.Search.Length < 1) {
+                await ReplyAsync("No results found, please call `~derpi` again or post another link!");
+            } else {
+                await DerpiTagsDisplay(DerpiResponse.Search[0]);
+            }
         } else {
-             await DerpiTagsDisplay(DerpiResponse.Search[Global.searched - 1]);
+            await ReplyAsync("You need to call `~derpi` (`~d` for short) or post a link before I can hoof over the tags!");
         }
     }
 
