@@ -3,21 +3,20 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace CoreWaggles
 {
-        //TODO: Make aliases server specific!
-        public class aliases : ModuleBase<SocketCommandContext>
-        {
+    //TODO: Make aliases server specific!
+    public class aliases : ModuleBase<SocketCommandContext>
+    {
         [Command("alias add")]
         public async Task setCommand(string name, [Remainder] string command)
         {
             //Adds new command to extraCommands dictionary
             Global.excomm[name] = command;
             //saves excomm dictionary to file
-            Global.updateExcomm();
+            aliases.updateExcomm();
             await ReplyAsync("Succesfully found and wrote to the file!");
         }
 
@@ -29,7 +28,7 @@ namespace CoreWaggles
             {
                 string tempcomm = Global.excomm[name]; //used to store command that is deleted temporarily
                 Global.excomm.Remove(name);
-                Global.updateExcomm(); //updates excomm file
+                aliases.updateExcomm(); //updates excomm file
                 await ReplyAsync($"Removed alias {name}: {tempcomm}");
             }
             else
@@ -42,7 +41,7 @@ namespace CoreWaggles
             {
                 string tempcomm = Global.excomm[name];
                 Global.excomm[name] = newcom;
-                Global.updateExcomm(); //updates excomm file
+                aliases.updateExcomm(); //updates excomm file
                 await ReplyAsync($"Replaced alias {tempcomm} with {newcom}");
             }
             else
@@ -69,7 +68,25 @@ namespace CoreWaggles
             listOfNames = $"{listOfNames}```";
             await ReplyAsync(listOfNames);
         }
-    }
-  
-    }
 
+        // Used to make sure the saved file is always the same as one in memory
+        public static void updateExcomm()
+        {
+            string path = "JSONstorage/extraComms.JSON";
+            //this check doesnt work, and I dont know why
+            //the if statement always evaluates to true
+            //new path is correct, but still should have failed in the past
+            if (File.Exists(path))
+            {
+                //serializes dictionary
+                string excommJSON = JsonConvert.SerializeObject(Global.excomm);
+                //writes it to file
+                File.WriteAllText(path, excommJSON);
+            }
+            else
+            {
+                Console.WriteLine("Error writing to extraComms.JSON!");
+            }
+        }
+    }
+}

@@ -1,12 +1,7 @@
 ﻿using Discord.Rest;
-using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using WagglesBot.Modules;
-using System.IO;
 namespace CoreWaggles
 {
     internal static class Global
@@ -61,25 +56,5 @@ namespace CoreWaggles
             // If we make it here, throw -1 as an invalid result flag.
             return -1;
         }
-        internal static void updateExcomm()
-        {
-            //used to make sure the saved file is always the same as one in memory
-            string path = "JSONstorage/extraComms.JSON";
-            //this check doesnt work, and I dont know why
-            //the if statement always evaluates to true
-            //new path is correct, but still should have failed in the past
-            if (File.Exists(path))
-            {
-                //serializes dictionary
-                string excommJSON = JsonConvert.SerializeObject(excomm);
-                //writes it to file
-                File.WriteAllText(path, excommJSON);
-            }
-            else
-            {
-                Console.WriteLine("Error writing to extraComms.JSON!");
-            }
-        }
     }
-
 }
