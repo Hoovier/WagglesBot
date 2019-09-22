@@ -8,32 +8,28 @@ using System.Threading.Tasks;
 
 namespace CoreWaggles
 {
+        //TODO: Make aliases server specific!
         public class aliases : ModuleBase<SocketCommandContext>
         {
-            [Command("alias add")]
+        [Command("alias add")]
         public async Task setCommand(string name, [Remainder] string command)
         {
+            //Adds new command to extraCommands dictionary
             Global.excomm[name] = command;
-            string pony = JsonConvert.SerializeObject(Global.excomm);
-            var path = "extraComms.JSON";
-            if (File.Exists(path))
-            {
-                File.WriteAllText(path, pony);
-                await ReplyAsync("Succesfully found and wrote to the file!");
-
-            }
-            else
-                await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-            
+            //saves excomm dictionary to file
+            Global.updateExcomm();
+            await ReplyAsync("Succesfully found and wrote to the file!");
         }
 
         [Command("alias remove")]
         public async Task remAlias(string name)
         {
+            //checks if dictionary has the command in it
             if (Global.excomm.ContainsKey(name))
             {
-                string tempcomm = Global.excomm[name];
+                string tempcomm = Global.excomm[name]; //used to store command that is deleted temporarily
                 Global.excomm.Remove(name);
+                Global.updateExcomm(); //updates excomm file
                 await ReplyAsync($"Removed alias {name}: {tempcomm}");
             }
             else
@@ -46,6 +42,7 @@ namespace CoreWaggles
             {
                 string tempcomm = Global.excomm[name];
                 Global.excomm[name] = newcom;
+                Global.updateExcomm(); //updates excomm file
                 await ReplyAsync($"Replaced alias {tempcomm} with {newcom}");
             }
             else
@@ -56,7 +53,6 @@ namespace CoreWaggles
         {
             if (Global.excomm.ContainsKey(name))
             {
-               
                 await ReplyAsync($"Command:```{name} - {Global.excomm[name]}```");
             }
             else
@@ -66,7 +62,6 @@ namespace CoreWaggles
         public async Task listAlias()
         {
             string listOfNames = "**Aliases** \n```";
-            
             foreach (KeyValuePair<string,string> i in Global.excomm)
             {
                 listOfNames = $"{listOfNames}{i.Key}: {i.Value} \n";
@@ -75,4 +70,6 @@ namespace CoreWaggles
             await ReplyAsync(listOfNames);
         }
     }
+  
     }
+
