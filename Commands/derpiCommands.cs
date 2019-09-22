@@ -319,26 +319,23 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Trigger "user is typing..." message.
         await Context.Channel.TriggerTypingAsync();
 
-        DerpiRoot DerpiResponse;
-        string JSONresponse, builtLink;
         // Check if an a "~derpi" search has been made in this channel yet.
         if (Global.links.ContainsKey(Context.Channel.Id)) {
-            //Handmade link + the channel ID to get the last stored ID
-            builtLink = "https://derpibooru.org/search.json?q=id%3A" + Global.links[Context.Channel.Id];
-            //Retrieves JSON and saves as string
-            JSONresponse = Get.Derpibooru(builtLink).Result;
-            //finally makes the derpibooru object to leverage DerpiTagsDisplay()
-            DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(JSONresponse);
+            // Handmade link + the channel ID to get the last stored ID.
+            string builtLink = "https://derpibooru.org/search.json?q=id%3A" + Global.links[Context.Channel.Id];
+            // Retrieves JSON and saves as string.
+            string JSONresponse = Get.Derpibooru(builtLink).Result;
+            // Finally makes the derpibooru object to leverage DerpiTagsDisplay().
+            DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(JSONresponse);
+
+            // Check if the ID existed or yielded any results.
+            if (DerpiResponse.Search.Length < 1) {
+                await ReplyAsync("No results found, please call `~derpi` again or post another link!");
+            } else {
+                await DerpiTagsDisplay(DerpiResponse.Search[0]);
+            }
         } else {
             await ReplyAsync("You need to call `~derpi` (`~d` for short) or post a link before I can hoof over the tags!");
-            return;
-        }
-      
-        // Check if prior "~derpi" response had results.
-        if (DerpiResponse.Search.Length < 1) {
-            await ReplyAsync("No results found, please call `~derpi` again or post another link!");
-        } else {
-             await DerpiTagsDisplay(DerpiResponse.Search[0]);
         }
     }
 
