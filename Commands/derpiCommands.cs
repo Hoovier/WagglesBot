@@ -267,7 +267,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     public async Task ArtistAsync([Remainder]string srch)
     {
         // Get image ID from art URL.
-        int imageID = DerpiHelper.ExtractBooruId(srch);
+        int imageID = Global.ExtractBooruId(srch);
         // Get Derpibooru search on this specific ID. Display artist as link!
         await DerpiMaster(true, this.sortingOptions.Length - 1, $"id:{imageID}");
     }
@@ -319,21 +319,23 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Trigger "user is typing..." message.
         await Context.Channel.TriggerTypingAsync();
 
-         DerpiRoot DerpiResponse;
-
         // Check if an a "~derpi" search has been made in this channel yet.
-        if (Global.searchesD.ContainsKey(Context.Channel.Id)) {
-            DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
-        } else {
-            await ReplyAsync("You need to call `~derpi` (`~d` for short) to get some results before I can hoof over the tags!");
-            return;
-        }
+        if (Global.links.ContainsKey(Context.Channel.Id)) {
+            // Handmade link + the channel ID to get the last stored ID.
+            string builtLink = "https://derpibooru.org/search.json?q=id%3A" + Global.links[Context.Channel.Id];
+            // Retrieves JSON and saves as string.
+            string JSONresponse = Get.Derpibooru(builtLink).Result;
+            // Finally makes the derpibooru object to leverage DerpiTagsDisplay().
+            DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(JSONresponse);
 
-        // Check if prior "~derpi" response had results.
-        if (DerpiResponse.Search.Length < 1) {
-            await ReplyAsync("No results found, please call `~derpi` again to get new results. Then I can fetch tags for you!");
+            // Check if the ID existed or yielded any results.
+            if (DerpiResponse.Search.Length < 1) {
+                await ReplyAsync("No results found, please call `~derpi` again or post another link!");
+            } else {
+                await DerpiTagsDisplay(DerpiResponse.Search[0]);
+            }
         } else {
-             await DerpiTagsDisplay(DerpiResponse.Search[Global.searched - 1]);
+            await ReplyAsync("You need to call `~derpi` (`~d` for short) or post a link before I can hoof over the tags!");
         }
     }
 
@@ -352,9 +354,9 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             // Continue as normal, imageID is stored in the variable.
         } 
         // Second, if not an integer, test if it is a valid Booru URL.
-        else if (DerpiHelper.IsBooruUrl(search)) {
+        else if (Global.IsBooruUrl(search)) {
             // 1. Attempt to parse Integer ID from Booru URL.
-            imageID = DerpiHelper.ExtractBooruId(search);
+            imageID = Global.ExtractBooruId(search);
             // 2a. Unparseable, quit early and apologize to user.
             if (imageID == -1) {
                 await ReplyAsync("Sorry, I couldn't understand the URL you gave me. Please try again with another URL, or contact Hoovier if something is wrong.");
@@ -678,41 +680,6 @@ public class DerpiHelper {
         // All caps because it shouldn't be possible/exist in Derpi's systems.
         return "UNRATED";
     }
-
-    // Test if string is indeed a Derpibooru or valid URL.
-    // Quick validation, is this in either Derpi* domain, and can it possibly contain a valid ID?
-    public static bool IsBooruUrl(string search) {
-        return (search.Contains("derpicdn.net") || search.Contains("derpibooru.org")) && search.Any(char.IsDigit);
-    }
-
-    // Assumes the URL is a valid DerpiBooru domain.
-    // Returns the Image ID, if possible, from the URL.
-    public static int ExtractBooruId(string url) {
-        // Test case Regex Patterns.
-        string[] patterns = {       
-            // Easy case, a direct "derpibooru.org/IMAGE_ID" URL.
-            @"(?i)derpibooru.org\/(\d+)",
-            // Straight-foward case, direct full-size "derpicdn.net/----/IMAGE_ID.XYZ" URL.
-            // Support .png, .gif, .webm, or any other URL's derpi supports.
-            @"(?i)derpicdn.net\/.*?(\d+)\.[a-z]{3,4}",
-            // "Sized" representations, like ".../IMAGE_ID/tiny_thumb.XYZ"
-            @"(?i)derpicdn.net\/.*?(\d+)\/[a-z_]+\.[a-z0-9]{3,4}",
-            // "Full", really long image name. ".../IMAGE_ID__safe_tag1+tag2+tag3.XYZ"
-            @"(?i)derpicdn.net\/.*?(\d+)__",
-        };
-        Match match;
-        foreach (string pattern in patterns) {
-            // The match data is stored in "match", then tested for success.
-            if ((match = Regex.Match(url, pattern)).Success) {
-            // If the pattern matches, exist early with the value of "match".
-            // Groups[0] is always the value of the initial string. Groups[1] is the first match.
-            return int.Parse(match.Groups[1].Value);
-            }
-        }
-
-        // If we make it here, throw -1 as an invalid result flag.
-        return -1;
-    }
 }
 
 // TODO:
@@ -746,7 +713,7 @@ public class DerpiTest {
         };
 
         foreach (string str in strings) {
-            Console.WriteLine (DerpiHelper.ExtractBooruId(str));
+            Console.WriteLine (Global.ExtractBooruId(str));
         }
         Console.WriteLine("Test complete. ");
     } 
