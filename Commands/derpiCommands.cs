@@ -322,7 +322,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Check if an a "~derpi" search has been made in this channel yet.
         if (Global.links.ContainsKey(Context.Channel.Id)) {
             // Handmade link + the channel ID to get the last stored ID.
-            string builtLink = "https://derpibooru.org/search.json?q=id%3A" + Global.links[Context.Channel.Id];
+            string builtLink = "https://derpibooru.org/search.json?q=id%3A" + Global.links[Context.Channel.Id] + "&filter_id=164610";
             // Retrieves JSON and saves as string.
             string JSONresponse = Get.Derpibooru(builtLink).Result;
             // Finally makes the derpibooru object to leverage DerpiTagsDisplay().
