@@ -65,6 +65,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                 // Display the image link if allowed!
                 string derpiURL = "https://derpibooru.org/" + imageList.First().id;
                 await ReplyAsync("Result found on Derpibooru here: " + derpiURL);
+                Global.links[Context.Channel.Id] = imageList.First().id;
             }
         }
     }

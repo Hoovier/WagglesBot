@@ -175,15 +175,6 @@ namespace WagglesBot
                 else
                 {
                     var result = await _commands.ExecuteAsync(context, argPos, _services);
-
-                    string srch = message.Content;
-                    if (srch.Contains("https"))
-                    {
-                        string pattern = @"(\d+)+\.";
-                        Match results = Regex.Match(srch, pattern);
-                        string shortened = results.Value.Trim(new Char[] { ' ', '.' });
-                        Global.links[context.Channel.Id] = shortened;
-                    }
                     if (!result.IsSuccess)
                     {
                         Console.WriteLine(result.ErrorReason);
