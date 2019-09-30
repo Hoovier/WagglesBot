@@ -3,7 +3,6 @@ using Discord;
 using Discord.Commands;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -48,7 +47,7 @@ namespace WagglesBot
             // event subscriptions
             _client.Log += Log;
             _client.ReactionAdded += OnReactionAdded;
-         //   _client.UserJoined += AnnounceJoinedUser;
+            // _client.UserJoined += AnnounceJoinedUser;
             await _client.StartAsync();
 
             await Task.Delay(-1);
@@ -167,7 +166,6 @@ namespace WagglesBot
 
             if (message.HasStringPrefix("~", ref argPos) && message.Author.Id != 141016540240805888 && !message.HasStringPrefix("~~", ref argPos))
             {
-                
                 var context = new SocketCommandContext(_client, message);
                 Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{context.Channel.Name}] \n{message.Author.Username}: {message.Content}");
                 if (Global.excomm.ContainsKey(message.Content.Trim('~')))
@@ -179,22 +177,17 @@ namespace WagglesBot
                     var result = await _commands.ExecuteAsync(context, argPos, _services);
 
                     string srch = message.Content;
-                    string shortened;
                     if (srch.Contains("https"))
                     {
                         string pattern = @"(\d+)+\.";
                         Match results = Regex.Match(srch, pattern);
-                        shortened = results.Value.Trim(new Char[] { ' ', '.' });
+                        string shortened = results.Value.Trim(new Char[] { ' ', '.' });
                         Global.links[context.Channel.Id] = shortened;
-
                     }
                     if (!result.IsSuccess)
                     {
-
                         Console.WriteLine(result.ErrorReason);
-
                         await context.Channel.SendMessageAsync("Sorry! Seems like I messed up, here's where it all went wrong: **" + result.ErrorReason + "**");
-
                     }
                 }
             }

@@ -1,11 +1,7 @@
 ﻿using Discord.Rest;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using WagglesBot.Modules;
-
 namespace CoreWaggles
 {
     internal static class Global
@@ -61,5 +57,4 @@ namespace CoreWaggles
             return -1;
         }
     }
-
 }

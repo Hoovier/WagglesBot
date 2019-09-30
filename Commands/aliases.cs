@@ -3,37 +3,32 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace CoreWaggles
 {
-        public class aliases : ModuleBase<SocketCommandContext>
-        {
-            [Command("alias add")]
+    //TODO: Make aliases server specific!
+    public class aliases : ModuleBase<SocketCommandContext>
+    {
+        [Command("alias add")]
         public async Task setCommand(string name, [Remainder] string command)
         {
+            //Adds new command to extraCommands dictionary
             Global.excomm[name] = command;
-            string pony = JsonConvert.SerializeObject(Global.excomm);
-            var path = "extraComms.JSON";
-            if (File.Exists(path))
-            {
-                File.WriteAllText(path, pony);
-                await ReplyAsync("Succesfully found and wrote to the file!");
-
-            }
-            else
-                await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-            
+            //saves excomm dictionary to file
+            aliases.updateExcomm();
+            await ReplyAsync("Succesfully found and wrote to the file!");
         }
 
         [Command("alias remove")]
         public async Task remAlias(string name)
         {
+            //checks if dictionary has the command in it
             if (Global.excomm.ContainsKey(name))
             {
-                string tempcomm = Global.excomm[name];
+                string tempcomm = Global.excomm[name]; //used to store command that is deleted temporarily
                 Global.excomm.Remove(name);
+                aliases.updateExcomm(); //updates excomm file
                 await ReplyAsync($"Removed alias {name}: {tempcomm}");
             }
             else
@@ -46,6 +41,7 @@ namespace CoreWaggles
             {
                 string tempcomm = Global.excomm[name];
                 Global.excomm[name] = newcom;
+                aliases.updateExcomm(); //updates excomm file
                 await ReplyAsync($"Replaced alias {tempcomm} with {newcom}");
             }
             else
@@ -56,7 +52,6 @@ namespace CoreWaggles
         {
             if (Global.excomm.ContainsKey(name))
             {
-               
                 await ReplyAsync($"Command:```{name} - {Global.excomm[name]}```");
             }
             else
@@ -66,7 +61,6 @@ namespace CoreWaggles
         public async Task listAlias()
         {
             string listOfNames = "**Aliases** \n```";
-            
             foreach (KeyValuePair<string,string> i in Global.excomm)
             {
                 listOfNames = $"{listOfNames}{i.Key}: {i.Value} \n";
@@ -74,5 +68,25 @@ namespace CoreWaggles
             listOfNames = $"{listOfNames}```";
             await ReplyAsync(listOfNames);
         }
+
+        // Used to make sure the saved file is always the same as one in memory
+        public static void updateExcomm()
+        {
+            string path = "JSONstorage/extraComms.JSON";
+            //this check doesnt work, and I dont know why
+            //the if statement always evaluates to true
+            //new path is correct, but still should have failed in the past
+            if (File.Exists(path))
+            {
+                //serializes dictionary
+                string excommJSON = JsonConvert.SerializeObject(Global.excomm);
+                //writes it to file
+                File.WriteAllText(path, excommJSON);
+            }
+            else
+            {
+                Console.WriteLine("Error writing to extraComms.JSON!");
+            }
+        }
     }
-    }
+}
