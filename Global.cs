@@ -1,4 +1,5 @@
 ﻿using Discord.Rest;
+using Discord.WebSocket;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -17,6 +18,8 @@ namespace CoreWaggles
         internal static Dictionary<ulong, string> links = new Dictionary<ulong, string>();
         internal static Dictionary<string, string> excomm = new Dictionary<string, string>();
         internal static Dictionary<ulong, string> miscLinks = new Dictionary<ulong, string>();
+        internal static List<SocketUser> contestants = new List<SocketUser>();
+        internal static Dictionary<SocketUser, List<SocketUser>> votes = new Dictionary<SocketUser, List<SocketUser>>();
         internal static int searched;
         // The Featured Derpibooru Image, and the Timestamp to track when it was last stored.
         internal static int featuredId = 0;
