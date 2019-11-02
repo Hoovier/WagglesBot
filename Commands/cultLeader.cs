@@ -11,7 +11,7 @@ namespace CoreWaggles.Commands
     public class cultLeader : ModuleBase<SocketCommandContext>
     {
         [Command("nick")]
-        [RequireUserPermission(GuildPermission.ManageChannels)]
+        [RequireUserPermission(GuildPermission.ManageNicknames)]
         public async Task setNick(SocketGuildUser oldUser, [Remainder] string nick)
         { 
             await oldUser.ModifyAsync(user => user.Nickname = nick);
