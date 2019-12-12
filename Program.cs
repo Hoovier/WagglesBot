@@ -182,7 +182,11 @@ namespace WagglesBot
                     }
                 }
             }
-
+            else
+            {
+                var context = new SocketCommandContext(_client, message);
+                WittyProcessor.Process(context, message.Content);
+            }
 
             if ((message.Content.ToLower().Contains("lewd") || message.Content.ToLower().Contains("sexuals")) && message.Content.ToLower().Contains("rym"))
             {

@@ -17,6 +17,7 @@ namespace CoreWaggles
         internal static Dictionary<ulong, string> links = new Dictionary<ulong, string>();
         internal static Dictionary<string, string> excomm = new Dictionary<string, string>();
         internal static Dictionary<ulong, string> miscLinks = new Dictionary<ulong, string>();
+        internal static Dictionary<ulong, List<WittyObject>> wittyDictionary = new Dictionary<ulong, List<WittyObject>>();
         internal static int searched;
         // The Featured Derpibooru Image, and the Timestamp to track when it was last stored.
         internal static int featuredId = 0;
