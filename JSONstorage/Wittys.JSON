@@ -1,0 +1,10 @@
+﻿{
+  "480105954973712398": [
+    {
+      "name": "notScreaming",
+      "trigger": "^(?=[A-Z])[^a-z]{4,}$",
+      "probability": 0.4,
+      "responses": [ "Harder!", "DONT STOP" ]
+    }
+  ]
+}
