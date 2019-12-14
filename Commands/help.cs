@@ -191,6 +191,18 @@ public class Repsonsetest : ModuleBase<SocketCommandContext>
                     await Context.Channel.SendMessageAsync("", false, builder);
                     break;
                 }
+            case "witty":
+                {
+                    var builder = new EmbedBuilder();
+                    builder.WithTitle("Witty Command");
+                    builder.AddInlineField("Usage", "```~witty <list/remove/add/edit/get> <WittyName> <Regex String> <0.0-1.0 chance> <'Response 1' 'Response 2' 'Response X'> ```");
+                    builder.AddInlineField("Command Description", "This command allows one to add witties, or responses to a certain message matching a Regex string");
+                    builder.AddInlineField("Argument", "Pretty straightforward, add, remove, or get a witty.");
+                    builder.WithThumbnailUrl("https://derpicdn.net/img/view/2015/2/5/821737.png");
+                    builder.WithColor(66, 244, 238);
+                    await Context.Channel.SendMessageAsync("", false, builder);
+                    break;
+                }
             default:
                 {
                     await Context.Channel.SendMessageAsync($"{command} is not a command I know. I triple checked!");

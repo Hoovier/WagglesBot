@@ -25,6 +25,7 @@ namespace WagglesBot
         public readonly string todoPath = "JSONstorage/List.JSON";
         public readonly string safeChannelsPath = "JSONstorage/wlist.JSON";
         public readonly string extraCommsPath = "JSONstorage/extraComms.JSON";
+        public readonly string WittysPath = "JSONstorage/Wittys.JSON";
 
         public async Task runBotAsync()
         {
@@ -37,6 +38,7 @@ namespace WagglesBot
             Global.todo = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(this.todoPath));
             Global.safeChannels = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText(this.safeChannelsPath));
             Global.excomm = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(this.extraCommsPath));
+            Global.wittyDictionary = JsonConvert.DeserializeObject<Dictionary<ulong, List<WittyObject>>>(File.ReadAllText(this.WittysPath));
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
             string botToken = keys[1];
@@ -182,7 +184,11 @@ namespace WagglesBot
                     }
                 }
             }
-
+            else
+            {
+                var context = new SocketCommandContext(_client, message);
+                WittyProcessor.Process(context, message.Content);
+            }
 
             if ((message.Content.ToLower().Contains("lewd") || message.Content.ToLower().Contains("sexuals")) && message.Content.ToLower().Contains("rym"))
             {
