@@ -13,6 +13,19 @@ namespace CoreWaggles.Commands
     public class WittyCommands : ModuleBase<SocketCommandContext>
     {
         public readonly string path = "JSONstorage/Wittys.JSON";
+        public async Task updateWittyFile()
+        {
+            string channelObject = JsonConvert.SerializeObject(Global.wittyDictionary);
+            if (File.Exists(path))
+            {
+                File.WriteAllText(path, channelObject);
+            }
+            else
+            {
+                await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
+                return;
+            }
+        }
         [Command("witty add")]
         public async Task addWitty(string name, string match, double probability, params String[] responses)
         {
@@ -33,17 +46,7 @@ namespace CoreWaggles.Commands
             }
             //adds witty to associated server wide dictionary
             Global.wittyDictionary[Context.Guild.Id].Add(temp);
-            //write object JSON info to file
-            string channelObject = JsonConvert.SerializeObject(Global.wittyDictionary);
-            if (File.Exists(path))
-            {
-                File.WriteAllText(path, channelObject);
-            }
-            else
-            {
-                await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-                return;
-            }
+            await updateWittyFile();
             await ReplyAsync("Added Witty with name: " + temp.name);
         }
         [Command("witty remove")]
@@ -56,17 +59,7 @@ namespace CoreWaggles.Commands
                 {
                     Global.wittyDictionary[Context.Guild.Id].Remove(wit);
                     await ReplyAsync("removed " + name + "!");
-                    //write witties to file
-                    string channelObject = JsonConvert.SerializeObject(Global.wittyDictionary);
-                    if (File.Exists(path))
-                    {
-                        File.WriteAllText(path, channelObject);
-                    }
-                    else
-                    {
-                        await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-                        return;
-                    }
+                    await updateWittyFile();
                     return;
                 }
             }
@@ -106,7 +99,7 @@ namespace CoreWaggles.Commands
                 {
                     if (wit.name == name)
                     {
-                        string response = "**Name:** " + wit.name + "\n**Regex:** " + wit.trigger + "\n**Probability:** " + wit.probability + "\n**Responses:** \n";
+                        string response = "**Name:** " + wit.name + "\n**Regex:** ```" + wit.trigger + "```\n**Probability:** " + wit.probability + "\n**Responses:** \n";
                         foreach (string words in wit.responses)
                             response = response + words + "\n";
                         await ReplyAsync(response);
@@ -116,7 +109,154 @@ namespace CoreWaggles.Commands
             }
             await ReplyAsync("Witty by that name not found! Try ~witty list to get all witty names!");
         }
-        //more to be added later!
+        //hard code this command, due to it needing a double argument.
+        [Command("wittyedit probability")]
+        public async Task editProb(string name, double newProb)
+        {
+            WittyObject temp;
+            if (!Global.wittyDictionary.ContainsKey(Context.Guild.Id))
+            {
+                await ReplyAsync("No wittys registered in this server yet, use '~help witty' to find out how to add one!");
+                return;
+            }
+            else
+            {
+                foreach (WittyObject wit in Global.wittyDictionary[Context.Guild.Id])
+                {
+                    if (wit.name == name)
+                    {
+                        temp = wit;
+                        double oldProb = wit.probability;
+                        temp.probability = newProb;
+                        Global.wittyDictionary[Context.Guild.Id].Remove(wit);
+                        Global.wittyDictionary[Context.Guild.Id].Add(temp);
+                        await updateWittyFile();
+                        await ReplyAsync("Replaced ```" + oldProb + "``` with ```" + temp.probability + "```");
+                        return;
+                    }
+                }
+            }
+        }
+        [Command("wittyedit add responses")]
+        [Alias("wittyedit add response")]
+        public async Task addResponses(string name, params string[] stringsToadd)
+        {
+            WittyObject temp;
+            if (!Global.wittyDictionary.ContainsKey(Context.Guild.Id))
+            {
+                await ReplyAsync("No wittys registered in this server yet, use '~help witty' to find out how to add one!");
+                return;
+            }
+            else
+            {
+                foreach (WittyObject wit in Global.wittyDictionary[Context.Guild.Id])
+                {
+                    if (wit.name == name)
+                    {
+                        temp = wit;
+                        foreach (string response in stringsToadd)
+                            temp.responses.Add(response);
+                        string allResponses = "Responses:\n";
+                        foreach (string resp in temp.responses)
+                            allResponses = allResponses + resp + "\n";
+                        Global.wittyDictionary[Context.Guild.Id].Remove(wit);
+                        Global.wittyDictionary[Context.Guild.Id].Add(temp);
+                        await updateWittyFile();
+                        await ReplyAsync(allResponses);
+                        return;
+                    }
+                }
+                await ReplyAsync("Witty not found!");
+            }
+        }
+        [Command("wittyedit remove responses")]
+        [Alias("wittyedit remove response")]
+        public async Task removeResponses(string name, int index)
+        {
+            WittyObject temp;
+            if (!Global.wittyDictionary.ContainsKey(Context.Guild.Id))
+            {
+                await ReplyAsync("No wittys registered in this server yet, use '~help witty' to find out how to add one!");
+                return;
+            }
+            else
+            {
+                foreach (WittyObject wit in Global.wittyDictionary[Context.Guild.Id])
+                {
+                    if (wit.name == name)
+                    {
+                        if(wit.responses.Count < index || index == 0)
+                        {
+                            await ReplyAsync("Valid indexes are 0" + "-" + wit.responses.Count);
+                            return;
+                        }
+                        temp = wit;
+                        string chosen = temp.responses.ElementAt(index - 1);
+                        temp.responses.Remove(chosen);
+                        string allResponses = "Responses:\n";
+                        foreach (string resp in temp.responses)
+                            allResponses = allResponses + resp + "\n";
+                        Global.wittyDictionary[Context.Guild.Id].Remove(wit);
+                        Global.wittyDictionary[Context.Guild.Id].Add(temp);
+                        await updateWittyFile();
+                        await ReplyAsync(allResponses);
+                        return;
+                    }
+                }
+                await ReplyAsync("Witty not found!");
+            }
+        }
+        //edit either name or regex string
+        [Command("wittyedit")]
+        public async Task editWitty(string option, string name, string argument)
+        {
+            WittyObject temp;
+            if (!Global.wittyDictionary.ContainsKey(Context.Guild.Id))
+            {
+                await ReplyAsync("No wittys registered in this server yet, use '~help witty' to find out how to add one!");
+                return;
+            }
+            else
+            {
+                foreach (WittyObject wit in Global.wittyDictionary[Context.Guild.Id])
+                {
+                    if (wit.name == name)
+                    {
+                        temp = wit;
+                        switch (option)
+                        {
+                            case "name": 
+                                {
+                                    string oldName = wit.name;
+                                    temp.name = argument;
+                                    Global.wittyDictionary[Context.Guild.Id].Remove(wit);
+                                    Global.wittyDictionary[Context.Guild.Id].Add(temp);
+                                    await updateWittyFile();
+                                    await ReplyAsync("Replaced ```" + oldName + "``` with ```" + temp.name + "```");
+                                    return;
+                                }
+                            case "regex":
+                                {
+                                    string oldReg = wit.trigger;
+                                    temp.trigger = argument;
+                                    Global.wittyDictionary[Context.Guild.Id].Remove(wit);
+                                    Global.wittyDictionary[Context.Guild.Id].Add(temp);
+                                    await updateWittyFile();
+                                    await ReplyAsync("Replaced ```" + oldReg + "``` with ```" + temp.trigger + "```");
+                                    return;
+                                }
+                            default:
+                                {
+                                    await ReplyAsync("Sorry, that is not a valid option! Try name/regex/probability/responses.");
+                                    return;
+                                }
+                        }
+                    }
+                }
+                await ReplyAsync("No witty found by that name!");
+            }
+            
+        }
         [Command("wittydesc")]
         public async Task describe()
         {

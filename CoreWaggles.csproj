@@ -16,7 +16,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="JSONstorage\Wittys.JSON">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Keys.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
