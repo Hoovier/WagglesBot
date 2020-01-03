@@ -13,38 +13,24 @@ namespace CoreWaggles.Commands
    public class e621Commands : ModuleBase<SocketCommandContext>
     {
         [Command("e")]
-        public async Task setNick(string srch)
+        public async Task e621Search(string srch)
         {
             //url for use, explicit images and inserts provided tags straight in.
-            string url = $"https://e621.net/post/index.json?tags={srch}+rating:e&limit=5";
-            string respond;
-
-            using (HttpClient client = new HttpClient())
+            string url = $"https://e621.net/post/index.json?tags={srch}+rating:e&limit=50";
+            string respond = e621.getJSON(url).Result;
+            if (respond == "failure")
             {
-                //userAgent info
-                string info = "WagglesBot/1.0 (by Hoovier)";
-                string type = "application/json";
-                client.BaseAddress = new Uri(url);
-
-                //random client things, not super sure if all of it is needed apart from UserAgent stuff.
-                client.DefaultRequestHeaders.Accept.Clear();
-                client.DefaultRequestHeaders.UserAgent.Clear();
-                //important useragent things, not allowed through without this
-                client.DefaultRequestHeaders.UserAgent.ParseAdd(info);
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(type));
-                HttpResponseMessage response = await client.GetAsync(String.Empty);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    respond = await response.Content.ReadAsStringAsync();
-                    List<e621.Image> response1 = JsonConvert.DeserializeObject<List<e621.Image>>(respond);
-                    await ReplyAsync(response1.ElementAt(1).file_url);
-                }
-                else
-                {
-                    respond = string.Empty;
-                    await ReplyAsync("Status code was failure. " + response.StatusCode);
-                }
+               await ReplyAsync("An error occurred!");
+                return;
+            }
+            List<e621.Image> imageList = JsonConvert.DeserializeObject<List<e621.Image>>(respond);
+            if (imageList.Count == 0)
+                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+            else 
+            {
+                Random rand = new Random();
+                int chose = rand.Next(0, 49);
+                await ReplyAsync(imageList.ElementAt(chose).file_url);
             }
         }
     }

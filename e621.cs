@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace CoreWaggles
 {
@@ -46,8 +49,34 @@ namespace CoreWaggles
             public string parent_id { get; set; }
             public string[] artist { get; set; }
             public string[] sources { get; set; }
+        }
+        public static async Task<string> getJSON(string url)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                //userAgent info
+                string info = "WagglesBot/1.0 (by Hoovier)";
+                string type = "application/json";
+                client.BaseAddress = new Uri(url);
 
+                //random client things, not super sure if all of it is needed apart from UserAgent stuff.
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.DefaultRequestHeaders.UserAgent.Clear();
+                //important useragent things, not allowed through without this
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(info);
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(type));
+                HttpResponseMessage response = await client.GetAsync(String.Empty);
 
+                if (response.IsSuccessStatusCode)
+                {
+                    string result = await response.Content.ReadAsStringAsync();
+                    return result;
+                }
+                else
+                {
+                    return "failure";
+                }
+            }
         }
     }
 }
