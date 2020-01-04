@@ -22,6 +22,11 @@ namespace CoreWaggles
         // The Featured Derpibooru Image, and the Timestamp to track when it was last stored.
         internal static int featuredId = 0;
         internal static long featuredLastFetch = 0;
+        //holds the JSON for the last e621 search in the channel
+        internal static Dictionary<ulong, string> e621Searches = new Dictionary<ulong, string>();
+        //holds the index of last used element of JSON array in cache
+        //probably come up with a better name for this
+        internal static int e621SearchIndex;
 
         // Test if string is indeed a Derpibooru or valid URL.
         // Quick validation, is this in either Derpi* domain, and can it possibly contain a valid ID?
