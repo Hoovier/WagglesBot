@@ -40,6 +40,16 @@ namespace CoreWaggles.Commands
             if(Global.e621Searches.ContainsKey(Context.Channel.Id))
             {
                 ImageList responseList = JsonConvert.DeserializeObject<ImageList>(Global.e621Searches[Context.Channel.Id]);
+                if(responseList.Count == 0)
+                {
+                    await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+                    return;
+                }
+                if (responseList.Count == 1)
+                {
+                    await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0));
+                    return;
+                }
                 if (responseList.Count == Global.e621SearchIndex)
                     Global.e621SearchIndex = 0;
                 Global.e621SearchIndex++;
@@ -49,7 +59,48 @@ namespace CoreWaggles.Commands
             {
                 await ReplyAsync("You have to make a search first! Try running ~e <tag(s)>");
             }
-            
+        }
+        [Command("etags")]
+        [Alias("et", "e621tags")]
+        public async Task e621Tags()
+        {
+            if (Global.e621Searches.ContainsKey(Context.Channel.Id))
+            {
+                ImageList responseList = JsonConvert.DeserializeObject<ImageList>(Global.e621Searches[Context.Channel.Id]);
+                e621.Image chosen = responseList.ElementAt(Global.e621SearchIndex);
+                if (responseList.Count == 0)
+                {
+                    await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+                    return;
+                }
+               
+                await ReplyAsync(e621Helper.Builde621Tags(chosen));
+            }
+            else
+            {
+                await ReplyAsync("You have to make a search first! Try running ~e <tag(s)>");
+            }
+        }
+    }
+    public class e621Helper
+    {
+        //This dictionary returns the string corresponding to the rating member in an Image object.
+        //ex: ratings[s] returns "Safe,"
+        public readonly static Dictionary<string, string> ratings = new Dictionary<string, string>() 
+        { { "s", "Safe, " }, { "q", "Questionable, " }, { "e", "Explicit, " } };
+
+        /// <summary>Takes an e621.Image object and returns formatted tag string.</summary>
+        /// <param name="img">An e621.Image object that will have tags extracted</param>
+        /// <returns>Formatted tag and artist string.</returns>
+        public static string Builde621Tags(e621.Image img)
+        {
+            // Adds commas to tags, for easier reading.
+            string tagString = img.tags.Replace(" ", ", ");
+            // Create string with ratings and artist tags
+            string artistAndRating = ratings[img.rating.ToString()] + "**Artist(s):** " + string.Join(",", img.artist);
+
+            //return string with lots of formatting!
+            return "**Info:** " + artistAndRating + "\n\n" + "All tags: \n```" + tagString + "```";
         }
     }
 }
