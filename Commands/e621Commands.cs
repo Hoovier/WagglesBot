@@ -11,11 +11,38 @@ namespace CoreWaggles.Commands
 {
    public class e621Commands : ModuleBase<SocketCommandContext>
     {
+        //array for sorting options, https://e621.net/help/show/cheatsheet#sorting
+        //-id is default, newest first, id is reverse
+        public readonly string[] sortingOptions = { "-id", "id", "score",  "favcount", "random"};
+
         [Command("e")]
         public async Task e621Search([Remainder] string srch)
         {
+            //run same command as sorted one, but pass default option as arg
+            await e621SearchSort(0, srch);
+        }
+        [Command("e")]
+        public async Task e621SearchSort(int sort, string srch)
+        {
+            //if sort integer is too small or big, give help
+            if (sort - 1 > sortingOptions.Length || sort < 0)
+            {
+                await ReplyAsync("Sorting integers are: \n```0:Default, newest to oldest. \n1:Oldest to newest. \n2:Score. \n3:FavCount. \n4:Random.```" +
+                    "\nManual sorting can be done by using this chart https://e621.net/help/show/cheatsheet#sorting and inserting it into a search as a tag. " +
+                    "\nEx: Overriding default search order with mpixels order.```~e order:mpixels horse```");
+                return;
+            }
             //url for use, explicit images and inserts provided tags straight in.
-            string url = $"https://e621.net/post/index.json?tags={srch}+rating:s&limit=50";
+            string url;
+            //if channel is not on the explicit channels list,
+            if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
+            {
+                url = $"https://e621.net/post/index.json?tags=order:{sortingOptions[sort]}+{srch}+rating:s&limit=50";
+            }
+            else
+            {
+                url = $"https://e621.net/post/index.json?tags=order:{sortingOptions[sort]}+{srch}+-cub&limit=50";
+            }
             string respond = e621.getJSON(url).Result;
             if (respond == "failure")
             {
@@ -29,7 +56,7 @@ namespace CoreWaggles.Commands
             {
                 Global.e621Searches[Context.Channel.Id] = respond;
                 Random rand = new Random();
-                Global.e621SearchIndex = rand.Next(0, 49);
+                Global.e621SearchIndex = rand.Next(0, responseList.Count);
                 await ReplyAsync(responseList.ElementAt(Global.e621SearchIndex).file_url);
             }
         }
