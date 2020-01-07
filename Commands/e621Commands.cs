@@ -16,14 +16,17 @@ namespace CoreWaggles.Commands
         public readonly string[] sortingOptions = { "-id", "id", "score", "favcount", "random" };
 
         [Command("e")]
+        [Alias("e621", "e6")]
         public async Task e621Search([Remainder] string srch)
         {
             //run same command as sorted one, but pass default option as arg
             await e621SearchSort(0, srch);
         }
         [Command("e")]
+        [Alias("e621", "e6")]
         public async Task e621SearchSort(int sort, string srch)
         {
+            await Context.Channel.TriggerTypingAsync();
             //if sort integer is too small or big, give help
             if (sort - 1 > sortingOptions.Length || sort < 0)
             {
@@ -65,6 +68,7 @@ namespace CoreWaggles.Commands
         [Alias("enext", "ne")]
         public async Task e621Next()
         {
+            await Context.Channel.TriggerTypingAsync();
             if (Global.e621Searches.ContainsKey(Context.Channel.Id))
             {
                 ImageList responseList = JsonConvert.DeserializeObject<ImageList>(Global.e621Searches[Context.Channel.Id]);
@@ -92,6 +96,7 @@ namespace CoreWaggles.Commands
         [Alias("enext", "ne")]
         public async Task e621NextSpecific(int index)
         {
+            await Context.Channel.TriggerTypingAsync();
             if (Global.e621Searches.ContainsKey(Context.Channel.Id))
             {
                 ImageList responseList = JsonConvert.DeserializeObject<ImageList>(Global.e621Searches[Context.Channel.Id]);
@@ -123,6 +128,7 @@ namespace CoreWaggles.Commands
         [Alias("et", "e621tags")]
         public async Task e621Tags()
         {
+            await Context.Channel.TriggerTypingAsync();
             if (Global.e621Searches.ContainsKey(Context.Channel.Id))
             {
                 ImageList responseList = JsonConvert.DeserializeObject<ImageList>(Global.e621Searches[Context.Channel.Id]);
