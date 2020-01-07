@@ -20,6 +20,11 @@ namespace CoreWaggles.Commands
         public async Task e621SearchSort(int sort, [Remainder]string srch)
         {
             await Context.Channel.TriggerTypingAsync();
+            if(srch.Contains("loli") || srch.Contains("foalcon") || srch.Contains("cub"))
+            {
+                await ReplyAsync("Those search terms(loli, foalcon, or cub) are not allowed! Try again!");
+                return;
+            }
             //if sort integer is too small or big, give help
             if (sort - 1 > sortingOptions.Length || sort < 0)
             {
@@ -37,7 +42,7 @@ namespace CoreWaggles.Commands
             }
             else
             {
-                url = $"https://e621.net/post/index.json?tags=order:{sortingOptions[sort]}+{srch}+-cub&limit=50";
+                url = $"https://e621.net/post/index.json?tags=order:{sortingOptions[sort]}+{srch}+-cub+-loli+-foalcon&limit=50";
             }
             string respond = e621.getJSON(url).Result;
             if (respond == "failure")
@@ -47,7 +52,7 @@ namespace CoreWaggles.Commands
             }
             ImageList responseList = JsonConvert.DeserializeObject<ImageList>(respond);
             if (responseList.Count == 0)
-                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel! requrl: " + url);
+                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
             else
             {
                 Global.e621Searches[Context.Channel.Id] = respond;
