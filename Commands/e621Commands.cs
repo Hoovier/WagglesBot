@@ -17,14 +17,7 @@ namespace CoreWaggles.Commands
 
         [Command("e")]
         [Alias("e621", "e6")]
-        public async Task e621Search([Remainder] string srch)
-        {
-            //run same command as sorted one, but pass default option as arg
-            await e621SearchSort(0, srch);
-        }
-        [Command("e")]
-        [Alias("e621", "e6")]
-        public async Task e621SearchSort(int sort, string srch)
+        public async Task e621SearchSort(int sort, [Remainder]string srch)
         {
             await Context.Channel.TriggerTypingAsync();
             //if sort integer is too small or big, give help
@@ -54,7 +47,7 @@ namespace CoreWaggles.Commands
             }
             ImageList responseList = JsonConvert.DeserializeObject<ImageList>(respond);
             if (responseList.Count == 0)
-                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel! requrl: " + url);
             else
             {
                 Global.e621Searches[Context.Channel.Id] = respond;
@@ -63,6 +56,13 @@ namespace CoreWaggles.Commands
                 e621.Image chosenImage = responseList[Global.e621SearchIndex];
                 await ReplyAsync(chosenImage.file_url + "\n" + string.Join(",", chosenImage.artist));
             }
+        }
+        [Command("e")]
+        [Alias("e621", "e6")]
+        public async Task e621Search([Remainder] string srch)
+        {
+            //run same command as sorted one, but pass default option as arg
+            await e621SearchSort(0, srch);
         }
         [Command("en")]
         [Alias("enext", "ne")]
