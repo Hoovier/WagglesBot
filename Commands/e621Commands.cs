@@ -9,11 +9,11 @@ using ImageList = System.Collections.Generic.List<CoreWaggles.e621.Image>;
 
 namespace CoreWaggles.Commands
 {
-   public class e621Commands : ModuleBase<SocketCommandContext>
+    public class e621Commands : ModuleBase<SocketCommandContext>
     {
         //array for sorting options, https://e621.net/help/show/cheatsheet#sorting
         //-id is default, newest first, id is reverse
-        public readonly string[] sortingOptions = { "-id", "id", "score",  "favcount", "random"};
+        public readonly string[] sortingOptions = { "-id", "id", "score", "favcount", "random" };
 
         [Command("e")]
         public async Task e621Search([Remainder] string srch)
@@ -46,28 +46,29 @@ namespace CoreWaggles.Commands
             string respond = e621.getJSON(url).Result;
             if (respond == "failure")
             {
-               await ReplyAsync("An error occurred!");
+                await ReplyAsync("An error occurred!");
                 return;
             }
             ImageList responseList = JsonConvert.DeserializeObject<ImageList>(respond);
             if (responseList.Count == 0)
                 await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
-            else 
+            else
             {
                 Global.e621Searches[Context.Channel.Id] = respond;
                 Random rand = new Random();
                 Global.e621SearchIndex = rand.Next(0, responseList.Count);
-                await ReplyAsync(responseList.ElementAt(Global.e621SearchIndex).file_url);
+                e621.Image chosenImage = responseList[Global.e621SearchIndex];
+                await ReplyAsync(chosenImage.file_url + "\n" + string.Join(",", chosenImage.artist));
             }
         }
         [Command("en")]
         [Alias("enext", "ne")]
         public async Task e621Next()
         {
-            if(Global.e621Searches.ContainsKey(Context.Channel.Id))
+            if (Global.e621Searches.ContainsKey(Context.Channel.Id))
             {
                 ImageList responseList = JsonConvert.DeserializeObject<ImageList>(Global.e621Searches[Context.Channel.Id]);
-                if(responseList.Count == 0)
+                if (responseList.Count == 0)
                 {
                     await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
                     return;
@@ -87,6 +88,37 @@ namespace CoreWaggles.Commands
                 await ReplyAsync("You have to make a search first! Try running ~e <tag(s)>");
             }
         }
+        [Command("en")]
+        [Alias("enext", "ne")]
+        public async Task e621NextSpecific(int index)
+        {
+            if (Global.e621Searches.ContainsKey(Context.Channel.Id))
+            {
+                ImageList responseList = JsonConvert.DeserializeObject<ImageList>(Global.e621Searches[Context.Channel.Id]);
+                if (responseList.Count == 0)
+                {
+                    await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+                    return;
+                }
+                if (responseList.Count == 1)
+                {
+                    await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0));
+                    return;
+                }
+                if (responseList.Count < index)
+                {
+                    await ReplyAsync("Thats too big, choose a number between 0-" + (responseList.Count - 1));
+                    return;
+                }
+                Global.e621SearchIndex = index + 1;
+                await ReplyAsync(responseList.ElementAt(Global.e621SearchIndex).file_url);
+            }
+            else
+            {
+                await ReplyAsync("You have to make a search first! Try running ~e <tag(s)>");
+            }
+        }
+
         [Command("etags")]
         [Alias("et", "e621tags")]
         public async Task e621Tags()
@@ -100,7 +132,7 @@ namespace CoreWaggles.Commands
                     await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
                     return;
                 }
-               
+
                 await ReplyAsync(e621Helper.Builde621Tags(chosen));
             }
             else
@@ -109,6 +141,7 @@ namespace CoreWaggles.Commands
             }
         }
     }
+     
     public class e621Helper
     {
         //This dictionary returns the string corresponding to the rating member in an Image object.
