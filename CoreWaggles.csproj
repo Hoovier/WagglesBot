@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Discord.Net" Version="1.0.2" />
+    <PackageReference Include="Reddit" Version="1.3.4" />
   </ItemGroup>
 
   <ItemGroup>
@@ -26,6 +27,9 @@
     </None>
     <None Update="JSONstorage\wlist.JSON">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="redditTokens.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
