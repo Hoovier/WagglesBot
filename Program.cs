@@ -39,6 +39,10 @@ namespace WagglesBot
             Global.safeChannels = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText(this.safeChannelsPath));
             Global.excomm = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(this.extraCommsPath));
             Global.wittyDictionary = JsonConvert.DeserializeObject<Dictionary<ulong, List<WittyObject>>>(File.ReadAllText(this.WittysPath));
+            //Reddit Token stuff!
+            string[] RedditTokens = System.IO.File.ReadAllLines("redditTokens.txt");
+            Global.reddit = new Reddit.RedditClient(RedditTokens[0], RedditTokens[1], RedditTokens[2], RedditTokens[3]);
+            Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
             string botToken = keys[1];
