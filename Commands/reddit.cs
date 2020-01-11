@@ -14,6 +14,12 @@ namespace CoreWaggles.Commands
         [Alias("red")]
         public async Task redditSearch(string sub, string sort)
         {
+            await redditSearchMulti(sub, sort, 1);
+        }
+        [Command("reddit")]
+        [Alias("red")]
+        public async Task redditSearchMulti(string sub, string sort, int amount)
+        {
             await Context.Channel.TriggerTypingAsync();
             //try to get posts from provided subreddit, if it fails tell users that the subreddit doesn't exist.
             try
@@ -56,12 +62,7 @@ namespace CoreWaggles.Commands
                 await ReplyAsync("This result is NSFW, and this channel is not whitelisted! Try making another search or going to the next result using ~rnext");
                 return;
             }
-            //if the post is a selfpost, give link to post instead of url like a linkpost
-            if (chosen.Listing.IsSelf)
-                await ReplyAsync("https://www.reddit.com/" + chosen.Permalink);
-            //if its a linkpost, give url that is being linked.
-            else
-                await ReplyAsync("Cached " + maxPosts + " posts!\n" + ((LinkPost)chosen).URL);
+            await redditNextMulti(amount);
         }
         [Command("rnext")]
         [Alias("rn", "rednext")]
