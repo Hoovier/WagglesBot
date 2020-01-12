@@ -109,7 +109,15 @@ namespace CoreWaggles.Commands
                 for(int counter = 0; counter < amount; counter++)
                 {
                     //increment redditIndex so we can grab the next post in cache
-                    Global.redditIndex++;
+                    if (Global.redditDictionary[Context.Channel.Id].Count < Global.redditIndex + 1)
+                    {
+                        await ReplyAsync("Exceeded cache, looping back to beginning!");
+                        Global.redditIndex = 0;
+                    }
+                    else
+                    {
+                        Global.redditIndex++;
+                    }
                     //store post at given index
                     Post chosen = Global.redditDictionary[Context.Channel.Id][Global.redditIndex];
                     //if result is nsfw, and channel is not whitelisted, AND its not a DM, tell them and dont post anything.
