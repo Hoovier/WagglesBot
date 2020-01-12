@@ -120,7 +120,7 @@ namespace CoreWaggles.Commands
                     else
                     {
                         if (chosen.Listing.IsSelf)
-                            response = response + "https://www.reddit.com/" + chosen.Permalink + "\n";
+                            response = response + "https://www.reddit.com" + chosen.Permalink + "\n";
                         else
                             response = response + ((LinkPost)chosen).URL + "\n";
                     }
