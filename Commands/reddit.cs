@@ -64,6 +64,7 @@ namespace CoreWaggles.Commands
             }
             await redditNextMulti(amount);
         }
+        
         [Command("rnext")]
         [Alias("rn", "rednext")]
         public async Task redditNext()
