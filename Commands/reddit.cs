@@ -14,6 +14,12 @@ namespace CoreWaggles.Commands
         [Alias("red")]
         public async Task redditSearch(string sub, string sort)
         {
+            await redditSearchMulti(sub, sort, 1);
+        }
+        [Command("reddit")]
+        [Alias("red")]
+        public async Task redditSearchMulti(string sub, string sort, int amount)
+        {
             await Context.Channel.TriggerTypingAsync();
             //try to get posts from provided subreddit, if it fails tell users that the subreddit doesn't exist.
             try
@@ -56,13 +62,9 @@ namespace CoreWaggles.Commands
                 await ReplyAsync("This result is NSFW, and this channel is not whitelisted! Try making another search or going to the next result using ~rnext");
                 return;
             }
-            //if the post is a selfpost, give link to post instead of url like a linkpost
-            if (chosen.Listing.IsSelf)
-                await ReplyAsync("https://www.reddit.com/" + chosen.Permalink);
-            //if its a linkpost, give url that is being linked.
-            else
-                await ReplyAsync("Cached " + maxPosts + " posts!\n" + ((LinkPost)chosen).URL);
+            await redditNextMulti(amount);
         }
+        
         [Command("rnext")]
         [Alias("rn", "rednext")]
         public async Task redditNext()
@@ -108,7 +110,15 @@ namespace CoreWaggles.Commands
                 for(int counter = 0; counter < amount; counter++)
                 {
                     //increment redditIndex so we can grab the next post in cache
-                    Global.redditIndex++;
+                    if (Global.redditDictionary[Context.Channel.Id].Count < Global.redditIndex + 1)
+                    {
+                        await ReplyAsync("Exceeded cache, looping back to beginning!");
+                        Global.redditIndex = 0;
+                    }
+                    else
+                    {
+                        Global.redditIndex++;
+                    }
                     //store post at given index
                     Post chosen = Global.redditDictionary[Context.Channel.Id][Global.redditIndex];
                     //if result is nsfw, and channel is not whitelisted, AND its not a DM, tell them and dont post anything.
@@ -119,7 +129,7 @@ namespace CoreWaggles.Commands
                     else
                     {
                         if (chosen.Listing.IsSelf)
-                            response = response + "https://www.reddit.com/" + chosen.Permalink + "\n";
+                            response = response + "https://www.reddit.com" + chosen.Permalink + "\n";
                         else
                             response = response + ((LinkPost)chosen).URL + "\n";
                     }
