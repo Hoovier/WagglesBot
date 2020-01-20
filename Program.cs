@@ -105,7 +105,7 @@ namespace WagglesBot
                     await Global.MessageTotrack.RemoveReactionAsync(clock, reaction.User.Value);
                 }
             }
-            else if(reaction.MessageId == Global.redditDictionary[reaction.Channel.Id].redditIDtoTrack && reaction.UserId != 576072134451789875)
+            else if(reaction.MessageId == Global.redditDictionary[reaction.Channel.Id].redditIDtoTrack && reaction.UserId != 480105212485435392)
             {
                 Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Rnext button!");
                 await _commands.ExecuteAsync(Global.redditDictionary[reaction.Channel.Id].redContext, "rnext 5");
