@@ -45,7 +45,7 @@ namespace WagglesBot
             Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[1];
+            string botToken = keys[0];
             
             await RegisterCommandsAsync();
 
@@ -105,7 +105,7 @@ namespace WagglesBot
                     await Global.MessageTotrack.RemoveReactionAsync(clock, reaction.User.Value);
                 }
             }
-            else if(reaction.MessageId == Global.redditDictionary[reaction.Channel.Id].redditIDtoTrack && reaction.UserId != 480105212485435392)
+            else if(reaction.MessageId == Global.redditDictionary[reaction.Channel.Id].redditIDtoTrack && reaction.UserId != 480105212485435392 && reaction.UserId != 576072134451789875)
             {
                 Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Rnext button!");
                 await _commands.ExecuteAsync(Global.redditDictionary[reaction.Channel.Id].redContext, "rnext 5");

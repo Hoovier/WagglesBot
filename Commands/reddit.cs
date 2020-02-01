@@ -168,8 +168,27 @@ namespace CoreWaggles.Commands
             }
             //grab random information about post and format it for user.
             string response = "**" + chosen.Title + "** \nPoster: " + chosen.Author + "\nUpvotes: " 
-                + chosen.Score + " Comments: " + chosen.Listing.NumComments + "\nhttps://www.reddit.com/" + chosen.Permalink; 
+                + chosen.Score + " Comments: " + chosen.Listing.NumComments + "\nhttps://www.reddit.com" + chosen.Permalink; 
             await ReplyAsync(response);
+        }
+        [Command("rinfo")]
+        [Alias("rtags", "redinfo", "ri")]
+        public async Task redditInfoOverloaded(string link)
+        {
+            await Context.Channel.TriggerTypingAsync();
+            if (!Global.redditDictionary.ContainsKey(Context.Channel.Id))
+            {
+                await ReplyAsync("Try running a reddit search using ~reddit <subreddit> <hot/new/top> first!");
+                return;
+            }
+           //if the channel is not nsfw or private, call function with the false bool
+            if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
+            {
+                await ReplyAsync(Global.redditDictionary[Context.Channel.Id].getInfo(link, false));
+                return;
+            }
+            //if it is nsfw, let the function know that
+            await ReplyAsync(Global.redditDictionary[Context.Channel.Id].getInfo(link, true));
         }
     }
 }
