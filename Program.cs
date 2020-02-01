@@ -45,7 +45,7 @@ namespace WagglesBot
             Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[1];
+            string botToken = keys[0];
             
             await RegisterCommandsAsync();
 
@@ -77,8 +77,6 @@ namespace WagglesBot
             {
                 if (reaction.Emote.Name == "🎉")
                 {
-
-
                     var clock = "**__Fun page__** \n **Boop**: Boop a user! \n **Pony**: Brings up a random image of me. \n **Click**: Count! Adds one every time it runs. \n **Say**: Make me say whatever you want. \n **Is**: Ask me a question and I'll guess! \n **Joke**: I'll tell you a joke. ";
                     await Global.MessageTotrack.ModifyAsync(msg => msg.Content = clock);
                     IEmote cloc = new Emoji("🎉");
@@ -89,18 +87,13 @@ namespace WagglesBot
                 {
                     var cloke = "**__Hi there! I'm Waggles, let me show you what I can do!__** \n I don't wanna cloud your view, so I made a machine to help me help you. All you have to do is react with one of the following emojis to get its corresponding page. \n :wrench: - My admin tools! \n :tada: - The funnest commands! \n :house: - Takes you to the homepage. \n :horse: - Derpibooru commands!";
                     await Global.MessageTotrack.ModifyAsync(msg => msg.Content = cloke);
-
                     IEmote clock = new Emoji("🏠");
                     await Global.MessageTotrack.RemoveReactionAsync(clock, reaction.User.Value);
-
-
-
                 }
                 else if (reaction.Emote.Name == "🐴")
                 {
                     var cloke = "**__Derpibooru page__** \n **Derpi**: Allows you to run a derpi query, returns only safe results unless the channel is marked NSFW. \n **Derpist**: Returns the amount of images matching your query. \n **Derpitags**: Returns the tags of a linked or saved image. \n **Next**: Returns another image of last derpi search. \n **Artist**: Returns the artist(s) page(s) of a linked or saved image.";
                     await Global.MessageTotrack.ModifyAsync(msg => msg.Content = cloke);
-
                     IEmote clock = new Emoji("🐴");
                     await Global.MessageTotrack.RemoveReactionAsync(clock, reaction.User.Value);
                 }
@@ -108,14 +101,14 @@ namespace WagglesBot
                 {
                     var cloke = "**__Admin page__** \n **Ban**: Ban a user! \n **kick**: Kick a user. \n **wlist**: add, remove, or view the list of channels that allow nsfw posts from derpibooru searches. \n **alias**: add, remove, view, or edit the list of aliases.";
                     await Global.MessageTotrack.ModifyAsync(msg => msg.Content = cloke);
-
                     IEmote clock = new Emoji("🔧");
                     await Global.MessageTotrack.RemoveReactionAsync(clock, reaction.User.Value);
-
-
-
                 }
-
+            }
+            else if(reaction.MessageId == Global.redditDictionary[reaction.Channel.Id].redditIDtoTrack && reaction.UserId != 480105212485435392 && reaction.UserId != 576072134451789875)
+            {
+                Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Rnext button!");
+                await _commands.ExecuteAsync(Global.redditDictionary[reaction.Channel.Id].redContext, "rnext 5");
             }
 
         }

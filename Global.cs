@@ -1,4 +1,5 @@
-﻿using Discord.Rest;
+﻿using Discord.Commands;
+using Discord.Rest;
 using Reddit;
 using Reddit.Controllers;
 using System.Collections.Generic;
@@ -22,8 +23,7 @@ namespace CoreWaggles
         internal static Dictionary<ulong, List<WittyObject>> wittyDictionary = new Dictionary<ulong, List<WittyObject>>();
 
         internal static RedditClient reddit = new RedditClient();
-        internal static int redditIndex;
-        internal static Dictionary<ulong, List<Post>> redditDictionary = new Dictionary<ulong, List<Post>>();
+        internal static Dictionary<ulong, RedditHelper> redditDictionary = new Dictionary<ulong, RedditHelper>();
         internal static int searched;
         // The Featured Derpibooru Image, and the Timestamp to track when it was last stored.
         internal static int featuredId = 0;
