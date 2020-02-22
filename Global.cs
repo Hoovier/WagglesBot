@@ -1,9 +1,13 @@
 ﻿using Discord.Commands;
 using Discord.Rest;
+using Discord.WebSocket;
 using Reddit;
 using Reddit.Controllers;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
 namespace CoreWaggles
 {
@@ -67,6 +71,72 @@ namespace CoreWaggles
 
             // If we make it here, throw -1 as an invalid result flag.
             return -1;
+        }
+        //for holding the directorys that will be set and checked by checkDirsArePresent()
+        private static string serverDir;
+        private static string targetDir;
+
+        public static void checkDirsArePresent(ulong serverID, ulong channelID, string channelName)
+        {
+            //set directorys
+            serverDir = @"C:\Users\javie\source\repos\CoreWaggles\CoreWaggles\savedImages\" + serverID + @"\";
+            targetDir = @"C:\Users\javie\source\repos\CoreWaggles\CoreWaggles\savedImages\" + serverID + @"\" + channelName + "-" + channelID + @"\";
+            //if the server folder does not exist, neither will the targetDir, so make both
+            if (!Directory.Exists(serverDir))
+            {
+                Directory.CreateDirectory(serverDir);
+                Directory.CreateDirectory(targetDir);
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Server and Channel directorys did not exist! Creating now.");
+                Console.ResetColor();
+            }
+            //if the server directory exists, make sure targetDir exists or make it
+            else if (!Directory.Exists(targetDir))
+            {
+                Directory.CreateDirectory(targetDir);
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Channel directory did not exist! Creating now.");
+                Console.ResetColor();
+            }
+        }
+        public static void downloadAttOrEmb(string url, SocketUserMessage message )
+        {
+            // Get the file extension from the link.
+            //   First, remove any URL query parameters. (Such as https://www.example.com/image.png?v=2)
+            //   Second, grab the file extension if one exists.
+            // @see: https://stackoverflow.com/a/23229959
+            Uri linkUri = new Uri(url);
+            string linkPath = linkUri.GetLeftPart(UriPartial.Path);
+            string linkExt = Path.GetExtension(linkPath).ToLower();
+            //filename will be the current date, including seconds and milliseconds to prevent files being named the same thing
+            string filename = DateTime.Now.ToString("yyyy_MM-dd-hh-mm-ss-fff");
+            //wrap in try-catch cause the webclient might fail to download.
+            try
+            {
+                //reuse code that @Max wrote for ~save command
+                switch (linkExt)
+                {
+                    case ".png":
+                    case ".jpg":
+                    case ".jpeg":
+                    case ".webm":
+                    case ".gif":
+                        // Instantiate a WebClient, download the file, then automatically dispose of the client when finished.
+                        using (WebClient client = new WebClient())
+                        {
+                            client.DownloadFile(url, $@"{targetDir}{filename}{linkExt}");
+                        }
+                        Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{message.Channel.Name}]");
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.WriteLine("Saved an embedded/attached link from " + message.Author.Username + " at " + filename);
+                        Console.ResetColor();
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
         }
     }
 }

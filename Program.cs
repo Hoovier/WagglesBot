@@ -11,6 +11,7 @@ using CoreWaggles;
 using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
+using System.Net;
 
 namespace WagglesBot
 {
@@ -45,7 +46,7 @@ namespace WagglesBot
             Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[0];
+            string botToken = keys[1];
             
             await RegisterCommandsAsync();
 
@@ -139,6 +140,22 @@ namespace WagglesBot
             {
                 var context = new SocketCommandContext(_client, message);
                 await context.Channel.SendMessageAsync("Youre not my supervisor!");
+            }
+            //this checks to see if a message has embeds or attachments, and downloads all of them.
+            if(!message.Author.IsBot && (message.Embeds.Count > 0 || message.Attachments.Count > 0))
+            {
+                var context = new SocketCommandContext(_client, message);
+                Global.checkDirsArePresent(context.Guild.Id, context.Channel.Id, context.Channel.Name);
+                
+
+                foreach (Embed emb in message.Embeds)
+                {
+                    Global.downloadAttOrEmb(emb.Url, message);
+                }
+                foreach (Attachment att in message.Attachments)
+                {
+                    Global.downloadAttOrEmb(att.Url, message);
+                }
             }
 
             // We case-insensitive search and compare key phrases of the message.
