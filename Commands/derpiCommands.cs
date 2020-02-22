@@ -12,13 +12,13 @@ using CoreWaggles;
 
 // Alias for Derpibooru Response objects.
 using DerpiRoot = WagglesBot.Modules.DerpibooruResponse.Rootobject;
-using DerpiSearch = WagglesBot.Modules.DerpibooruResponse.Search;
+using DerpiSearch = WagglesBot.Modules.DerpibooruResponse.Image;
 
 public class DerpibooruComms : ModuleBase<SocketCommandContext>
 {
     // TODO: Make a better endpoint reference repository.
     // The Derpibooru API endpoint.
-    public readonly string baseURL = "https://derpibooru.org/search.json";
+    public readonly string baseURL = "https://derpibooru.org/api/v1/json/search/images";
     // The Derpibooru Reverse Image Search endpoint.
     public readonly string reverseURL = "https://derpibooru.org/search/reverse.json?scraper_url=";
 
@@ -49,7 +49,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(DerpiJson);
 
         // Convert Search Array to a List, to use List functionality.
-        List<DerpiSearch> imageList = DerpiResponse.Search.ToList();
+        List<DerpiSearch> imageList = DerpiResponse.images;
         if (imageList.Count == 0) {
             await ReplyAsync("Could not find the image on Derpibooru.org!");
         } else {
@@ -65,7 +65,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                 // Display the image link if allowed!
                 string derpiURL = "https://derpibooru.org/" + imageList.First().id;
                 await ReplyAsync("Result found on Derpibooru here: " + derpiURL);
-                Global.links[Context.Channel.Id] = imageList.First().id;
+                Global.links[Context.Channel.Id] = imageList.First().id.ToString();
             }
         }
     }
@@ -112,7 +112,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // "q" is our search terms
         // "filter_id" is the filter against content banned by Discord TOS.
         Dictionary<string,string> queryParams = new Dictionary<string,string>() {
-            {"filter_id", "164610"},
+            {"filter_id", "178065"},
             {"sf", sortParam}, 
             {"sd", "desc"}, 
             {"perpage", "50"},
@@ -140,7 +140,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Actual request an. Try-catch to softly catch exceptions.
         try {
             // Convert Search Array to a List, to use List functionality.
-            List<DerpiSearch> imageList = DerpiResponse.Search.ToList();
+            List<DerpiSearch> imageList = DerpiResponse.images;
             if (imageList.Count == 0) {
                 await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
                 return;
@@ -153,7 +153,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
             // Add image ID to Global.links.
             // TODO: Describe where this is used better?
-            Global.links[Context.Channel.Id] = randomElement.id;
+            Global.links[Context.Channel.Id] = randomElement.id.ToString();
 
             await ReplyAsync(
                 DerpiHelper.BuildDiscordResponse(randomElement, artistAsLink, !safeOnly)
@@ -183,7 +183,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         }
 
         // If ~next goes off the globally cached page, loop around the beginning again.
-        if(Global.searched + 1 > DerpiResponse.Search.Count()) {
+        if(Global.searched + 1 > DerpiResponse.images.Count()) {
             Global.searched = 0;
         }
 
@@ -208,31 +208,31 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             return;
         }
        
-        if (DerpiResponse.Search.Count() == 0) {
+        if (DerpiResponse.images.Count() == 0) {
             // No Results Message.
             await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
             return;
-        } else if (DerpiResponse.Search.Count() == 1) {
+        } else if (DerpiResponse.images.Count() == 1) {
             // Only a single result, no pagination.
             await ReplyAsync("Only a single result in this image set.\n");
             // No return, let it continue to parsing the image below.
-        } else if (index < 0 || index >= DerpiResponse.Search.Count()) {
+        } else if (index < 0 || index >= DerpiResponse.images.Count()) {
             // Out of Bounds Message.
-            await ReplyAsync("Your selection is out of range! Valid values are between 0 and " + (DerpiResponse.Search.Count() - 1));
+            await ReplyAsync("Your selection is out of range! Valid values are between 0 and " + (DerpiResponse.images.Count() - 1));
             return;
         }
 
         // If ~next goes off the globally cached page, loop around the beginning again.
-        if(Global.searched + 1 > DerpiResponse.Search.Count()) {
+        if(Global.searched + 1 > DerpiResponse.images.Count()) {
             Global.searched = 0;
         }
 
         // Get element at specified index.
-        DerpiSearch chosenElement = DerpiResponse.Search.ElementAt(index);
+        DerpiSearch chosenElement = DerpiResponse.images.ElementAt(index);
 
         // Add image ID to Global.links.
         // TODO: Describe where this is used better?
-        Global.links[Context.Channel.Id] = chosenElement.id;
+        Global.links[Context.Channel.Id] = chosenElement.id.ToString();
 
         await ReplyAsync(
             DerpiHelper.BuildDiscordResponse(chosenElement)
@@ -248,7 +248,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
         // Same base query as ~derpi, discounting sorting and asking for less results.
         Dictionary<string,string> queryParams = new Dictionary<string,string>() {
-            {"filter_id", "164610"},
+            {"filter_id", "178065"},
             {"perpage", "1"},
             {"page", "1"},
             {"q", search},
@@ -260,7 +260,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Make the request, and parse the JSON into a C#-friendly object.
         DerpiRoot results = JsonConvert.DeserializeObject<DerpiRoot>(Get.Derpibooru(requestUrl).Result);
 
-        await ReplyAsync($"Total results: {results.Total}");
+        await ReplyAsync($"Total results: {results.total}");
     }
 
     [Command("artist")]
@@ -291,19 +291,19 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Try to parse the global cache into an integer ID.
         if (int.TryParse(Global.links[Context.Channel.Id], out imageID)) {
             string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, new Dictionary<string,string>() {
-                {"filter_id", "164610"},
+                {"filter_id", "178065"},
                 {"q", $"id:{imageID}"},
             });
             string DerpiJson = Get.Derpibooru(requestUrl).Result;
             DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(DerpiJson);
 
-            if (DerpiResponse.Search.Length == 0) {
+            if (DerpiResponse.images.Count == 0) {
                 // Given ID does not exist.
                 await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
             } else {
                 // Get artist Tag Link(s) and print image URL as well.
                 bool safeOnly = !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate;
-                string artistLinks = DerpiHelper.BuildArtistTags(DerpiResponse.Search[0], true, !safeOnly);
+                string artistLinks = DerpiHelper.BuildArtistTags(DerpiResponse.images[0], true, !safeOnly);
                 await ReplyAsync($"https://derpibooru.org/{imageID}\n{artistLinks}");
             }
         } else {
@@ -323,17 +323,17 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Check if an a "~derpi" search has been made in this channel yet.
         if (Global.links.ContainsKey(Context.Channel.Id)) {
             // Handmade link + the channel ID to get the last stored ID.
-            string builtLink = "https://derpibooru.org/search.json?q=id%3A" + Global.links[Context.Channel.Id] + "&filter_id=164610";
+            string builtLink = "https://derpibooru.org/api/v1/json/search/images?q=id%3A" + Global.links[Context.Channel.Id] + "&filter_id=178065";
             // Retrieves JSON and saves as string.
             string JSONresponse = Get.Derpibooru(builtLink).Result;
             // Finally makes the derpibooru object to leverage DerpiTagsDisplay().
             DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(JSONresponse);
 
             // Check if the ID existed or yielded any results.
-            if (DerpiResponse.Search.Length < 1) {
+            if (DerpiResponse.images.Count < 1) {
                 await ReplyAsync("No results found, please call `~derpi` again or post another link!");
             } else {
-                await DerpiTagsDisplay(DerpiResponse.Search[0]);
+                await DerpiTagsDisplay(DerpiResponse.images[0]);
             }
         } else {
             await ReplyAsync("You need to call `~derpi` (`~d` for short) or post a link before I can hoof over the tags!");
@@ -375,17 +375,17 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // If you reach here, the "else" return case didn't happen and we can query Derpibooru.
         // We can use imageID to uniformly query DerpiBooru.
         string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, new Dictionary<string,string>() {
-            {"filter_id", "164610"},
+            {"filter_id", "178065"},
             {"q", $"id:{imageID}"},
         });
         string DerpiJson = Get.Derpibooru(requestUrl).Result;
         DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(DerpiJson);
 
-        if (DerpiResponse.Search.Length == 0) {
+        if (DerpiResponse.images.Count == 0) {
             await ReplyAsync("No results! The ID or URL provided might have had a typo or is deleted no longer exists.");
             await ReplyAsync("If you think this was in error, please contact Hoovier with the request you made.");
         } else {
-            await DerpiTagsDisplay(DerpiResponse.Search[0]);
+            await DerpiTagsDisplay(DerpiResponse.images[0]);
         }
     }
 
@@ -396,7 +396,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         string rating = DerpiHelper.GetImageRating(element);
 
         // Display `~dt` info block and all image tags.
-        await ReplyAsync($"Info: **{rating}, {artists}**\n\nAll tags: ```{element.tags}```");
+        await ReplyAsync($"Info: **{rating}, {artists}**\n\nAll tags: ```{String.Join(", ",element.tags)}```");
     }
 
     [Command("imfeelinglucky")]
@@ -420,7 +420,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Set up the base query parameters.
         // Sorted randomly, gets "num" amount of items!
         Dictionary<string,string> queryParams = new Dictionary<string,string>() {
-            {"filter_id", "164610"},
+            {"filter_id", "178065"},
             {"sf", "random"}, 
             {"sd", "desc"}, 
             {"perpage", num.ToString()},
@@ -443,19 +443,19 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
         // Actual request an. Try-catch to softly catch exceptions.
         try {
-            if (DerpiResponse.Search.Length == 0) {
+            if (DerpiResponse.images.Count == 0) {
                 await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
                 return;
             }
-            else if (DerpiResponse.Search.Length < num) {
+            else if (DerpiResponse.images.Count < num) {
                 await ReplyAsync($"Not enough results to post {num}, but here is what we have found!");
             }
 
             // Print all results of the search!
             // Sorted randomly by Derpibooru already, and will be between 1-5 elements.
-            string message = $"Listing {DerpiResponse.Search.Length} results\n";
+            string message = $"Listing {DerpiResponse.images.Count} results\n";
             message += String.Join("\n", 
-                DerpiResponse.Search.Select(
+                DerpiResponse.images.Select(
                     element => "https:" + element.representations.full));
 
             await ReplyAsync(message);
@@ -591,7 +591,7 @@ public class DerpiHelper {
 
         // Get the full image URL in the format "//derpicdn.net/img/view/YYYY/M/d/IMAGE_ID.png"
         // Prepend the protocol, HTTPS, to the incomplete URL representation.
-        string results = "https:" + element.representations.full;
+        string results = element.representations.full;
 
         //if its an ~artist command, respond with derpibooru/id link instead of derpicdn one
         if (artistAsLink)
@@ -619,7 +619,7 @@ public class DerpiHelper {
         string artistResult;
 
         // Get a distilled list of artist tags from the full tag listing.
-        string[] artistTags = element.tags.Split(',');
+        string[] artistTags = element.tags.ToArray();
         artistTags = Array.FindAll(artistTags, tag => tag.Contains("artist:"));
 
         // Safety Suffix ("AND safe") filter.
@@ -635,12 +635,12 @@ public class DerpiHelper {
             case 1:
                 artistResult = artistTags[0].TrimStart();
                 if (artistAsLink) {
-                    artistResult = $"https://derpibooru.org/search?q={artistResult}{safetySuffix}&filter_id=164610";
+                    artistResult = $"https://derpibooru.org/search?q={artistResult}{safetySuffix}&filter_id=178065";
                 }
                 break;
             default:
                 artistResult = artistAsLink 
-                    ? String.Join("\n", artistTags.Select(t => $"https://derpibooru.org/search?q={t.Trim()}{safetySuffix}&filter_id=164610"))
+                    ? String.Join("\n", artistTags.Select(t => $"https://derpibooru.org/search?q={t.Trim()}{safetySuffix}&filter_id=178065"))
                     : String.Join(' ', artistTags);
                 break;
         }
@@ -668,7 +668,7 @@ public class DerpiHelper {
             };
 
         // Get Image tags, cross reference with Rating Tags.
-        foreach (string tag in element.tags.Split(",")) {
+        foreach (string tag in element.tags) {
             foreach (string rate in ratings) {
                 // Return the image rating if a rating tag matches.
                 if (tag.Trim().Equals(rate)) {
