@@ -1,15 +1,16 @@
+using CoreWaggles;
 using Discord.Commands;
+using Newtonsoft.Json;
 using System;
-using System.Net;
-using System.Net.Http;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-using WagglesBot.Modules;
+using System.Net;
+using System.Net.Http;
 using System.Text.RegularExpressions;
-using CoreWaggles;
-
+using System.Threading.Tasks;
+using WagglesBot.Modules;
+using DerpiRevRoot = WagglesBot.Modules.DerpiReverseResponse.RootObject;
+using DerpiRevSearch = WagglesBot.Modules.DerpiReverseResponse.Image;
 // Alias for Derpibooru Response objects.
 using DerpiRoot = WagglesBot.Modules.DerpibooruResponse.Rootobject;
 using DerpiSearch = WagglesBot.Modules.DerpibooruResponse.Image;
@@ -20,7 +21,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     // The Derpibooru API endpoint.
     public readonly string baseURL = "https://derpibooru.org/api/v1/json/search/images";
     // The Derpibooru Reverse Image Search endpoint.
-    public readonly string reverseURL = "https://derpibooru.org/search/reverse.json?scraper_url=";
+    public readonly string reverseURL = "https://derpibooru.org/api/v1/json/search/reverse?url=";
 
     // Available sorting methods for Derpibooru.
     // "score" is the default "unsorted" value from the prior version of this command.
@@ -45,20 +46,20 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
         // If we have a URL, then make a scraper request.
         // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
-        string DerpiJson = Get.Derpibooru($"{this.reverseURL}{url}").Result;
-        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(DerpiJson);
+        string DerpiJson = Get.ReverseSearch(this.reverseURL + url).Result;
+        DerpiRevRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRevRoot>(DerpiJson);
 
         // Convert Search Array to a List, to use List functionality.
-        List<DerpiSearch> imageList = DerpiResponse.images;
+        List<DerpiRevSearch> imageList = DerpiResponse.images;
         if (imageList.Count == 0) {
             await ReplyAsync("Could not find the image on Derpibooru.org!");
         } else {
             // Get search result element. First element if there are more than one.
-            DerpiSearch element =  imageList.First();
+            DerpiRevSearch element =  imageList.First();
             // Determine if Channel allows NSFW content or not.
             bool safeOnly = !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate;
             
-            if (safeOnly && !DerpiHelper.IsElementSafe(element)) {
+            if (safeOnly && !DerpiHelper.IsElementSafe(element.tags)) {
                 // If there is a NSFW artwork searched on a SFW channel, do not display result and inform the user.
                 await ReplyAsync("Result found, but is NSFW. Please enable NSFW on this channel to view result, or ask again on an approved channel or private message.");
             } else {
@@ -393,7 +394,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     private async Task DerpiTagsDisplay(DerpiSearch element) {
         // Get "Info" block, made up of the Artists list and Image Rating.
         string artists = DerpiHelper.BuildArtistTags(element);
-        string rating = DerpiHelper.GetImageRating(element);
+        string rating = DerpiHelper.GetImageRating(element.tags);
 
         // Display `~dt` info block and all image tags.
         await ReplyAsync($"Info: **{rating}, {artists}**\n\nAll tags: ```{String.Join(", ",element.tags)}```");
@@ -423,7 +424,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             {"filter_id", "178065"},
             {"sf", "random"}, 
             {"sd", "desc"}, 
-            {"perpage", num.ToString()},
+            {"per_page", num.ToString()},
             {"page", "1"},
         };
 
@@ -456,7 +457,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             string message = $"Listing {DerpiResponse.images.Count} results\n";
             message += String.Join("\n", 
                 DerpiResponse.images.Select(
-                    element => "https:" + element.representations.full));
+                    element => element.representations.full));
 
             await ReplyAsync(message);
 
@@ -495,6 +496,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         }
         // Return the stored Featured Image.
         await ReplyAsync("https://derpibooru.org/" + Global.featuredId);
+        Global.links[Context.Channel.Id] = Global.featuredId.ToString();
     }
 
     // Fetch the Derpibooru.org home page, parse the `data-image-id` of the Featured Box.
@@ -650,12 +652,12 @@ public class DerpiHelper {
 
     // TODO: ADD BETTER DOCUMENT/SUMMARY.
     // Check if a Derpibooru Search result is SFW, by way of scanning for a "safe" tag.
-    public static bool IsElementSafe(DerpiSearch element) {
-        return DerpiHelper.GetImageRating(element).Equals("safe");
+    public static bool IsElementSafe(List<string> tags) {
+        return DerpiHelper.GetImageRating(tags).Equals("safe");
     }
 
     // Get Derpibooru Image Rating.
-    public static string GetImageRating(DerpiSearch element) {
+    public static string GetImageRating(List<string> tags) {
         // All known Derpibooru Rating Tags.
         string[] ratings = {
             "safe", 
@@ -668,7 +670,7 @@ public class DerpiHelper {
             };
 
         // Get Image tags, cross reference with Rating Tags.
-        foreach (string tag in element.tags) {
+        foreach (string tag in tags) {
             foreach (string rate in ratings) {
                 // Return the image rating if a rating tag matches.
                 if (tag.Trim().Equals(rate)) {

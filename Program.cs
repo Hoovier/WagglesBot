@@ -42,7 +42,6 @@ namespace WagglesBot
             //Reddit Token stuff!
             string[] RedditTokens = System.IO.File.ReadAllLines("redditTokens.txt");
             Global.reddit = new Reddit.RedditClient(RedditTokens[0], RedditTokens[1], RedditTokens[2], RedditTokens[3]);
-            Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
             string botToken = keys[1];
@@ -53,15 +52,23 @@ namespace WagglesBot
             // event subscriptions
             _client.Log += Log;
             _client.ReactionAdded += OnReactionAdded;
-            _client.Connected += OnConnection;
+            
             //_client.Ready += OnReady;
             _client.JoinedGuild += OnJoinedGuild;
+            _client.Ready += OnReady;
             // _client.UserJoined += AnnounceJoinedUser;
             await _client.StartAsync();
 
             await Task.Delay(-1);
         }
 
+        private async Task OnReady()
+        {
+            Console.WriteLine("Logged in on Discord as: " + _client.CurrentUser.Username);
+            await _client.SetGameAsync("Playing with Mona");
+            Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
+            Console.WriteLine("In " + _client.Guilds.Count + " servers!");
+        }
 
         private async Task OnJoinedGuild(SocketGuild arg)
         {
@@ -77,11 +84,6 @@ namespace WagglesBot
 
         }
 
-        private async Task OnConnection()
-        {
-            Console.WriteLine("In " + _client.Guilds.Count + " servers!");
-            await _client.SetGameAsync("Playing with Mona");
-        }
 
 
         /* private async Task AnnounceJoinedUser(SocketGuildUser arg)
