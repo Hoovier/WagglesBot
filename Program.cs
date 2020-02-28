@@ -42,10 +42,9 @@ namespace WagglesBot
             //Reddit Token stuff!
             string[] RedditTokens = System.IO.File.ReadAllLines("redditTokens.txt");
             Global.reddit = new Reddit.RedditClient(RedditTokens[0], RedditTokens[1], RedditTokens[2], RedditTokens[3]);
-            Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[0];
+            string botToken = keys[1];
             
             await RegisterCommandsAsync();
 
@@ -53,24 +52,52 @@ namespace WagglesBot
             // event subscriptions
             _client.Log += Log;
             _client.ReactionAdded += OnReactionAdded;
+            
+            //_client.Ready += OnReady;
+            _client.JoinedGuild += OnJoinedGuild;
+            _client.Ready += OnReady;
             // _client.UserJoined += AnnounceJoinedUser;
             await _client.StartAsync();
 
             await Task.Delay(-1);
         }
 
-       /* private async Task AnnounceJoinedUser(SocketGuildUser arg)
+        private async Task OnReady()
         {
-
-            var channel = _client.GetChannel(480105955552395285) as SocketTextChannel; // Gets the channel to send the message in
-            await channel.SendMessageAsync($"Hi there {arg.Username}!"); //Welcomes the new user
-            IEmote emote = channel.Guild.Emotes.First(e => e.Name == "rymwave");
-
-
-
-            await channel.SendMessageAsync($"{emote}");
+            Console.WriteLine("Logged in on Discord as: " + _client.CurrentUser.Username);
+            await _client.SetGameAsync("Playing with Mona");
+            Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
+            Console.WriteLine("In " + _client.Guilds.Count + " servers!");
         }
-        */
+
+        private async Task OnJoinedGuild(SocketGuild arg)
+        {
+            try
+            {
+                SocketUser use = _client.GetUser(223651215337193472);
+                await use.SendMessageAsync("I joined a new server named: " + arg.Name + "\n" + "Owner info: " + arg.Owner.Username + arg.Owner.Discriminator);
+            }
+            catch
+            {
+                Console.WriteLine("I joined a new server named: " + arg.Name + "\n" + "Owner info: " + arg.Owner.Username + arg.Owner.Discriminator);
+            }
+
+        }
+
+
+
+        /* private async Task AnnounceJoinedUser(SocketGuildUser arg)
+         {
+
+             var channel = _client.GetChannel(480105955552395285) as SocketTextChannel; // Gets the channel to send the message in
+             await channel.SendMessageAsync($"Hi there {arg.Username}!"); //Welcomes the new user
+             IEmote emote = channel.Guild.Emotes.First(e => e.Name == "rymwave");
+
+
+
+             await channel.SendMessageAsync($"{emote}");
+         }
+         */
         private async Task OnReactionAdded(Cacheable<IUserMessage, ulong> cache, ISocketMessageChannel channel, SocketReaction reaction)
         {
             if (reaction.MessageId == Global.MessageIdToTrack && reaction.UserId != 480105212485435392)

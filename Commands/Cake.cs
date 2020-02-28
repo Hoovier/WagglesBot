@@ -38,7 +38,7 @@ public class Cakes : ModuleBase<SocketCommandContext>
         }
         if (Context.User.Id == 346275493965856769)
         {
-            requestUrl = $"https://derpibooru.org/search.json?q={srch}&sf={result}&sd=desc&perpage=50&page=";
+            requestUrl = $"https://https://derpibooru.org/api/v1/json/search/images?q={srch}&sf={result}&sd=desc&perpage=50&page=";
         }
 
         else
@@ -46,7 +46,7 @@ public class Cakes : ModuleBase<SocketCommandContext>
             if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
             {
                 requestUrl =
-                          $"https://derpibooru.org/search.json?q={srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+                          $"https://derpibooru.org/api/v1/json/search/images?q={srch}+AND+safe&filter_id=178065&sf=score&sd=desc&perpage=50&page=";
 
 
             }
@@ -54,7 +54,7 @@ public class Cakes : ModuleBase<SocketCommandContext>
             else
             {
                 requestUrl =
-                           $"https://derpibooru.org/search.json?q={srch}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+                           $"https://derpibooru.org/api/v1/json/search/images?q={srch}&filter_id=178065&sf=score&sd=desc&perpage=50&page=";
             }
         }
         if (Global.searchesD.ContainsKey(Context.Channel.Id))
@@ -62,7 +62,7 @@ public class Cakes : ModuleBase<SocketCommandContext>
             Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}1").Result;
             count =
            JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id])
-               .Total;
+               .total;
             firstImages =
                     JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
         }
@@ -71,13 +71,13 @@ public class Cakes : ModuleBase<SocketCommandContext>
             Global.searchesD.Add(Context.Channel.Id, Get.Derpibooru($"{requestUrl}1").Result);
             count =
            JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id])
-               .Total;
+               .total;
             firstImages =
                     JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
         }
-
-        List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
-        allimages.AddRange(firstImages.Search.ToList());
+        //can probably remove the allImages variable, derpi response is already in a list in new API
+        List<DerpibooruResponse.Image> allimages = new List<DerpibooruResponse.Image>();
+        allimages.AddRange(firstImages.images);
         var rand = new Random();
         if (allimages.Count == 0)
         {
@@ -87,22 +87,22 @@ public class Cakes : ModuleBase<SocketCommandContext>
 
         int rd = rand.Next(allimages.Count);
         var pony = allimages.ElementAt(rd).created_at;
-        var filetype = allimages.ElementAt(rd).original_format;
+        var filetype = allimages.ElementAt(rd).format;
         var idofimg = allimages.ElementAt(rd).id;
         if (Global.links.ContainsKey(Context.Channel.Id))
         {
-            Global.links[Context.Channel.Id] = idofimg;
+            Global.links[Context.Channel.Id] = idofimg.ToString();
         }
         else
         {
-            Global.links.Add(Context.Channel.Id, idofimg);
+            Global.links.Add(Context.Channel.Id, idofimg.ToString());
         }
 
-        string arrsting = allimages.ElementAt(rd).tags;
-        string[] arrstingchoose = arrsting.Split(',');
+        string[] arrsting = allimages.ElementAt(rd).tags.ToArray();
+        
         var sb = new System.Text.StringBuilder();
         string newresults = "Problem finding artist";
-        var results = Array.FindAll(arrstingchoose, s => s.Contains("artist:"));
+        var results = Array.FindAll(arrsting, s => s.Contains("artist:"));
         if (results.Length == 1)
         {
             newresults = results[0].TrimStart();
@@ -147,7 +147,7 @@ public class Cakes : ModuleBase<SocketCommandContext>
             DerpibooruResponse.Rootobject firstImages;
             if (Context.User.Id == 346275493965856769)
             {
-                requestUrl = $"https://derpibooru.org/search.json?q={srch}&sf={result}&sd=desc&perpage=50&page=";
+                requestUrl = $"https://derpibooru.org/api/v1/json/search/images?q={srch}&sf={result}&sd=desc&perpage=50&page=";
             }
 
             else
@@ -155,7 +155,7 @@ public class Cakes : ModuleBase<SocketCommandContext>
                 if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
                 {
                     requestUrl =
-                              $"https://derpibooru.org/search.json?q={srch}+AND+safe&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+                              $"https://derpibooru.org/api/v1/json/search/images?q={srch}+AND+safe&filter_id=178065&sf=score&sd=desc&perpage=50&page=";
 
 
                 }
@@ -163,7 +163,7 @@ public class Cakes : ModuleBase<SocketCommandContext>
                 else
                 {
                     requestUrl =
-                               $"https://derpibooru.org/search.json?q={srch}&filter_id=164610&sf=score&sd=desc&perpage=50&page=";
+                               $"https://derpibooru.org/api/v1/json/search/images?q={srch}&filter_id=178065&sf=score&sd=desc&perpage=50&page=";
                 }
             }
             if (Global.searchesD.ContainsKey(Context.Channel.Id))
@@ -173,7 +173,7 @@ public class Cakes : ModuleBase<SocketCommandContext>
                     Global.searchesD[Context.Channel.Id] = Get.Derpibooru($"{requestUrl}1").Result;
                     count =
                    JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id])
-                       .Total;
+                       .total;
                     firstImages =
                             JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
                 }
@@ -187,12 +187,12 @@ public class Cakes : ModuleBase<SocketCommandContext>
             else
             {
                 Global.searchesD.Add(Context.Channel.Id, Get.Derpibooru($"{requestUrl}1").Result);
-                count = JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]).Total;
+                count = JsonConvert.DeserializeObject<WagglesBot.Modules.DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]).total;
                 firstImages = JsonConvert.DeserializeObject<DerpibooruResponse.Rootobject>(Global.searchesD[Context.Channel.Id]);
             }
 
-            List<DerpibooruResponse.Search> allimages = new List<DerpibooruResponse.Search>();
-            allimages.AddRange(firstImages.Search.ToList());
+            List<DerpibooruResponse.Image> allimages = new List<DerpibooruResponse.Image>();
+            allimages.AddRange(firstImages.images);
             var rand = new Random();
             if (allimages.Count == 0)
             {
@@ -202,22 +202,21 @@ public class Cakes : ModuleBase<SocketCommandContext>
             int rd = rand.Next(allimages.Count);
             Global.searched = rd + 1;
             var pony = allimages.ElementAt(rd).created_at;
-            var filetype = allimages.ElementAt(rd).original_format;
+            var filetype = allimages.ElementAt(rd).format;
             var idofimg = allimages.ElementAt(rd).id;
 
             if (Global.links.ContainsKey(Context.Channel.Id))
             {
-                Global.links[Context.Channel.Id] = idofimg;
+                Global.links[Context.Channel.Id] = idofimg.ToString();
             }
             else
             {
-                Global.links.Add(Context.Channel.Id, idofimg);
+                Global.links.Add(Context.Channel.Id, idofimg.ToString());
             }
-            string arrsting = allimages.ElementAt(rd).tags;
-            string[] arrstingchoose = arrsting.Split(',');
+            string[] arrsting = allimages.ElementAt(rd).tags.ToArray();
             var sb = new System.Text.StringBuilder();
             string newresults = "Problem finding artist";
-            var results = Array.FindAll(arrstingchoose, s => s.Contains("artist:"));
+            var results = Array.FindAll(arrsting, s => s.Contains("artist:"));
             if (results.Length == 1)
             {
                 newresults = results[0].TrimStart();
