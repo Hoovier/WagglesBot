@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 public class administration : ModuleBase<SocketCommandContext>
 {
-    //if the id is set to 11111111111, it has already been deleted.
+    //if the id is set to 0, it has already been deleted.
     const ulong MESSAGE_DELETED = 0;
     public CommandService _command { get; set; }
     [Command("kick")]
