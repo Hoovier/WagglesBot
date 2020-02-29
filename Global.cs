@@ -22,6 +22,9 @@ namespace CoreWaggles
         internal static Dictionary<ulong, string> miscLinks = new Dictionary<ulong, string>();
         internal static Dictionary<ulong, List<WittyObject>> wittyDictionary = new Dictionary<ulong, List<WittyObject>>();
 
+        //Array of messages for deletion, stores at max 3 per channel
+        internal static Dictionary<ulong, MessageLog> lastMessage = new Dictionary<ulong, MessageLog>();
+
         internal static RedditClient reddit = new RedditClient();
         internal static Dictionary<ulong, RedditHelper> redditDictionary = new Dictionary<ulong, RedditHelper>();
         internal static int searched;
