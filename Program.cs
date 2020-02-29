@@ -157,6 +157,16 @@ namespace WagglesBot
         {
            
             var message = arg as SocketUserMessage;
+            //for tracking messages from bot
+            if(message.Author.Id == _client.CurrentUser.Id)
+            {
+                //initialize MessageLog object if it doesnt exist.
+                if (!Global.lastMessage.ContainsKey(message.Channel.Id))
+                    Global.lastMessage.Add(message.Channel.Id, new MessageLog());
+
+                //add message to stack
+                Global.lastMessage[message.Channel.Id].addElement(message.Id);
+            }
 
             if (message is null || message.Author.Id == _client.CurrentUser.Id) return;
 
@@ -167,6 +177,7 @@ namespace WagglesBot
                 var context = new SocketCommandContext(_client, message);
                 await context.Channel.SendMessageAsync("Youre not my supervisor!");
             }
+          
 
             // We case-insensitive search and compare key phrases of the message.
             string lowerCaseMessage = message.Content.ToLower();

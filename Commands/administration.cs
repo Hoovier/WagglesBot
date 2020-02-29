@@ -12,6 +12,8 @@ using System.Threading.Tasks;
 
 public class administration : ModuleBase<SocketCommandContext>
 {
+    //if the id is set to 11111111111, it has already been deleted.
+    const ulong MESSAGE_DELETED = 0;
     public CommandService _command { get; set; }
     [Command("kick")]
     [RequireUserPermission(GuildPermission.KickMembers)]
@@ -22,6 +24,22 @@ public class administration : ModuleBase<SocketCommandContext>
         await name.KickAsync(reason);
         await Context.Channel.SendMessageAsync($"Kicked {nameactual} for {reason} ");
 
+    }
+    [Command("eww")]
+    public async Task ewwAsync()
+    {
+        ulong channel = Context.Channel.Id;
+        ulong lastID = Global.lastMessage[channel].getLastElement();
+        
+        //if the dictionary doesnt have this channel in its memory that means she has not sent a message here yet.
+        if (lastID == MESSAGE_DELETED || !Global.lastMessage.ContainsKey(channel))
+        {
+            await Context.Message.AddReactionAsync(new Emoji("❌"));
+            return;
+        }
+
+        await Context.Channel.GetMessageAsync(lastID).Result.DeleteAsync();
+        await Context.Message.AddReactionAsync(new Emoji("✔️"));
     }
 
     [Command("s")]
