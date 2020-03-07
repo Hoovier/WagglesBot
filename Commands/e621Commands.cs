@@ -151,6 +151,7 @@ namespace CoreWaggles.Commands
                         response = response + responseList[Global.e621SearchIndex].file.url + "\n";
                     }
                 }
+
                 await ReplyAsync(response);
             }
             else
