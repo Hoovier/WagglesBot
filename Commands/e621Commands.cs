@@ -130,6 +130,7 @@ namespace CoreWaggles.Commands
                 {
                     await ReplyAsync("Reached end of results, resetting index. Use ~enext to start again.");
                     Global.e621SearchIndex = 0;
+                    return;
                 }
                 //if all fail, proceed!
                 else

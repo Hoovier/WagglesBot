@@ -58,7 +58,7 @@ namespace CoreWaggles
             public bool pending { get; set; }
             public bool flagged { get; set; }
             public bool note_locked { get; set; }
-            public bool status_locked { get; set; }
+            public bool? status_locked { get; set; }
             public bool rating_locked { get; set; }
             public bool deleted { get; set; }
         }
