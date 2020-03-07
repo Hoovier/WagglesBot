@@ -28,7 +28,7 @@ namespace CoreWaggles
 
         public class Sample
         {
-            public bool has { get; set; }
+            public bool? has { get; set; }
             public int height { get; set; }
             public int width { get; set; }
             public string url { get; set; }
