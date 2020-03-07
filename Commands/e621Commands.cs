@@ -130,6 +130,7 @@ namespace CoreWaggles.Commands
                 {
                     await ReplyAsync("Reached end of results, resetting index. Use ~enext to start again.");
                     Global.e621SearchIndex = 0;
+                    return;
                 }
                 //if all fail, proceed!
                 else
@@ -150,6 +151,7 @@ namespace CoreWaggles.Commands
                         response = response + responseList[Global.e621SearchIndex].file.url + "\n";
                     }
                 }
+
                 await ReplyAsync(response);
             }
             else
