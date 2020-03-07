@@ -4,7 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using ImageList = System.Collections.Generic.List<CoreWaggles.e621.Image>;
+using ImageRoot = CoreWaggles.e621.RootObject;
+using ImageList = System.Collections.Generic.List<CoreWaggles.e621.Post>;
+
 
 
 namespace CoreWaggles.Commands
@@ -38,19 +40,19 @@ namespace CoreWaggles.Commands
             //if channel is not on the explicit channels list,
             if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
             {
-                url = $"https://e621.net/post/index.json?tags=order:{sortingOptions[sort]}+{srch}+rating:s&limit=50";
+                url = $"https://e621.net/posts.json?tags=order:{sortingOptions[sort]}+{srch}+rating:s&limit=50";
             }
             else
             {
-                url = $"https://e621.net/post/index.json?tags=order:{sortingOptions[sort]}+{srch}+-cub+-loli+-foalcon&limit=50";
+                url = $"https://e621.net/posts.json?tags=order:{sortingOptions[sort]}+{srch}+-cub+-loli+-foalcon&limit=50";
             }
             string respond = e621.getJSON(url).Result;
             if (respond == "failure")
             {
-                await ReplyAsync("An error occurred!");
+                await ReplyAsync("An error occurred! " + url);
                 return;
             }
-            ImageList responseList = JsonConvert.DeserializeObject<ImageList>(respond);
+            ImageList responseList = JsonConvert.DeserializeObject<ImageRoot>(respond).posts;
             if (responseList.Count == 0)
                 await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
             else
@@ -58,8 +60,8 @@ namespace CoreWaggles.Commands
                 Global.e621Searches[Context.Channel.Id] = respond;
                 Random rand = new Random();
                 Global.e621SearchIndex = rand.Next(0, responseList.Count);
-                e621.Image chosenImage = responseList[Global.e621SearchIndex];
-                await ReplyAsync(chosenImage.file_url + "\n" + string.Join(",", chosenImage.artist));
+                e621.Post chosenImage = responseList[Global.e621SearchIndex];
+                await ReplyAsync(chosenImage.file.url + "\n" + string.Join(",", chosenImage.tags.artist));
             }
         }
         [Command("e")]
@@ -76,7 +78,7 @@ namespace CoreWaggles.Commands
             await Context.Channel.TriggerTypingAsync();
             if (Global.e621Searches.ContainsKey(Context.Channel.Id))
             {
-                ImageList responseList = JsonConvert.DeserializeObject<ImageList>(Global.e621Searches[Context.Channel.Id]);
+                ImageList responseList = JsonConvert.DeserializeObject<ImageRoot>(Global.e621Searches[Context.Channel.Id]).posts;
                 if (responseList.Count == 0)
                 {
                     await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
@@ -90,21 +92,30 @@ namespace CoreWaggles.Commands
                 if (responseList.Count == Global.e621SearchIndex)
                     Global.e621SearchIndex = 0;
                 Global.e621SearchIndex++;
-                await ReplyAsync(responseList.ElementAt(Global.e621SearchIndex).file_url);
+                await ReplyAsync(responseList.ElementAt(Global.e621SearchIndex).file.url);
             }
             else
             {
                 await ReplyAsync("You have to make a search first! Try running ~e <tag(s)>");
             }
         }
+        //basically a copy of ~redditnext
         [Command("en")]
         [Alias("enext", "ne")]
-        public async Task e621NextSpecific(int index)
+        public async Task e621NextSpecific(int amount)
         {
             await Context.Channel.TriggerTypingAsync();
+            string response = $"Posting {amount} links:\n";
+            //check user provided amount
+            if (amount < 1 || amount > 5)
+            {
+                await ReplyAsync("Pick a number between 1 and 5!");
+                return;
+            }
+            //if dictionary has an entry for channel, proceed
             if (Global.e621Searches.ContainsKey(Context.Channel.Id))
             {
-                ImageList responseList = JsonConvert.DeserializeObject<ImageList>(Global.e621Searches[Context.Channel.Id]);
+                ImageList responseList = JsonConvert.DeserializeObject<ImageRoot>(Global.e621Searches[Context.Channel.Id]).posts;
                 if (responseList.Count == 0)
                 {
                     await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
@@ -115,13 +126,31 @@ namespace CoreWaggles.Commands
                     await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0));
                     return;
                 }
-                if (responseList.Count < index)
+                else if(responseList.Count < (Global.e621SearchIndex + amount))
                 {
-                    await ReplyAsync("Thats too big, choose a number between 0-" + (responseList.Count - 1));
-                    return;
+                    await ReplyAsync("Reached end of results, resetting index. Use ~enext to start again.");
+                    Global.e621SearchIndex = 0;
                 }
-                Global.e621SearchIndex = index + 1;
-                await ReplyAsync(responseList.ElementAt(Global.e621SearchIndex).file_url);
+                //if all fail, proceed!
+                else
+                {
+                    //loop through user provided amount
+                    for(int counter = 0; counter < amount; counter++)
+                    {
+                        if(responseList.Count < Global.e621SearchIndex + 1)
+                        {
+                            await ReplyAsync("Reached end of results, resetting index. Use ~enext to start again.");
+                            Global.e621SearchIndex = 0;
+                        }
+                        //if everythings fine, increase index by 1
+                        else
+                        {
+                            Global.e621SearchIndex++;
+                        }
+                        response = response + responseList[Global.e621SearchIndex].file.url + "\n";
+                    }
+                }
+                await ReplyAsync(response);
             }
             else
             {
@@ -136,8 +165,8 @@ namespace CoreWaggles.Commands
             await Context.Channel.TriggerTypingAsync();
             if (Global.e621Searches.ContainsKey(Context.Channel.Id))
             {
-                ImageList responseList = JsonConvert.DeserializeObject<ImageList>(Global.e621Searches[Context.Channel.Id]);
-                e621.Image chosen = responseList.ElementAt(Global.e621SearchIndex);
+                ImageList responseList = JsonConvert.DeserializeObject<ImageRoot>(Global.e621Searches[Context.Channel.Id]).posts;
+                e621.Post chosen = responseList.ElementAt(Global.e621SearchIndex);
                 if (responseList.Count == 0)
                 {
                     await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
@@ -163,12 +192,15 @@ namespace CoreWaggles.Commands
         /// <summary>Takes an e621.Image object and returns formatted tag string.</summary>
         /// <param name="img">An e621.Image object that will have tags extracted</param>
         /// <returns>Formatted tag and artist string.</returns>
-        public static string Builde621Tags(e621.Image img)
+        public static string Builde621Tags(e621.Post img)
         {
             // Adds commas to tags, for easier reading.
-            string tagString = img.tags.Replace(" ", ", ");
+            //put the artist and general tags List together, so I can Join them all at once.
+            List<string> allTagsList = img.tags.character;
+            allTagsList.AddRange(img.tags.general);
+            string tagString = String.Join(", ", allTagsList);
             // Create string with ratings and artist tags
-            string artistAndRating = ratings[img.rating.ToString()] + "**Artist(s):** " + string.Join(",", img.artist);
+            string artistAndRating = ratings[img.rating.ToString()] + "**Artist(s):** " + string.Join(", ", img.tags.artist);
 
             //return string with lots of formatting!
             return "**Info:** " + artistAndRating + "\n\n" + "All tags: \n```" + tagString + "```";
