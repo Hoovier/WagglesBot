@@ -11,6 +11,7 @@ using CoreWaggles;
 using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
+using CoreWaggles.Commands;
 
 namespace WagglesBot
 {
@@ -205,9 +206,11 @@ namespace WagglesBot
             {
                 var context = new SocketCommandContext(_client, message);
                 Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{context.Channel.Name}] \n{message.Author.Username}: {message.Content}");
-                if (Global.excomm.ContainsKey(message.Content.Trim('~')))
+                //if the command is in DB, it will return actual command desired, otherwise returns string.empty and fails the check
+                string AliasedCommandCheck = DBTransaction.getAliasedCommand(message.Content.Trim('~'), context.Guild.Id, true);
+                if ( AliasedCommandCheck != string.Empty)
                 {
-                   await _commands.ExecuteAsync(context, Global.excomm[message.Content.Trim('~')]);
+                   await _commands.ExecuteAsync(context, AliasedCommandCheck);
                 }
                 else
                 {
