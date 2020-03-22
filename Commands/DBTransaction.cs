@@ -183,5 +183,70 @@ namespace CoreWaggles.Commands
                 return response + "```";
         }
 
+        public static string getMaxWittyID()
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand("SELECT MAX(WittyID) FROM Wittys", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            return rdr.GetInt64(0).ToString();
+        }
+
+        public static string addWitty(string name, string match, ulong serverID, double probability, List<string> responses)
+        {
+            int rowsAffected = 0;
+            string witID;
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //get max
+            using var commd = new SQLiteCommand("SELECT MAX(WittyID) FROM Wittys", con);
+            {
+                using SQLiteDataReader rdr = commd.ExecuteReader();
+                rdr.Read();
+                witID = (rdr.GetInt64(0) + 1).ToString();
+            }
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = "INSERT INTO Wittys(Name, Trigger, Probability, ServerID, WittyID) VALUES(@Name, @Trigger, @Probability, @ServerID, " +
+                    witID + ");";
+                cmd.Parameters.AddWithValue("@Name", name);
+                cmd.Parameters.AddWithValue("@Trigger", match);
+                cmd.Parameters.AddWithValue("@Probability", probability);
+                cmd.Parameters.AddWithValue("@ServerID", serverID);
+                rowsAffected = cmd.ExecuteNonQuery();
+                    foreach(string response in responses)
+                    {
+                        //multiple Inserts, dont know if this affects performance but its the only way to do prepared statements
+                        cmd.CommandText = "INSERT INTO Responses VALUES(@Response, @WittyID);";
+                        cmd.Parameters.AddWithValue("@Response", response);
+                        cmd.Parameters.AddWithValue("@WittyID", witID);
+                        rowsAffected = cmd.ExecuteNonQuery();
+                    }
+            }
+            return "Added Witty!";
+        }
+        public static string removeWitty(string name, ulong serverID)
+        {
+            int rowsAffected = 0;
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = "PRAGMA foreign_keys = ON;";
+                cmd.ExecuteNonQuery();
+                cmd.CommandText = "DELETE FROM Wittys WHERE Name=@name AND ServerID=@serverID";
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.Parameters.AddWithValue("@serverID", serverID);
+                rowsAffected = cmd.ExecuteNonQuery();
+            }
+            if (rowsAffected == 1)
+                return "Succesfully removed Witty!";
+            if (rowsAffected == 0)
+                return "An error occured, no witty removed. Does the witty exist or is the witty name misspelled?";
+            else
+                return "ERROR! Code: " + rowsAffected;
+        }
     }
 }

@@ -23,55 +23,15 @@ namespace CoreWaggles.Commands
                 await ReplyAsync("Pick a probability between 1.0 and 0");
                 return;
             }
-            //call wittyobject constructor with given values
-            WittyObject temp = new WittyObject(name, match, probability, responses.ToList());
-
-            //error handling for null wittyDictionary List objects.
-            if (!Global.wittyDictionary.ContainsKey(Context.Guild.Id))
-            {
-                Global.wittyDictionary.Add(Context.Guild.Id, new List<WittyObject>());
-            }
-            //adds witty to associated server wide dictionary
-            Global.wittyDictionary[Context.Guild.Id].Add(temp);
-            //write object JSON info to file
-            string channelObject = JsonConvert.SerializeObject(Global.wittyDictionary);
-            if (File.Exists(path))
-            {
-                File.WriteAllText(path, channelObject);
-            }
-            else
-            {
-                await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-                return;
-            }
-            await ReplyAsync("Added Witty with name: " + temp.name);
+            string dbResponse = DBTransaction.addWitty(name, match, Context.Guild.Id, probability, responses.ToList());
+            await ReplyAsync(dbResponse);
         }
         [Command("witty remove")]
         public async Task RemWitty(string name)
         {
-            //iterate through List of witties, compare names to given name.
-            foreach (WittyObject wit in Global.wittyDictionary[Context.Guild.Id])
-            {
-                if (wit.name == name)
-                {
-                    Global.wittyDictionary[Context.Guild.Id].Remove(wit);
-                    await ReplyAsync("removed " + name + "!");
-                    //write witties to file
-                    string channelObject = JsonConvert.SerializeObject(Global.wittyDictionary);
-                    if (File.Exists(path))
-                    {
-                        File.WriteAllText(path, channelObject);
-                    }
-                    else
-                    {
-                        await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-                        return;
-                    }
-                    return;
-                }
-            }
+            string DBresponse = DBTransaction.removeWitty(name, Context.Guild.Id);
             //only reaches this point if entire list does not match.
-            await ReplyAsync("Could not find that Witty, try '~witty list' to see see all wittys!");
+            await ReplyAsync(DBresponse);
         }
             
         [Command("witty list")]
