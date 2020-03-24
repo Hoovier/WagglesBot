@@ -9,8 +9,17 @@ namespace CoreWaggles.Commands
     internal static class DBTransaction
     {
         //cs is connection string for DB
-        private static readonly string cs = @"URI=file:WagglesDB.db";
+        private static readonly string cs = @"URI=file:WagglesDB.db; foreign keys=true;";
 
+        public static int getErrorID(string errMessage)
+        {
+            if (errMessage.Contains("FOREIGN KEY"))
+                return 0;
+            else if (errMessage.Contains("UNIQUE"))
+                return 1;
+            else
+                return 69;
+        }
         public static int updateUserList(List<SocketGuildUser> listOfUsers, ulong serverID)
         {
             string insertString = "";
@@ -183,16 +192,6 @@ namespace CoreWaggles.Commands
                 return response + "```";
         }
 
-        public static string getMaxWittyID()
-        {
-            using var con = new SQLiteConnection(cs);
-            con.Open();
-            using var commd = new SQLiteCommand("SELECT MAX(WittyID) FROM Wittys", con);
-            using SQLiteDataReader rdr = commd.ExecuteReader();
-            rdr.Read();
-            return rdr.GetInt64(0).ToString();
-        }
-
         public static string addWitty(string name, string match, ulong serverID, double probability, List<string> responses)
         {
             int rowsAffected = 0;
@@ -247,6 +246,40 @@ namespace CoreWaggles.Commands
                 return "An error occured, no witty removed. Does the witty exist or is the witty name misspelled?";
             else
                 return "ERROR! Code: " + rowsAffected;
+        }
+
+        public static string listWitty(ulong serverID)
+        {
+            string response = "Wittys ```\n";
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Name FROM Wittys WHERE ServerID={serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                //Console.WriteLine(response);
+                response = response + rdr.GetString(0) + "\n";
+            }
+            if (response == "Wittys ```")
+                return "No Wittys for this server found!";
+            else
+                return response + "```";
+        }
+        public static string getWitty(string name, ulong serverID)
+        {
+            string response = "No Witty found with that name!";
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand("SELECT Name, Trigger, Probability FROM Wittys WHERE Name=@name AND ServerID=@serverID", con);
+            commd.Parameters.AddWithValue("@name", name);
+            commd.Parameters.AddWithValue("@serverID", serverID);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+
+            while (rdr.Read())
+            {
+                response = "```Name: " + rdr.GetString(0) + "\nTrigger: " + rdr.GetString(1) +  "\nProbability: " + rdr.GetDouble(2) + "```";
+            }
+            return response;
         }
     }
 }
