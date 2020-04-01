@@ -1,8 +1,10 @@
-﻿using Discord.WebSocket;
+﻿using Discord.Commands;
+using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CoreWaggles.Commands
 {
@@ -280,6 +282,59 @@ namespace CoreWaggles.Commands
                 response = "```Name: " + rdr.GetString(0) + "\nTrigger: " + rdr.GetString(1) +  "\nProbability: " + rdr.GetDouble(2) + "```";
             }
             return response;
+        }
+
+        public static void processWitty(SocketCommandContext context, string message)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand("SELECT WittyID, Trigger, Probability FROM Wittys WHERE ServerID=" + context.Guild.Id, con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            Random rand = new Random();
+            //pick number between 0 and 100
+            int prob = rand.Next(0, 100);
+            //iterate through witties, see if a wittys regex matches the message
+            while (rdr.Read())
+            {
+                //if random number is less than probability * 100, run checks
+                // EX. prob = 37, wit.probability * 100 = 40
+                //60% chance prob is greater than, 40% chance its less than
+                if (prob < rdr.GetDouble(2) * 100)
+                {
+                    string response = "";
+                    Regex rx = new Regex(rdr.GetString(1));
+                    //if message fits the regex
+                    if (rx.IsMatch(message))
+                    {
+                        //pick one of the registered responses!
+                        //get how many responses there are
+                        using var responseCommand = new SQLiteCommand("SELECT count(Response) FROM Responses WHERE WittyID = " + rdr.GetInt32(0), con);
+                        using SQLiteDataReader responseCount = responseCommand.ExecuteReader();
+                        //get first row
+                        responseCount.Read();
+                        int numOfResponses = responseCount.GetInt32(0);
+                        //close down reader so that responseCommand can be reused
+                        responseCount.Close();
+                        //get responses
+                        responseCommand.CommandText = "SELECT Response FROM Responses WHERE WittyID = " + rdr.GetInt32(0);
+                        using SQLiteDataReader responses = responseCommand.ExecuteReader();
+                        //get index of chosen response
+                        int chosen = rand.Next(0, numOfResponses);
+                        //loop through responses and move reader along until we reach desired index
+                        for(int counter = 0; counter <= chosen; counter++)
+                        {
+                            responses.Read();
+                            if (counter == chosen)
+                            {
+                                response = responses.GetString(0);
+                                context.Channel.SendMessageAsync(response);
+                                //return here or else itll keep making multiple matches
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -42,8 +42,6 @@ namespace CoreWaggles.Commands
                         await ReplyAsync("Something went wrong, contact Hoovier with error code: " + ex.ErrorCode);
                         break;
                 }
-                
-              await  ReplyAsync(ex.ErrorCode.ToString());
             }
         }
         [Command("witty remove")]
