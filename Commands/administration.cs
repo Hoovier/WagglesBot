@@ -52,22 +52,6 @@ public class administration : ModuleBase<SocketCommandContext>
         await ReplyAsync($"I'm holding {links} ID's and {strings} search strings! My whitelist has {Global.safeChannels.Count} entries! \n random channel <@{clonk}>");
     }
 
-    [Command("write")]
-
-
-    public async Task WriteAsync()
-    {
-
-        var path = "List.JSON";
-        if (File.Exists(path))
-        {
-            await ReplyAsync(Global.todo[1]);
-        }
-        else
-            await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-
-
-    }
     
 }
 public class Ban : ModuleBase<SocketCommandContext>

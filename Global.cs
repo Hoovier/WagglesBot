@@ -12,13 +12,9 @@ namespace CoreWaggles
         internal static ulong MessageIdToTrack { get; set; }
 
         internal static RestUserMessage MessageTotrack { get; set; }
-        private static int ploxs = 0;
-        internal static int Ploxrs { get { return ploxs; } set { ploxs = ++ploxs; } }
-        internal static List<string> todo = new List<string>();
         internal static Dictionary<ulong, ulong> safeChannels = new Dictionary<ulong, ulong>();
         internal static Dictionary<ulong, string> searchesD = new Dictionary<ulong, string>();
         internal static Dictionary<ulong, string> links = new Dictionary<ulong, string>();
-        internal static Dictionary<string, string> excomm = new Dictionary<string, string>();
         internal static Dictionary<ulong, string> miscLinks = new Dictionary<ulong, string>();
 
         //Array of messages for deletion, stores at max 3 per channel

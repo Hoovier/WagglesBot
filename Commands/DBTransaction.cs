@@ -336,5 +336,73 @@ namespace CoreWaggles.Commands
                 }
             }
         }
+
+        public static void addChannelToWhitelist(ulong channelID, ulong serverID, string channelName)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = "INSERT INTO Whitelist VALUES(@ChannelID, @ServerID, @ChannelName);";
+                cmd.Parameters.AddWithValue("@ChannelID", channelID);
+                cmd.Parameters.AddWithValue("@ServerID", serverID);
+                cmd.Parameters.AddWithValue("@ChannelName", channelName);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static string removeChannelWhitelist(ulong channelID)
+        {
+            int rowsAffected = 0;
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = "DELETE FROM Whitelist WHERE ChannelID = @ChannelID;";
+                cmd.Parameters.AddWithValue("@ChannelID", channelID);
+                rowsAffected = cmd.ExecuteNonQuery();
+            }
+            if (rowsAffected == 1)
+                return "Succesfully removed channel from Whitelist!";
+            if (rowsAffected == 0)
+                return "An error occured, no channel removed. Channel was not possibly already in Whitelist.";
+            else
+                return "ERROR! Code: " + rowsAffected;
+        }
+
+        public static string listWhitelistedChannels(ulong serverID)
+        {
+            string response = "Whitelisted Channels ```\n";
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT ChannelName FROM Whitelist WHERE ServerID={serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            //same idea as listWitty, just loop through all the responses and spit out names of whitelisted channels!
+            while (rdr.Read())
+            {
+                response = response + rdr.GetString(0) + "\n";
+            }
+            if (response == "Whitelisted Channels ```\n")
+                return "No Whitelisted Channels for this server found!";
+            else
+                return response + "```";
+        }
+        public static bool isChannelWhitelisted(ulong channelID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //select count of random attribute, since they all should be unique, it shouldnt matter
+            using var commd = new SQLiteCommand($"SELECT count(ChannelName) FROM Whitelist WHERE ChannelID ={channelID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                //if the count is 1, that means it is nsfw, otherwise itll return false!
+                return rdr.GetInt32(0) == 1;
+            }
+            //if it reaches here, who knows what happened!
+            return false;
+        }
     }
 }

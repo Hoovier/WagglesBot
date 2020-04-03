@@ -1,21 +1,23 @@
 ﻿using CoreWaggles;
+using CoreWaggles.Commands;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Data.SQLite;
 using System.IO;
 using System.Threading.Tasks;
 
 
-public class Stick : ModuleBase<SocketCommandContext>
+public class Wlist : ModuleBase<SocketCommandContext>
 {
-    public readonly string path = "JSONstorage/wlist.JSON";
     [Command("isnsfw")]
     [Alias("woona", "nsfw")]
     public async Task IsnsfwAsync()
     {
-        string isIt = Global.safeChannels.ContainsKey(Context.Channel.Id) ? "is" : "is not";
+        string isIt = DBTransaction.isChannelWhitelisted(Context.Channel.Id) ? "is" : "is not";
         await ReplyAsync($"This channel {isIt} NSFW.");
     }
 
@@ -33,57 +35,37 @@ public class Stick : ModuleBase<SocketCommandContext>
         {
             case "add":
                 {
-                    if (Global.safeChannels.ContainsKey(channel.Id))
+                    try
                     {
-                        await ReplyAsync("Channel already in whitelist! To remove try ``~wlist remove #channel``");
+                        DBTransaction.addChannelToWhitelist(channel.Id, Context.Guild.Id, channel.Name);
+                        await ReplyAsync("Added to Whitelist!");
                     }
-                    else
+                    catch(SQLiteException ex)
                     {
-                        Global.safeChannels.Add(channel.Id, Context.Guild.Id);
-                        string channelObject = JsonConvert.SerializeObject(Global.safeChannels);
-                        if (File.Exists(path))
+                        switch (ex.ErrorCode)
                         {
-                            File.WriteAllText(path, channelObject);
+                            case 19:
+                                Console.WriteLine("Attempted to add channel to Whitelist, it already was in. Server: " + Context.Guild.Name);
+                                await ReplyAsync("That channel was already in the Whitelist!");
+                                break;
+                            default:
+                                Console.WriteLine("SQL Error: " + ex.Message + "\nErrorNum:" + ex.ErrorCode);
+                                await ReplyAsync("Something went wrong, contact Hoovier with error code: " + ex.ErrorCode);
+                                break;
                         }
-                        else
-                            await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-                        await ReplyAsync($"Added {channel.Name} to NSFW-enabled channels.");
                     }
                     break;
                 }
             case "remove":
                 {
-                    if (!Global.safeChannels.ContainsKey(channel.Id))
-                    {
-                        await ReplyAsync("Channel not in whitelist.");
-                    }
-                    else
-                    {
-                        Global.safeChannels.Remove(channel.Id);
-                        string channelObject = JsonConvert.SerializeObject(Global.safeChannels);
-                        if (File.Exists(path))
-                        {
-                            File.WriteAllText(path, channelObject);
-                        }
-                        else
-                            await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-
-                        await ReplyAsync($"Removed {channel.Name} from NSFW-enabled channels.");
-                    }
+                    string dbResponse = DBTransaction.removeChannelWhitelist(channel.Id);
+                    await ReplyAsync(dbResponse);
                     break;
                 }
             case "list":
                 {
-                    string response = "Contents: ";
-                    foreach (KeyValuePair<ulong, ulong> entry in Global.safeChannels)
-                    {
-                        // do something with entry.Value or entry.Key
-                        if (entry.Value == Context.Guild.Id)
-                        {
-                            response = $"{response} \n<#{entry.Key}> ";
-                        }
-                    }
-                    await ReplyAsync(response);
+                    string dbResponse = DBTransaction.listWhitelistedChannels(Context.Guild.Id);
+                    await ReplyAsync(dbResponse);
                     break;
                 }
             default:
@@ -97,49 +79,38 @@ public class Stick : ModuleBase<SocketCommandContext>
     [RequireUserPermission(GuildPermission.ManageChannels)]
     public async Task WlistnoargAsync(string arg)
     {
-        string added = "added: ";
-        string notadded = "not added";
         switch (arg)
         {
             case "list":
                 {
-                    string response = "Contents: ";
-                    foreach (KeyValuePair<ulong, ulong> entry in Global.safeChannels)
-                    {
-                        // do something with entry.Value or entry.Key
-                        if (entry.Value == Context.Guild.Id)
-                        {
-                            response = $"{response} \n<#{entry.Key}> ";
-                        }
-                    }
-                    await ReplyAsync(response);
+                    string dbResponse = DBTransaction.listWhitelistedChannels(Context.Guild.Id);
+                    await ReplyAsync(dbResponse);
                     break;
                 }
             case "all":
                 {
                     foreach (SocketGuildChannel channel in Context.Guild.TextChannels)
                     {
-                        if (Global.safeChannels.ContainsKey(channel.Id))
+                        try
                         {
-                            notadded = $"{notadded} \n<#{channel.Id}> ";
+                            DBTransaction.addChannelToWhitelist(channel.Id, Context.Guild.Id, channel.Name);
                         }
-                        else
+                        catch (SQLiteException ex)
                         {
-                            Global.safeChannels.Add(channel.Id, Context.Guild.Id);
-                            added = $"{added} \n<#{channel.Id}> ";
+                            switch (ex.ErrorCode)
+                            {
+                                case 19:
+                                    Console.WriteLine("Attempted to add channel to Whitelist, it already was in. Server: " + Context.Guild.Name);
+                                   //no need to reply cause we dont want to spam chat with channels already in
+                                    break;
+                                default:
+                                    Console.WriteLine("SQL Error: " + ex.Message + "\nErrorNum:" + ex.ErrorCode);
+                                    await ReplyAsync("Something went wrong, contact Hoovier with error code: " + ex.ErrorCode);
+                                    break;
+                            }
                         }
                     }
-                    string channelObject = JsonConvert.SerializeObject(Global.safeChannels);
-                    if (File.Exists(path))
-                    {
-                        File.WriteAllText(path, channelObject);
-                        await ReplyAsync("Succesfully found and wrote to the file!");
-                        Dictionary<ulong, ulong> newList = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText(path));
-                        await ReplyAsync($"I have {newList.Count} channels in my saved file!");
-                    }
-                    else
-                        await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-                    await ReplyAsync($"{notadded} \n{added}");
+                    await WlistnoargAsync("list");
                     break;
                 }
             default:
@@ -149,48 +120,5 @@ public class Stick : ModuleBase<SocketCommandContext>
                 }
         }
     }
-    [Command("todo")]
-    public async Task TodoAsync(string check, [Remainder] string thingToAdd)
-    {
-        switch (check)
-        {
-            case "add":
-                {
-                    Global.todo.Add(thingToAdd);
-                    await ReplyAsync($"Added: ``{thingToAdd}``");
-                    var path = "JSONstorage/List.JSON";
-                    string channelObject = JsonConvert.SerializeObject(Global.todo);
-                    File.WriteAllText(path, channelObject);
-                    break;
-                }
-            case "list":
-                {
-                    string response = "Contents: ";
-                    foreach (string any in Global.todo)
-                    {
-                        response = $"{response} \n{any}";
-                    }
-                    await ReplyAsync(response);
-                    break;
-                }
-            case "remove":
-                {
-                    if (Global.todo.Contains(thingToAdd))
-                    {
-                        Global.todo.Remove(thingToAdd);
-                        await ReplyAsync($"Removed: ``{thingToAdd}``");
-                    }
-                    else
-                    {
-                        await ReplyAsync($"Thats not on my list!");
-                    }
-                    break;
-                }
-            default:
-                {
-                    await ReplyAsync("Did you forget an action argument? I can ``add``, ``remove``, or even ``list``.");
-                    break;
-                }
-        }
-    }
+   
 }
