@@ -42,15 +42,7 @@ public class administration : ModuleBase<SocketCommandContext>
         await Context.Message.AddReactionAsync(new Emoji("✔️"));
     }
 
-    [Command("s")]
-    public async Task SSSAsync()
-    {
-        int links = Global.links.Count;
-        int strings = Global.searchesD.Count;
-        Dictionary<ulong, ulong> newList = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText("wlist.JSON"));
-        ulong clonk = newList.ElementAt(1).Key;
-        await ReplyAsync($"I'm holding {links} ID's and {strings} search strings! My whitelist has {Global.safeChannels.Count} entries! \n random channel <@{clonk}>");
-    }
+ 
 
     
 }

@@ -62,7 +62,7 @@ namespace CoreWaggles.Commands
             //get the post at given index and store it here for faster use
             Post chosen = Global.redditDictionary[Context.Channel.Id].getChosenPost();
             //if result is nsfw, and channel is not whitelisted, AND its not a DM, tell them and dont post anything.
-            if(chosen.NSFW && !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
+            if(chosen.NSFW && !DBTransaction.isChannelWhitelisted(Context.Channel.Id) && !Context.IsPrivate)
             {
                 await ReplyAsync("This result is NSFW, and this channel is not whitelisted! Try making another search or going to the next result using ~rnext");
                 return;
@@ -130,7 +130,7 @@ namespace CoreWaggles.Commands
                     //store post at given index
                     Post chosen = Global.redditDictionary[Context.Channel.Id].getChosenPost();
                     //if result is nsfw, and channel is not whitelisted, AND its not a DM, tell them and dont post anything.
-                    if (chosen.NSFW && !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
+                    if (chosen.NSFW && !DBTransaction.isChannelWhitelisted(Context.Channel.Id) && !Context.IsPrivate)
                     {
                         response = response + "NSFW Post\n";
                     }
@@ -161,7 +161,7 @@ namespace CoreWaggles.Commands
             }
             Post chosen = Global.redditDictionary[Context.Channel.Id].getChosenPost();
             //if result is nsfw, and channel is not whitelisted, AND its not a DM, tell them and dont post anything.
-            if (chosen.NSFW && !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
+            if (chosen.NSFW && !DBTransaction.isChannelWhitelisted(Context.Channel.Id) && !Context.IsPrivate)
             {
                 await ReplyAsync("This result is NSFW, and this channel is not whitelisted! Try making another search or going to the next result using ~rnext");
                 return;
@@ -182,7 +182,7 @@ namespace CoreWaggles.Commands
                 return;
             }
            //if the channel is not nsfw or private, call function with the false bool
-            if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
+            if (!DBTransaction.isChannelWhitelisted(Context.Channel.Id) && !Context.IsPrivate)
             {
                 await ReplyAsync(Global.redditDictionary[Context.Channel.Id].getInfo(link, false));
                 return;

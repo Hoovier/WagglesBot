@@ -19,8 +19,8 @@ public class Repsonsetest : ModuleBase<SocketCommandContext>
         await msg.AddReactionAsync(new Emoji("🎉"));
         await msg.AddReactionAsync(new Emoji("🏠"));
         await msg.AddReactionAsync(new Emoji("🐴"));
-        Global.MessageIdToTrack = msg.Id;
-        Global.MessageTotrack = msg;
+        Global.MessageIdToTrack[Context.Channel.Id] = msg.Id;
+        Global.MessageTotrack[Context.Channel.Id] = msg;
     }
     [Command]
     public async Task PingAsync(string command)

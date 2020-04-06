@@ -23,10 +23,6 @@ namespace WagglesBot
         private DiscordSocketClient _client;
         private CommandService _commands;
         private IServiceProvider _services;
-        public readonly string todoPath = "JSONstorage/List.JSON";
-        public readonly string safeChannelsPath = "JSONstorage/wlist.JSON";
-        public readonly string extraCommsPath = "JSONstorage/extraComms.JSON";
-        public readonly string WittysPath = "JSONstorage/Wittys.JSON";
 
         public async Task runBotAsync()
         {
@@ -36,7 +32,6 @@ namespace WagglesBot
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
                 .BuildServiceProvider();
-            Global.safeChannels = JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(File.ReadAllText(this.safeChannelsPath));
             //Reddit Token stuff!
             string[] RedditTokens = System.IO.File.ReadAllLines("redditTokens.txt");
             Global.reddit = new Reddit.RedditClient(RedditTokens[0], RedditTokens[1], RedditTokens[2], RedditTokens[3]);
@@ -63,7 +58,7 @@ namespace WagglesBot
         private async Task OnReady()
         {
             Console.WriteLine("Logged in on Discord as: " + _client.CurrentUser.Username);
-            await _client.SetGameAsync("Playing with Mona");
+            await _client.SetGameAsync("with Mona");
             Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
             Console.WriteLine("In " + _client.Guilds.Count + " servers!");
         }
@@ -98,39 +93,47 @@ namespace WagglesBot
          */
         private async Task OnReactionAdded(Cacheable<IUserMessage, ulong> cache, ISocketMessageChannel channel, SocketReaction reaction)
         {
-            if (reaction.MessageId == Global.MessageIdToTrack && reaction.UserId != 480105212485435392)
+            if (reaction.MessageId == Global.MessageIdToTrack[channel.Id] && reaction.UserId != _client.CurrentUser.Id)
             {
                 if (reaction.Emote.Name == "🎉")
                 {
-                    var clock = "**__Fun page__** \n **Boop**: Boop a user! \n **Pony**: Brings up a random image of me. \n **Click**: Count! Adds one every time it runs. \n **Say**: Make me say whatever you want. \n **Is**: Ask me a question and I'll guess! \n **Joke**: I'll tell you a joke. ";
-                    await Global.MessageTotrack.ModifyAsync(msg => msg.Content = clock);
+                    var clock = "**__Fun page__** \n **Boop**: Boop a user! \n **Pony**: Brings up a random image of me. \n " +
+                        "**Click**: Count! Adds one every time it runs. \n **Say**: Make me say whatever you want. " +
+                        "\n **Is**: Ask me a question and I'll guess! \n **Joke**: I'll tell you a joke. ";
+                    await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = clock);
                     IEmote cloc = new Emoji("🎉");
-                    await Global.MessageTotrack.RemoveReactionAsync(cloc, reaction.User.Value);
+                    await Global.MessageTotrack[channel.Id].RemoveReactionAsync(cloc, reaction.User.Value);
                 }
 
                 else if (reaction.Emote.Name == "🏠")
                 {
-                    var cloke = "**__Hi there! I'm Waggles, let me show you what I can do!__** \n I don't wanna cloud your view, so I made a machine to help me help you. All you have to do is react with one of the following emojis to get its corresponding page. \n :wrench: - My admin tools! \n :tada: - The funnest commands! \n :house: - Takes you to the homepage. \n :horse: - Derpibooru commands!";
-                    await Global.MessageTotrack.ModifyAsync(msg => msg.Content = cloke);
+                    var cloke = "**__Hi there! I'm Waggles, let me show you what I can do!__** \n " +
+                        "I don't wanna cloud your view, so I made a machine to help me help you. All you have to do is react with one of the following emojis to get its corresponding page. " +
+                        "\n :wrench: - My admin tools! \n :tada: - The funnest commands! \n :house: - Takes you to the homepage. \n :horse: - Derpibooru commands!";
+                    await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = cloke);
                     IEmote clock = new Emoji("🏠");
-                    await Global.MessageTotrack.RemoveReactionAsync(clock, reaction.User.Value);
+                    await Global.MessageTotrack[channel.Id].RemoveReactionAsync(clock, reaction.User.Value);
                 }
                 else if (reaction.Emote.Name == "🐴")
                 {
-                    var cloke = "**__Derpibooru page__** \n **Derpi**: Allows you to run a derpi query, returns only safe results unless the channel is marked NSFW. \n **Derpist**: Returns the amount of images matching your query. \n **Derpitags**: Returns the tags of a linked or saved image. \n **Next**: Returns another image of last derpi search. \n **Artist**: Returns the artist(s) page(s) of a linked or saved image.";
-                    await Global.MessageTotrack.ModifyAsync(msg => msg.Content = cloke);
+                    var cloke = "**__Derpibooru page__** \n **Derpi**: Allows you to run a derpi query, returns only safe results unless the channel is marked NSFW. " +
+                        "\n **Derpist**: Returns the amount of images matching your query. \n **Derpitags**: Returns the tags of a linked or saved image. " +
+                        "\n **Next**: Returns another image of last derpi search. \n **Artist**: Returns the artist(s) page(s) of a linked or saved image.";
+                    await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = cloke);
                     IEmote clock = new Emoji("🐴");
-                    await Global.MessageTotrack.RemoveReactionAsync(clock, reaction.User.Value);
+                    await Global.MessageTotrack[channel.Id].RemoveReactionAsync(clock, reaction.User.Value);
                 }
                 else if (reaction.Emote.Name == "🔧")
                 {
-                    var cloke = "**__Admin page__** \n **Ban**: Ban a user! \n **kick**: Kick a user. \n **wlist**: add, remove, or view the list of channels that allow nsfw posts from derpibooru searches. \n **alias**: add, remove, view, or edit the list of aliases.";
-                    await Global.MessageTotrack.ModifyAsync(msg => msg.Content = cloke);
+                    var cloke = "**__Admin page__** \n **Ban**: Ban a user! \n **kick**: Kick a user. \n " +
+                        "**wlist**: add, remove, or view the list of channels that allow nsfw posts from derpibooru searches. \n " +
+                        "**alias**: add, remove, view, or edit the list of aliases.";
+                    await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = cloke);
                     IEmote clock = new Emoji("🔧");
-                    await Global.MessageTotrack.RemoveReactionAsync(clock, reaction.User.Value);
+                    await Global.MessageTotrack[channel.Id].RemoveReactionAsync(clock, reaction.User.Value);
                 }
             }
-            else if(reaction.MessageId == Global.redditDictionary[reaction.Channel.Id].redditIDtoTrack && reaction.UserId != 480105212485435392 && reaction.UserId != 576072134451789875)
+            else if(reaction.MessageId == Global.redditDictionary[reaction.Channel.Id].redditIDtoTrack && reaction.UserId != _client.CurrentUser.Id)
             {
                 Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Rnext button!");
                 await _commands.ExecuteAsync(Global.redditDictionary[reaction.Channel.Id].redContext, "rnext 5");
@@ -189,7 +192,7 @@ namespace WagglesBot
                 int derpiID = Global.ExtractBooruId(message.Content);
                 // If an ID is able to be parsed out, add it to the `links` cache for the Channel.
                 if (derpiID != -1) {
-                    Global.links[context.Channel.Id] = derpiID.ToString();
+                    Global.LastDerpiID[context.Channel.Id] = derpiID.ToString();
                 }
             }
             // If a URL that is NOT booru related, then just save to `miscLinks` cache.

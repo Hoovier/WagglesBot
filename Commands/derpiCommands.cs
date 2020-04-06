@@ -14,6 +14,7 @@ using DerpiRevSearch = WagglesBot.Modules.DerpiReverseResponse.Image;
 // Alias for Derpibooru Response objects.
 using DerpiRoot = WagglesBot.Modules.DerpibooruResponse.Rootobject;
 using DerpiSearch = WagglesBot.Modules.DerpibooruResponse.Image;
+using CoreWaggles.Commands;
 
 public class DerpibooruComms : ModuleBase<SocketCommandContext>
 {
@@ -57,7 +58,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             // Get search result element. First element if there are more than one.
             DerpiRevSearch element =  imageList.First();
             // Determine if Channel allows NSFW content or not.
-            bool safeOnly = !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate;
+            bool safeOnly = !DBTransaction.isChannelWhitelisted(Context.Channel.Id) && !Context.IsPrivate;
             
             if (safeOnly && !DerpiHelper.IsElementSafe(element.tags)) {
                 // If there is a NSFW artwork searched on a SFW channel, do not display result and inform the user.
@@ -66,7 +67,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                 // Display the image link if allowed!
                 string derpiURL = "https://derpibooru.org/" + imageList.First().id;
                 await ReplyAsync("Result found on Derpibooru here: " + derpiURL);
-                Global.links[Context.Channel.Id] = imageList.First().id.ToString();
+                Global.LastDerpiID[Context.Channel.Id] = imageList.First().id.ToString();
             }
         }
     }
@@ -123,7 +124,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // If the channel is not on the list of NSFW enabled channels do not allow NSFW results.
         // the second part checks if the command was executed in DMS, DM channels do not have to be added to the NSFW enabled list.
         // In DMs the first check will fail, and so will the second, allowing for nsfw results to be displayed.
-        bool safeOnly = !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate;
+        bool safeOnly = !DBTransaction.isChannelWhitelisted(Context.Channel.Id) && !Context.IsPrivate;
 
         // Add search to the parameters list, with "AND safe" if it failed the NSFW check.
         queryParams.Add("q", safeOnly ? $"{search}+AND+safe" : search);
@@ -131,12 +132,12 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Build the full request URL.
         string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, queryParams);
         
-        // Global.searchesD is a dictionary-based cache with the last search result in that channel, if applicable.
+        // Global.DerpiSearchCache is a dictionary-based cache with the last search result in that channel, if applicable.
         // Always stores results globally for other commands like ~next to keep track.
-        Global.searchesD[Context.Channel.Id] = Get.Derpibooru(requestUrl).Result;
+        Global.DerpiSearchCache[Context.Channel.Id] = Get.Derpibooru(requestUrl).Result;
 
         // Deserialize (from JSON to DerpibooruResponse.RootObject) the Derpibooru search results.
-        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
+        DerpiRoot DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.DerpiSearchCache[Context.Channel.Id]);
 
         // Actual request an. Try-catch to softly catch exceptions.
         try {
@@ -149,12 +150,12 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             // Get random number generator and random entry.
             var rng = new Random();
             int rand = rng.Next(imageList.Count);
-            Global.searched = rand + 1;
+            Global.DerpibooruSearchIndex[Context.Channel.Id] = rand + 1;
             DerpiSearch randomElement = imageList.ElementAt(rand);
 
             // Add image ID to Global.links.
             // TODO: Describe where this is used better?
-            Global.links[Context.Channel.Id] = randomElement.id.ToString();
+            Global.LastDerpiID[Context.Channel.Id] = randomElement.id.ToString();
 
             await ReplyAsync(
                 DerpiHelper.BuildDiscordResponse(randomElement, artistAsLink, !safeOnly)
@@ -176,20 +177,20 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Check if an a "~derpi" search has been made in this channel yet.
         // We need to deserialize this in order to get the result set size.
         // TODO: Store the result size globally? To avoid deserializing so soon.
-        if (Global.searchesD.ContainsKey(Context.Channel.Id)) {
-            DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
+        if (Global.DerpiSearchCache.ContainsKey(Context.Channel.Id)) {
+            DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.DerpiSearchCache[Context.Channel.Id]);
         } else {
             await ReplyAsync("You need to call `~derpi` (`~d` for short) to get some results before I can hoof you over more silly!");
             return;
         }
 
         // If ~next goes off the globally cached page, loop around the beginning again.
-        if(Global.searched + 1 > DerpiResponse.images.Count()) {
-            Global.searched = 0;
+        if(Global.DerpibooruSearchIndex[Context.Channel.Id] + 1 > DerpiResponse.images.Count()) {
+            Global.DerpibooruSearchIndex[Context.Channel.Id] = 0;
         }
 
         // The `~next` command is basically `~next {CurrentIndex + 1}`, lets treat it that way.
-        await DerpiNextPick(Global.searched++);
+        await DerpiNextPick(Global.DerpibooruSearchIndex[Context.Channel.Id]++);
     }
 
     // Allows you to select an item on the page of results by index number.
@@ -202,8 +203,8 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         DerpiRoot DerpiResponse;
 
         // Check if an a "~derpi" search has been made in this channel yet.
-        if (Global.searchesD.ContainsKey(Context.Channel.Id)) {
-            DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.searchesD[Context.Channel.Id]);
+        if (Global.DerpiSearchCache.ContainsKey(Context.Channel.Id)) {
+            DerpiResponse = JsonConvert.DeserializeObject<DerpiRoot>(Global.DerpiSearchCache[Context.Channel.Id]);
         } else {
             await ReplyAsync("You need to call `~derpi` (`~d` for short) to get some results before I can hoof you over more silly!");
             return;
@@ -224,8 +225,8 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         }
 
         // If ~next goes off the globally cached page, loop around the beginning again.
-        if(Global.searched + 1 > DerpiResponse.images.Count()) {
-            Global.searched = 0;
+        if(Global.DerpibooruSearchIndex[Context.Channel.Id] + 1 > DerpiResponse.images.Count()) {
+            Global.DerpibooruSearchIndex[Context.Channel.Id] = 0;
         }
 
         // Get element at specified index.
@@ -233,7 +234,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
 
         // Add image ID to Global.links.
         // TODO: Describe where this is used better?
-        Global.links[Context.Channel.Id] = chosenElement.id.ToString();
+        Global.LastDerpiID[Context.Channel.Id] = chosenElement.id.ToString();
 
         await ReplyAsync(
             DerpiHelper.BuildDiscordResponse(chosenElement)
@@ -284,13 +285,13 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         int imageID;
         
         // Check if an a "~derpi" search has been made in this channel yet.
-        if (!Global.links.ContainsKey(Context.Channel.Id)) {
+        if (!Global.LastDerpiID.ContainsKey(Context.Channel.Id)) {
             await ReplyAsync("You need to call `~derpi` (`~d` for short) to get some results before I can hoof you over more silly!");
             return;
         }
 
         // Try to parse the global cache into an integer ID.
-        if (int.TryParse(Global.links[Context.Channel.Id], out imageID)) {
+        if (int.TryParse(Global.LastDerpiID[Context.Channel.Id], out imageID)) {
             string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, new Dictionary<string,string>() {
                 {"filter_id", "178065"},
                 {"q", $"id:{imageID}"},
@@ -303,7 +304,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
                 await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
             } else {
                 // Get artist Tag Link(s) and print image URL as well.
-                bool safeOnly = !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate;
+                bool safeOnly = !DBTransaction.isChannelWhitelisted(Context.Channel.Id) && !Context.IsPrivate;
                 string artistLinks = DerpiHelper.BuildArtistTags(DerpiResponse.images[0], true, !safeOnly);
                 await ReplyAsync($"https://derpibooru.org/{imageID}\n{artistLinks}");
             }
@@ -322,9 +323,9 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         await Context.Channel.TriggerTypingAsync();
 
         // Check if an a "~derpi" search has been made in this channel yet.
-        if (Global.links.ContainsKey(Context.Channel.Id)) {
+        if (Global.LastDerpiID.ContainsKey(Context.Channel.Id)) {
             // Handmade link + the channel ID to get the last stored ID.
-            string builtLink = "https://derpibooru.org/api/v1/json/search/images?q=id%3A" + Global.links[Context.Channel.Id] + "&filter_id=178065";
+            string builtLink = "https://derpibooru.org/api/v1/json/search/images?q=id%3A" + Global.LastDerpiID[Context.Channel.Id] + "&filter_id=178065";
             // Retrieves JSON and saves as string.
             string JSONresponse = Get.Derpibooru(builtLink).Result;
             // Finally makes the derpibooru object to leverage DerpiTagsDisplay().
@@ -431,7 +432,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // If the channel is not on the list of NSFW enabled channels do not allow NSFW results.
         // the second part checks if the command was executed in DMS, DM channels do not have to be added to the NSFW enabled list.
         // In DMs the first check will fail, and so will the second, allowing for nsfw results to be displayed.
-        bool safeOnly = !Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate;
+        bool safeOnly = !DBTransaction.isChannelWhitelisted(Context.Channel.Id) && !Context.IsPrivate;
 
         // Add search to the parameters list, with "AND safe" if it failed the NSFW check.
         queryParams.Add("q", safeOnly ? $"{search}+AND+safe" : search);
@@ -496,7 +497,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         }
         // Return the stored Featured Image.
         await ReplyAsync("https://derpibooru.org/" + Global.featuredId);
-        Global.links[Context.Channel.Id] = Global.featuredId.ToString();
+        Global.LastDerpiID[Context.Channel.Id] = Global.featuredId.ToString();
     }
 
     // Fetch the Derpibooru.org home page, parse the `data-image-id` of the Featured Box.

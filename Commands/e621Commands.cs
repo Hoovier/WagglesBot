@@ -38,7 +38,7 @@ namespace CoreWaggles.Commands
             //url for use, explicit images and inserts provided tags straight in.
             string url;
             //if channel is not on the explicit channels list,
-            if (!Global.safeChannels.ContainsKey(Context.Channel.Id) && !Context.IsPrivate)
+            if (!DBTransaction.isChannelWhitelisted(Context.Channel.Id) && !Context.IsPrivate)
             {
                 url = $"https://e621.net/posts.json?tags=order:{sortingOptions[sort]}+{srch}+rating:s&limit=50";
             }
@@ -59,8 +59,8 @@ namespace CoreWaggles.Commands
             {
                 Global.e621Searches[Context.Channel.Id] = respond;
                 Random rand = new Random();
-                Global.e621SearchIndex = rand.Next(0, responseList.Count);
-                e621.Post chosenImage = responseList[Global.e621SearchIndex];
+                Global.e621SearchIndex[Context.Channel.Id] = rand.Next(0, responseList.Count);
+                e621.Post chosenImage = responseList[Global.e621SearchIndex[Context.Channel.Id]];
                 await ReplyAsync(chosenImage.file.url + "\n" + string.Join(",", chosenImage.tags.artist));
             }
         }
@@ -89,10 +89,10 @@ namespace CoreWaggles.Commands
                     await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0));
                     return;
                 }
-                if (responseList.Count == Global.e621SearchIndex)
-                    Global.e621SearchIndex = 0;
-                Global.e621SearchIndex++;
-                await ReplyAsync(responseList.ElementAt(Global.e621SearchIndex).file.url);
+                if (responseList.Count == Global.e621SearchIndex[Context.Channel.Id])
+                    Global.e621SearchIndex[Context.Channel.Id] = 0;
+                Global.e621SearchIndex[Context.Channel.Id]++;
+                await ReplyAsync(responseList.ElementAt(Global.e621SearchIndex[Context.Channel.Id]).file.url);
             }
             else
             {
@@ -126,10 +126,10 @@ namespace CoreWaggles.Commands
                     await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0));
                     return;
                 }
-                else if(responseList.Count < (Global.e621SearchIndex + amount))
+                else if(responseList.Count < (Global.e621SearchIndex[Context.Channel.Id] + amount))
                 {
                     await ReplyAsync("Reached end of results, resetting index. Use ~enext to start again.");
-                    Global.e621SearchIndex = 0;
+                    Global.e621SearchIndex[Context.Channel.Id] = 0;
                     return;
                 }
                 //if all fail, proceed!
@@ -138,17 +138,17 @@ namespace CoreWaggles.Commands
                     //loop through user provided amount
                     for(int counter = 0; counter < amount; counter++)
                     {
-                        if(responseList.Count < Global.e621SearchIndex + 1)
+                        if(responseList.Count < Global.e621SearchIndex[Context.Channel.Id] + 1)
                         {
                             await ReplyAsync("Reached end of results, resetting index. Use ~enext to start again.");
-                            Global.e621SearchIndex = 0;
+                            Global.e621SearchIndex[Context.Channel.Id] = 0;
                         }
                         //if everythings fine, increase index by 1
                         else
                         {
-                            Global.e621SearchIndex++;
+                            Global.e621SearchIndex[Context.Channel.Id]++;
                         }
-                        response = response + responseList[Global.e621SearchIndex].file.url + "\n";
+                        response = response + responseList[Global.e621SearchIndex[Context.Channel.Id]].file.url + "\n";
                     }
                 }
 
@@ -168,7 +168,7 @@ namespace CoreWaggles.Commands
             if (Global.e621Searches.ContainsKey(Context.Channel.Id))
             {
                 ImageList responseList = JsonConvert.DeserializeObject<ImageRoot>(Global.e621Searches[Context.Channel.Id]).posts;
-                e621.Post chosen = responseList.ElementAt(Global.e621SearchIndex);
+                e621.Post chosen = responseList.ElementAt(Global.e621SearchIndex[Context.Channel.Id]);
                 if (responseList.Count == 0)
                 {
                     await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
