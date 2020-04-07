@@ -338,5 +338,6 @@ ASALocalRun/
 .localhistory/
 Keys.txt
 redditTokens.txt
+*.db
 # BeatPulse healthcheck temp database 
 healthchecksdb
