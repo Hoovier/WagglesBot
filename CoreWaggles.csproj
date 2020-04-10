@@ -25,20 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="JSONstorage\extraComms.JSON">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="JSONstorage\Wittys.JSON">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="Keys.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="JSONstorage\List.JSON">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="JSONstorage\wlist.JSON">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="redditTokens.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
