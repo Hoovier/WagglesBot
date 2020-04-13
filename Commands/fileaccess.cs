@@ -132,6 +132,14 @@ public class Vtick : ModuleBase<SocketCommandContext>
     [Command("sql")]
     public async Task sqlRun([Remainder] string query)
     {
-        await ReplyAsync(DBTransaction.runSQL(query));
+        if(Context.User.Id == 223651215337193472 || Context.User.Id == 102452875036225536)
+        { 
+            await ReplyAsync(DBTransaction.runSQL(query));
+        }
+        else
+        {
+            await ReplyAsync("Sorry! You don't have permission to do this.");
+        }
+        
     }
 }

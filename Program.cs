@@ -60,6 +60,7 @@ namespace WagglesBot
             Console.WriteLine("Logged in on Discord as: " + _client.CurrentUser.Username);
             await _client.SetGameAsync("with Mona");
             Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
+            Console.WriteLine(File.Exists("WagglesDB.db") ? "Database found!" : "ERROR Database not found!");
             Console.WriteLine("In " + _client.Guilds.Count + " servers!");
         }
 
