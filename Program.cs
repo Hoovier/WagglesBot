@@ -37,7 +37,7 @@ namespace WagglesBot
             Global.reddit = new Reddit.RedditClient(RedditTokens[0], RedditTokens[1], RedditTokens[2], RedditTokens[3]);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[1];
+            string botToken = keys[0];
             
             await RegisterCommandsAsync();
 
