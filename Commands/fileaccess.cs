@@ -1,6 +1,9 @@
 ﻿using CoreWaggles;
+using CoreWaggles.Commands;
 using Discord.Commands;
+using Discord.WebSocket;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -117,4 +120,26 @@ public class Vtick : ModuleBase<SocketCommandContext>
         // TODO: Save above results to a TXT file, and serve the file instead if the results get too large (above 2000 characters).
         await ReplyAsync(String.Join(" | ", files));
     }
- }
+    [Command("updateusers")]
+    public async Task updateUserList()
+    {
+        var server = Context.Guild;
+       List<SocketGuildUser> userList = server.Users.ToList();
+       DBTransaction.addOrUpdateServer(server.Id, server.Name);
+       int usersAdded = DBTransaction.updateUserList(userList, server.Id);
+       await ReplyAsync(usersAdded + " Users added to DB!");
+    }
+    [Command("sql")]
+    public async Task sqlRun([Remainder] string query)
+    {
+        if(Context.User.Id == 223651215337193472 || Context.User.Id == 102452875036225536)
+        { 
+            await ReplyAsync(DBTransaction.runSQL(query));
+        }
+        else
+        {
+            await ReplyAsync("Sorry! You don't have permission to do this.");
+        }
+        
+    }
+}

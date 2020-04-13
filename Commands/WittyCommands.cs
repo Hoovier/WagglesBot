@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Data.SQLite;
 
 namespace CoreWaggles.Commands
 {
@@ -23,105 +24,45 @@ namespace CoreWaggles.Commands
                 await ReplyAsync("Pick a probability between 1.0 and 0");
                 return;
             }
-            //call wittyobject constructor with given values
-            WittyObject temp = new WittyObject(name, match, probability, responses.ToList());
-
-            //error handling for null wittyDictionary List objects.
-            if (!Global.wittyDictionary.ContainsKey(Context.Guild.Id))
+            try
             {
-                Global.wittyDictionary.Add(Context.Guild.Id, new List<WittyObject>());
+                string dbResponse = DBTransaction.addWitty(name, match, Context.Guild.Id, probability, responses.ToList());
+                await ReplyAsync(dbResponse);
             }
-            //adds witty to associated server wide dictionary
-            Global.wittyDictionary[Context.Guild.Id].Add(temp);
-            //write object JSON info to file
-            string channelObject = JsonConvert.SerializeObject(Global.wittyDictionary);
-            if (File.Exists(path))
+            catch (SQLiteException ex)
             {
-                File.WriteAllText(path, channelObject);
+                switch(ex.ErrorCode)
+                {
+                    case 19:
+                        Console.WriteLine("Attempted to add Witty, server already had one witty with that name! Server: " + Context.Guild.Name);
+                        await ReplyAsync("You already have a witty with that name!");
+                        break;
+                    default:
+                        Console.WriteLine("SQL Error: " + ex.Message + "\nErrorNum:" + ex.ErrorCode);
+                        await ReplyAsync("Something went wrong, contact Hoovier with error code: " + ex.ErrorCode);
+                        break;
+                }
             }
-            else
-            {
-                await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-                return;
-            }
-            await ReplyAsync("Added Witty with name: " + temp.name);
         }
         [Command("witty remove")]
         public async Task RemWitty(string name)
         {
-            //iterate through List of witties, compare names to given name.
-            foreach (WittyObject wit in Global.wittyDictionary[Context.Guild.Id])
-            {
-                if (wit.name == name)
-                {
-                    Global.wittyDictionary[Context.Guild.Id].Remove(wit);
-                    await ReplyAsync("removed " + name + "!");
-                    //write witties to file
-                    string channelObject = JsonConvert.SerializeObject(Global.wittyDictionary);
-                    if (File.Exists(path))
-                    {
-                        File.WriteAllText(path, channelObject);
-                    }
-                    else
-                    {
-                        await ReplyAsync($"Could not find file at {Directory.GetCurrentDirectory()}");
-                        return;
-                    }
-                    return;
-                }
-            }
+            string DBresponse = DBTransaction.removeWitty(name, Context.Guild.Id);
             //only reaches this point if entire list does not match.
-            await ReplyAsync("Could not find that Witty, try '~witty list' to see see all wittys!");
+            await ReplyAsync(DBresponse);
         }
             
         [Command("witty list")]
         public async Task listWitty()
         {
-            if (!Global.wittyDictionary.ContainsKey(Context.Guild.Id))
-            {
-                await ReplyAsync("No wittys registered in this server yet, use '~help witty' to find out how to add one!");
-                return;
-            }
-            else
-            {
-                string allWitties = Global.wittyDictionary[Context.Guild.Id].Count + " Witties: \n";
-                foreach (WittyObject wit in Global.wittyDictionary[Context.Guild.Id])
-                {
-                    allWitties = allWitties + wit.name + "\n";
-                }
-                await ReplyAsync(allWitties);
-            }
+            string DBresponse = DBTransaction.listWitty(Context.Guild.Id);
+            await ReplyAsync(DBresponse);
         }
         [Command("witty get")]
         public async Task getWitty(string name)
         {
-            if (!Global.wittyDictionary.ContainsKey(Context.Guild.Id))
-            {
-                await ReplyAsync("No wittys registered in this server yet, use '~help witty' to find out how to add one!");
-                return;
-            }
-            else
-            {
-                foreach (WittyObject wit in Global.wittyDictionary[Context.Guild.Id])
-                {
-                    if (wit.name == name)
-                    {
-                        string response = "**Name:** " + wit.name + "\n**Regex:** " + wit.trigger + "\n**Probability:** " + wit.probability + "\n**Responses:** \n";
-                        foreach (string words in wit.responses)
-                            response = response + words + "\n";
-                        await ReplyAsync(response);
-                        return;
-                    }
-                }
-            }
-            await ReplyAsync("Witty by that name not found! Try ~witty list to get all witty names!");
-        }
-        //more to be added later!
-        [Command("wittydesc")]
-        public async Task describe()
-        {
-            string response = Global.wittyDictionary[Context.Guild.Id].Count + " Wittys in my memory. \n";
-            await ReplyAsync(response);
+            string DBresponse = DBTransaction.getWitty(name, Context.Guild.Id);
+            await ReplyAsync(DBresponse);
         }
     }
 }
