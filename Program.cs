@@ -211,8 +211,11 @@ namespace WagglesBot
             {
                 var context = new SocketCommandContext(_client, message);
                 Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{context.Channel.Name}] \n{message.Author.Username}: {message.Content}");
+                //get GuildID first, cause DM channels dont have one and cause errors!
+                ulong guildID = context.IsPrivate ? 0 : context.Guild.Id;
+                
                 //if the command is in DB, it will return actual command desired, otherwise returns string.empty and fails the check
-                string AliasedCommandCheck = DBTransaction.getAliasedCommand(message.Content.Trim('~'), context.Guild.Id, true);
+                string AliasedCommandCheck = DBTransaction.getAliasedCommand(message.Content.Trim('~'), guildID, true);
                 if ( AliasedCommandCheck != string.Empty)
                 {
                    await _commands.ExecuteAsync(context, AliasedCommandCheck);
