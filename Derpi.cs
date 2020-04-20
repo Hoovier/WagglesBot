@@ -148,36 +148,6 @@ namespace WagglesBot.Modules
     }
     public class Get
     {
-        private static string _cDir;
-
-        public static void DownloadImage(string url, string id)
-        {
-            Console.Write($"Downloading {id}...");
-            string extension = Path.GetExtension(url);
-            string fileName = $"{id}{extension}";
-
-            string downloadPath = IsMono() ? $@"{_cDir}/{fileName}" : $@"{_cDir}\{fileName}";
-            if (!File.Exists(downloadPath))
-            {
-                using (WebClient webConnection = new WebClient())
-                {
-                    AutoResetEvent notifier = new AutoResetEvent(false);
-                    webConnection.DownloadFileCompleted += delegate
-                    {
-                        Console.WriteLine("Done!");
-                        notifier.Set();
-                    };
-
-                    webConnection.DownloadFileAsync(new Uri($"https:{url}"), downloadPath);
-                    notifier.WaitOne();
-                }
-            }
-            else
-            {
-                Console.WriteLine("Already exists!");
-            }
-        }
-
         public static async Task<string> Derpibooru(string url)
         {
             using (HttpClient client = new HttpClient())
@@ -187,6 +157,8 @@ namespace WagglesBot.Modules
 
                 client.DefaultRequestHeaders.Accept.Clear();
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(type));
+                //add user agent with my info on it, necessary not to receive errors
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("WagglesBot/Discord Hoovier#4192");
                 HttpResponseMessage response = await client.GetAsync(String.Empty);
 
                 if (response.IsSuccessStatusCode)
@@ -208,6 +180,8 @@ namespace WagglesBot.Modules
 
                 client.DefaultRequestHeaders.Accept.Clear();
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(type));
+                //add user agent with my info on it, necessary not to receive errors
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("WagglesBot/Discord Hoovier#4192");
                 //do post with DerpiApi url and the data object
                 HttpResponseMessage response = await client.PostAsync(url, null);
 
@@ -220,15 +194,6 @@ namespace WagglesBot.Modules
             }
         }
 
-        public static bool IsMono()
-        {
-            return Type.GetType("Mono.Runtime") != null;
-        }
-
-        public static void SetDownloadFolder(string c)
-        {
-            _cDir = c;
-        }
     }
 }
 
