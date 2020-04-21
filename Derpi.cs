@@ -79,6 +79,11 @@ namespace WagglesBot.Modules
             public List<object> interactions { get; set; }
             public int total { get; set; }
         }
+        public class FeaturedObject
+        {
+            public Image image { get; set; }
+            public List<object> interactions { get; set; }
+        }
 
     }
     public class DerpiReverseResponse

@@ -13,6 +13,7 @@ using DerpiRevRoot = WagglesBot.Modules.DerpiReverseResponse.RootObject;
 using DerpiRevSearch = WagglesBot.Modules.DerpiReverseResponse.Image;
 // Alias for Derpibooru Response objects.
 using DerpiRoot = WagglesBot.Modules.DerpibooruResponse.Rootobject;
+using DerpiFeatured = WagglesBot.Modules.DerpibooruResponse.FeaturedObject;
 using DerpiSearch = WagglesBot.Modules.DerpibooruResponse.Image;
 using CoreWaggles.Commands;
 
@@ -468,67 +469,16 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         }
     }
 
-    // TODO: Send byte[] a message asking how Featured Images work, and if there is an API Way to do it.
-    // TODO: Confirm that "featured image" tag, sorted by "updated_at", will give us the current featured image.
     [Command("featured")]
     [Alias("f")]
     public async Task DerpiFeatured() {
-        // Get current timestamp.
-        long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        // Our "freshness" interval (6 hours).
-        long interval = 60 * 60 * 6;
-
-        // Was the featured image ever looked up at all?
-        bool neverRan = Global.featuredId == 0 || Global.featuredLastFetch == 0;
-        // Is our current featured ID stale? Do we need to refresh it?
-        bool isStale = (Global.featuredLastFetch + interval) < currentTime;
-        
-        if (neverRan || isStale) {
-            Global.featuredId = await FetchFeatured();
-            if (Global.featuredId == 0) {
-                // If the featuredId was not updated, or was un-fetchable, return an error.
-                // Do NOT update fetch timestamp.
-                await ReplyAsync("Sorry, I was unable to get the Featured Image. Derpibooru might be down, if it isn't, please try again and let Hoovier know if you still see this message.");
-                return;
-            } else {
-                // Update timestamp to post-fetch time if successful.
-                Global.featuredLastFetch = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            }
-        }
+        string requestUrl = "https://derpibooru.org/api/v1/json/images/featured";
+        //use DerpiFeatured cause this API endpoint just returns a single image not a list of them!
+        DerpiFeatured DerpiResponse = JsonConvert.DeserializeObject<DerpiFeatured>(Get.Derpibooru(requestUrl).Result);
         // Return the stored Featured Image.
-        await ReplyAsync("https://derpibooru.org/" + Global.featuredId);
-        Global.LastDerpiID[Context.Channel.Id] = Global.featuredId.ToString();
-    }
-
-    // Fetch the Derpibooru.org home page, parse the `data-image-id` of the Featured Box.
-    // TODO: Replace this task with a Bash/Cron job outside of waggles that scrapes instead?
-    // TODO-ref: curl -s https://derpibooru.org | grep -oE -m1 'data-image-id=\"([0-9]+)\"'  | head -1 | grep -oE '[0-9]*'
-    private async Task<int> FetchFeatured() {
-        try
-        {
-            // Get an HTTPClient, fetch Derpibooru page, get content body from response.
-            using (HttpClient client = new HttpClient())
-            {
-                // Set max timeout in order to not stress out Waggles!
-                client.Timeout = TimeSpan.FromSeconds(30);
-
-                // Get the page HTML text.
-                // TODO: Stream until we get our result, then abort downloading the rest?
-                string result = await client.GetStringAsync("https://derpibooru.org");
-
-                // Get the first image ID match, which is our featured image ID.
-                // Has a max timeout of 30 seconds to parse the full site HTML before giving up.
-                Regex pattern = new Regex(@"data-image-id=\""(?<imageId>\d+)\""", RegexOptions.None, TimeSpan.FromSeconds(30));
-                Match match = pattern.Match(result);
-                return int.Parse(match.Groups["imageId"].Value);
-            }
-        }
-        catch {
-            // If `client.GetStringAsync` fails to reach Derpibooru.org.
-            // If `pattern.Match` takes too long to parse.
-            // If `int.Parse()` fails to parse a readable image ID.
-            return 0;
-        }
+        await ReplyAsync("https://derpibooru.org/" + DerpiResponse.image.id);
+        Global.LastDerpiID[Context.Channel.Id] = DerpiResponse.image.id.ToString();
+        
     }
 }
 
