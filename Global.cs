@@ -23,9 +23,6 @@ namespace CoreWaggles
         internal static Dictionary<ulong, RedditHelper> redditDictionary = new Dictionary<ulong, RedditHelper>();
         //index of current image in channel
         internal static Dictionary<ulong, int> DerpibooruSearchIndex = new Dictionary<ulong, int>();
-        // The Featured Derpibooru Image, and the Timestamp to track when it was last stored.
-        internal static int featuredId = 0;
-        internal static long featuredLastFetch = 0;
         //holds the JSON for the last e621 search in the channel
         internal static Dictionary<ulong, string> e621Searches = new Dictionary<ulong, string>();
         //holds the index of last used element of JSON array in cache
