@@ -8,6 +8,10 @@ using System.Text.RegularExpressions;
 
 namespace CoreWaggles.Commands
 {
+    //todo: Handle Errors relating to foreign keys, such as ServerID not in table, or UserID not being in User table!
+    //possibly move the actual SQL into command specific file instead of piling all SQL stuff into DBTransaction.
+    //get rid of repeated code!
+    //expand upon Authorization table to include more permissions for waggles commands and user granting
     internal static class DBTransaction
     {
         //cs is connection string for DB
@@ -47,7 +51,7 @@ namespace CoreWaggles.Commands
             insertData(insertString);
         }
         //just runs SQL from two functions above to DB
-        private static int insertData(string statement)
+        public static int insertData(string statement)
         {
             int rowsChanged = 0;
             using var con = new SQLiteConnection(cs);
@@ -405,5 +409,136 @@ namespace CoreWaggles.Commands
             return false;
         }
 
+        public static bool canModifyQuotes(ulong userID, string permission)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT count(UserID) FROM Authorized_Users WHERE Permission ='{permission}' AND UserID = {userID};", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                //if the count is 1 then we know that user is allowed to modify quotes!
+                return rdr.GetInt32(0) == 1;
+            }
+            //if it reaches here, who knows what happened!
+            return false;
+        }
+        public static void addQuote(ulong UserID, string message, ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"INSERT INTO Quotes VALUES(@Message, {UserID}, {serverID});";
+                cmd.Parameters.AddWithValue("@Message", message);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+
+        public static string pickQuote(ulong serverID, ulong userID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //by default make string to add to SQL when a user is specified
+            string userString = " AND UserID = " + userID.ToString();
+            //if 0 is passed, assume any user allowed!
+            if(userID == 0)
+            {
+                userString = "";
+            }
+
+            using var commd = new SQLiteCommand($"SELECT COUNT(Message) FROM Quotes WHERE ServerID={serverID}" + userString, con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfQuotes = rdr.GetInt32(0);
+            if (numberOfQuotes == 0)
+            {
+                return "No quotes to show!";
+            }
+            rdr.Close();
+            int chosenIndex = 0, counter = 0;
+            Random rand = new Random();
+            chosenIndex = rand.Next(0, numberOfQuotes);
+            commd.CommandText = $"SELECT Username, Message FROM Quotes INNER JOIN Users ON Quotes.UserID = Users.ID WHERE ServerID={serverID}" + userString;
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            while (msgs.Read())
+            {
+                if (counter == chosenIndex)
+                {
+
+                    return "**[" + msgs.GetString(0) + "]:** " + msgs.GetString(1);
+                }
+                counter++;
+            }
+            return "An error occured";
+        }
+
+        public static string listQuoteFromUser(ulong serverID, ulong userID, string username)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            int index = 1;
+            using var commd = new SQLiteCommand($"SELECT COUNT(Message) FROM Quotes WHERE ServerID={serverID} AND UserID = {userID} ORDER BY rowid", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfQuotes = rdr.GetInt32(0);
+            if (numberOfQuotes == 0)
+            {
+                return "No quotes to show!";
+            }
+            rdr.Close();
+
+            string response = $"**__Quotes from {username}__** \n";
+            commd.CommandText = $"SELECT Message FROM Quotes  WHERE ServerID={serverID} AND UserID = {userID} ORDER BY rowid";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            while (msgs.Read())
+            {
+                response = response + "**" + index + ".** " + msgs.GetString(0) + "\n";
+                index++;
+            }
+            return response;
+        }
+        public static string removeQuote(ulong serverID, ulong userID, int index)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+
+            using var commd = new SQLiteCommand($"SELECT COUNT(Message) FROM Quotes WHERE ServerID={serverID} AND UserID = {userID} ORDER BY rowid", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfQuotes = rdr.GetInt32(0);
+            if (numberOfQuotes < index)
+            {
+                return "Not a valid quote index! Try 1-" + numberOfQuotes;
+            }
+            rdr.Close();
+            //set rowid to 10000 so that if loop to find rowid fails, the SQL wont delete another quote. Assuming we dont have 10k quotes in there.
+            int counter = 1, rowsAffected = 0, rowid = 10000;
+
+            commd.CommandText = $"SELECT rowid FROM Quotes WHERE ServerID={serverID} AND UserID = {userID}";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            while (msgs.Read())
+            {
+                if (counter == index)
+                {
+                    //save rowid for later
+                    rowid = msgs.GetInt32(0);
+                    //once rowid is found, break out of loop!
+                    break;
+                }
+                counter++;
+            }
+            msgs.Close();
+            //use insertData cause it does the same thing as what we want to do here, despite name.
+            rowsAffected = insertData("DELETE FROM Quotes WHERE rowid = " + rowid);
+            if (rowsAffected == 1)
+                    return "Succesfully removed quote!";
+            if (rowsAffected == 0)
+                    return "An error occured, no quote was removed.";
+            else
+                    return "ERROR! Code: " + rowsAffected;
+        }
     }
 }
