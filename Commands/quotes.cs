@@ -33,7 +33,7 @@ namespace CoreWaggles.Commands
         public async Task addQuote(SocketGuildUser user, [Remainder]string quote)
         {
             //check to see if user is in table for authorized users
-            if (checkUserPermission(user))
+            if (checkUserPermission((SocketGuildUser)Context.User))
             {
                 DBTransaction.addQuote(user.Id, quote, Context.Guild.Id);
                 await ReplyAsync("Added Quote!");
@@ -76,7 +76,7 @@ namespace CoreWaggles.Commands
         [Command("removequote")]
         public async Task remQuote(SocketGuildUser user, int index)
         {
-            if(!checkUserPermission(user))
+            if(!checkUserPermission((SocketGuildUser)Context.User))
             {
                 await ReplyAsync("You are not allowed to do that! Have an admin give you permission by using ```~authorize <User>```");
                 return;
@@ -89,7 +89,7 @@ namespace CoreWaggles.Commands
         [Command("parsequote")]
         public async Task parsequote(SocketGuildUser user, [Remainder]string quotes)
         {
-            if (!checkUserPermission(user))
+            if (!checkUserPermission((SocketGuildUser)Context.User))
             {
                 await ReplyAsync("You are not allowed to do that! Have an admin give you permission by using ```~authorize <User>```");
                 return;
