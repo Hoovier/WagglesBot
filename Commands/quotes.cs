@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using CoreWaggles;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace CoreWaggles.Commands
 {
@@ -59,6 +60,16 @@ namespace CoreWaggles.Commands
         public async Task searchQuotes(SocketGuildUser user)
         {
             string response = DBTransaction.listQuoteFromUser(Context.Guild.Id, user.Id, user.Username);
+            //check to see if response is too long, and if it is just send it as a txt file.
+            if(response.Length > 1999)
+            {
+                using (var textDoc = new StreamWriter(@"message.txt"))
+                {
+                    textDoc.Write(response);
+                }
+                await Context.Channel.SendFileAsync(@"message.txt");
+                return;
+            }
             await ReplyAsync(response);
         }
 
