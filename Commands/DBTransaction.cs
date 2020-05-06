@@ -28,18 +28,26 @@ namespace CoreWaggles.Commands
         }
         public static int updateUserList(List<SocketGuildUser> listOfUsers, ulong serverID)
         {
-            string insertString = "";
+            int rowsAffected = 0;
             //for all users in server, add them to Users DB, and also add them to relational table that tells us what server they are in
-            foreach (SocketGuildUser user in listOfUsers)
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var cmd = new SQLiteCommand(con);
             {
-                insertString = insertString +  $"INSERT INTO Users VALUES({user.Id}, '{user.Username}') ON CONFLICT(ID) DO NOTHING; " +
-                $"INSERT INTO In_Server VALUES({user.Id}, {serverID}) ON CONFLICT DO NOTHING; ";
+                foreach (SocketGuildUser user in listOfUsers)
+                {
+                    cmd.CommandText = $"INSERT INTO Users VALUES(@UserID, @Username) ON CONFLICT(ID) DO NOTHING; INSERT INTO In_Server VALUES(@UserID, @ServerID) ON CONFLICT DO NOTHING; ";
+                    cmd.Parameters.AddWithValue("@UserID", user.Id);
+                    cmd.Parameters.AddWithValue("@Username", user.Username);
+                    cmd.Parameters.AddWithValue("@ServerID", serverID);
+                    if (cmd.ExecuteNonQuery() == 2)
+                    {
+                        rowsAffected++;
+                    }
+                }
             }
-            //count how many rows are affected, hopefully the same amount of users in the server. 
-            //might divide by 2 in future since users are inserted into 2 tables each
-            //leverage premade function to run SQL
-            int count = insertData(insertString);
-            return count;
+            
+            return rowsAffected;
         }
 
         //this adds a server to Servers Table, to keep track of servers that bot is in, and for the In_Server table to have a valid foreign key for serverID
