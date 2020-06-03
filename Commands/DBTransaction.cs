@@ -555,7 +555,7 @@ namespace CoreWaggles.Commands
             //use prepared statement to make sure user provided data doesn't cause issues
             using var cmd = new SQLiteCommand(con);
             {
-                cmd.CommandText = $"INSERT INTO TODO_Tasks VALUES({UserID}, @name, @description);";
+                cmd.CommandText = $"INSERT INTO TODO_Tasks VALUES({UserID}, @name, @description, datetime('now'));";
                 cmd.Parameters.AddWithValue("@name", name);
                 cmd.Parameters.AddWithValue("@description", description);
                 cmd.ExecuteNonQuery();
@@ -585,7 +585,7 @@ namespace CoreWaggles.Commands
             using var con = new SQLiteConnection(cs);
             con.Open();
             int index = 1;
-            using var commd = new SQLiteCommand($"SELECT COUNT(TaskName) FROM TODO_Tasks WHERE ListOwner={userID}", con);
+            using var commd = new SQLiteCommand($"SELECT COUNT(TaskName) FROM TODO_Tasks WHERE ListOwner={userID} ORDER BY TimeAdded", con);
             using SQLiteDataReader rdr = commd.ExecuteReader();
             rdr.Read();
             int numberOfTasks = rdr.GetInt32(0);
@@ -596,7 +596,7 @@ namespace CoreWaggles.Commands
             rdr.Close();
 
             string response = $"**__Tasks for {username}__** \n";
-            commd.CommandText = $"SELECT TaskName, TaskDesc FROM TODO_Tasks WHERE ListOwner={userID}";
+            commd.CommandText = $"SELECT TaskName, TaskDesc FROM TODO_Tasks WHERE ListOwner={userID} ORDER BY TimeAdded";
             using SQLiteDataReader msgs = commd.ExecuteReader();
             while (msgs.Read())
             {
