@@ -548,5 +548,89 @@ namespace CoreWaggles.Commands
             else
                     return "ERROR! Code: " + rowsAffected;
         }
+        public static void addTask(ulong UserID, string name, string description)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"INSERT INTO TODO_Tasks VALUES({UserID}, @name, @description);";
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.Parameters.AddWithValue("@description", description);
+                cmd.ExecuteNonQuery();
+            }
+        }
+        public static string removeTask(ulong userID, string name)
+        {
+            int rowsAffected = 0;
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"DELETE FROM TODO_Tasks WHERE ListOwner= {userID} AND TaskName= @name;";
+                cmd.Parameters.AddWithValue("@name", name);
+                rowsAffected = cmd.ExecuteNonQuery();
+            }
+            if (rowsAffected == 1)
+                return "Succesfully removed task from list!";
+            if (rowsAffected == 0)
+                return "An error occured, no task removed. Maybe the task doesn't exist!";
+            else
+                return "ERROR! Code: " + rowsAffected;
+        }
+        public static string listTasks(ulong userID, string username)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            int index = 1;
+            using var commd = new SQLiteCommand($"SELECT COUNT(TaskName) FROM TODO_Tasks WHERE ListOwner={userID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfTasks = rdr.GetInt32(0);
+            if (numberOfTasks == 0)
+            {
+                return "No tasks to show!";
+            }
+            rdr.Close();
+
+            string response = $"**__Tasks for {username}__** \n";
+            commd.CommandText = $"SELECT TaskName, TaskDesc FROM TODO_Tasks WHERE ListOwner={userID}";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            while (msgs.Read())
+            {
+                response = response + "**" + index + ". " + msgs.GetString(0) +":** "+ msgs.GetString(1) +  "\n";
+                index++;
+            }
+            return response;
+        }
+        public static string getTask(ulong userID, string taskName)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            int index = 1;
+            using var commd = new SQLiteCommand($"SELECT COUNT(TaskName) FROM TODO_Tasks WHERE ListOwner={userID} AND TaskName= @taskname", con);
+            commd.Parameters.AddWithValue("@taskname", taskName);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfTasks = rdr.GetInt32(0);
+            if (numberOfTasks == 0)
+            {
+                return "No tasks to show!";
+            }
+            rdr.Close();
+
+            string response = $"**__Task - Description__** \n";
+            commd.CommandText = $"SELECT TaskName, TaskDesc FROM TODO_Tasks WHERE ListOwner={userID} AND TaskName= @taskname";
+            commd.Parameters.AddWithValue("@taskname", taskName);
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            while (msgs.Read())
+            {
+                response = response + "**" + index + ". " + msgs.GetString(0) + ":** " + msgs.GetString(1) + "\n";
+                index++;
+            }
+            return response;
+        }
     }
 }
