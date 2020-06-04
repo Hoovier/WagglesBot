@@ -53,10 +53,15 @@ namespace CoreWaggles.Commands
         //this adds a server to Servers Table, to keep track of servers that bot is in, and for the In_Server table to have a valid foreign key for serverID
         public static void addOrUpdateServer(ulong serverID, string name)
         {
-            string insertString = $"INSERT INTO Servers VALUES({serverID}, '{name}') " +
-                    $"ON CONFLICT(ID) DO UPDATE SET Name = '{name}';";
-            //leverage premade function to run SQL
-            insertData(insertString);
+            //Use prepared statement in order to assure the correct insertion and prevent SQL injection.
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var cmd = new SQLiteCommand(con);
+            {
+                    cmd.CommandText = $"INSERT INTO Servers VALUES({serverID}, @serverName) " +
+                    $"ON CONFLICT(ID) DO UPDATE SET Name = '@serverName';";
+                    cmd.Parameters.AddWithValue("@serverName", name);
+            }
         }
         //just runs SQL from two functions above to DB
         public static int insertData(string statement)
