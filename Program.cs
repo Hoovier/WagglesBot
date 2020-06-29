@@ -178,6 +178,20 @@ namespace WagglesBot
 
             int argPos = 0;
 
+            //this checks to see if a message has embeds or attachments, and downloads all of them.
+            if (!message.Author.IsBot && message.Attachments.Count > 0)
+            {
+                var context = new SocketCommandContext(_client, message);
+
+
+                foreach (Attachment att in message.Attachments)
+                {
+                    //spams up console, but fun for notifications Console.WriteLine("Saved an attachment!");
+                    Global.miscLinks[message.Channel.Id] = att.Url;
+                }
+                return;
+            }
+
             if (message.Author.Id == 141016540240805888 && message.HasStringPrefix("~", ref argPos))
             {
                 var context = new SocketCommandContext(_client, message);
