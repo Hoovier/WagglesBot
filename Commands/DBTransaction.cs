@@ -436,16 +436,24 @@ namespace CoreWaggles.Commands
             //if it reaches here, who knows what happened!
             return false;
         }
-        public static void addQuote(ulong UserID, string message, ulong serverID)
+        public static bool addQuote(ulong UserID, string message, ulong serverID)
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
             //use prepared statement to make sure user provided data doesn't cause issues
-            using var cmd = new SQLiteCommand(con);
+            try
             {
-                cmd.CommandText = $"INSERT INTO Quotes VALUES(@Message, {UserID}, {serverID});";
-                cmd.Parameters.AddWithValue("@Message", message);
-                cmd.ExecuteNonQuery();
+                using var cmd = new SQLiteCommand(con);
+                {
+                    cmd.CommandText = $"INSERT INTO Quotes VALUES(@Message, {UserID}, {serverID});";
+                    cmd.Parameters.AddWithValue("@Message", message);
+                    cmd.ExecuteNonQuery();
+                }
+                return true;
+            }
+            catch(SQLiteException ex)
+            {
+                return false;
             }
         }
 

@@ -35,8 +35,16 @@ namespace CoreWaggles.Commands
             //check to see if user is in table for authorized users
             if (checkUserPermission((SocketGuildUser)Context.User))
             {
-                DBTransaction.addQuote(user.Id, quote, Context.Guild.Id);
-                await ReplyAsync("Added Quote!");
+                bool success = DBTransaction.addQuote(user.Id, quote, Context.Guild.Id);
+                if (success)
+                {
+                    await ReplyAsync("Added Quote!");
+                }
+                else
+                {
+                    await ReplyAsync("An error occurred, that quote might already be in my memory!");
+                    Console.WriteLine("Quote was already in DB in " + Context.Channel.Name + " " + Context.Guild.Name);
+                }
                 return;
             }
             //didnt have perm, report that!
