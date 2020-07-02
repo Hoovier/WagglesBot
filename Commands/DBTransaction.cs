@@ -436,6 +436,19 @@ namespace CoreWaggles.Commands
             //if it reaches here, who knows what happened!
             return false;
         }
+        public static bool quoteExists(ulong userID, string message, ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT COUNT(Message) FROM Quotes WHERE ServerID={serverID} AND UserID = {userID} AND message = @Message", con);
+            commd.Parameters.AddWithValue("@Message", message);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfQuotes = rdr.GetInt32(0);
+            rdr.Close();
+            //if number is 1, itll return as true, and if it doesnt, itll be false
+            return !(numberOfQuotes == 0);
+        }
         public static bool addQuote(ulong UserID, string message, ulong serverID)
         {
             using var con = new SQLiteConnection(cs);

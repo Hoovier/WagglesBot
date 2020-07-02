@@ -118,7 +118,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             {"filter_id", "178065"},
             {"sf", sortParam}, 
             {"sd", "desc"}, 
-            {"perpage", "50"},
+            {"per_page", "50"},
             {"page", "1"},
         };
 
@@ -252,7 +252,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Same base query as ~derpi, discounting sorting and asking for less results.
         Dictionary<string,string> queryParams = new Dictionary<string,string>() {
             {"filter_id", "178065"},
-            {"perpage", "1"},
+            {"per_page", "1"},
             {"page", "1"},
             {"q", search},
         };
