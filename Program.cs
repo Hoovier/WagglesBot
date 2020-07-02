@@ -94,6 +94,35 @@ namespace WagglesBot
          */
         private async Task OnReactionAdded(Cacheable<IUserMessage, ulong> cache, ISocketMessageChannel channel, SocketReaction reaction)
         {
+            if (reaction.Emote.Name == "⭐")
+            {
+                var message = await cache.DownloadAsync();
+                //get guildID for DB
+                var chnl = message.Channel as SocketGuildChannel;
+                var Guild = chnl.Guild.Id;
+
+                int count = 0;
+                IEmote star = new Emoji("⭐");
+                count = message.Reactions[star].ReactionCount;
+                if(count > 1)
+                {
+                    //if quote doesnt exist, add it
+                    if (DBTransaction.quoteExists(message.Author.Id, message.Content, Guild ) == false)
+                    {
+                        bool addedCorrectly = DBTransaction.addQuote(message.Author.Id, message.Content, Guild);
+                        if(addedCorrectly)
+                        {
+                            await message.AddReactionAsync(new Emoji("🔖"));
+                            Console.WriteLine("Added quote through reactions for: " + message.Author.Username + ": " + message.Content + " " + addedCorrectly);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Failed to add quote through reactions for: " + message.Author.Username + ": " + message.Content + " " + addedCorrectly);
+                            await message.AddReactionAsync(new Emoji("❌"));
+                        }
+                    }
+                }
+            }
             //checks to see if its in the dictionary first!
             if (Global.MessageIdToTrack.ContainsKey(channel.Id))
             {
@@ -143,6 +172,7 @@ namespace WagglesBot
                 Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Rnext button!");
                 await _commands.ExecuteAsync(Global.redditDictionary[reaction.Channel.Id].redContext, "rnext 5");
             }
+            
 
         }
 
