@@ -118,7 +118,7 @@ namespace CoreWaggles.Commands
                 }
                 else if (responseList.Count < (Global.danbooruSearchIndex[Context.Channel.Id] + amount))
                 {
-                    await ReplyAsync("Reached end of results, resetting index. Use ~enext to start again.");
+                    await ReplyAsync("Reached end of results, resetting index. Use ~dnext to start again.");
                     Global.danbooruSearchIndex[Context.Channel.Id] = 0;
                     return;
                 }
@@ -130,7 +130,7 @@ namespace CoreWaggles.Commands
                     {
                         if (responseList.Count < Global.danbooruSearchIndex[Context.Channel.Id] + 1)
                         {
-                            await ReplyAsync("Reached end of results, resetting index. Use ~enext to start again.");
+                            await ReplyAsync("Reached end of results, resetting index. Use ~dnext to start again.");
                             Global.danbooruSearchIndex[Context.Channel.Id] = 0;
                         }
                         //if everythings fine, increase index by 1
