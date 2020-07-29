@@ -79,6 +79,10 @@ namespace CoreWaggles.Commands
             if (Global.e621Searches.ContainsKey(Context.Channel.Id))
             {
                 ImageList responseList = JsonConvert.DeserializeObject<ImageRoot>(Global.e621Searches[Context.Channel.Id]).posts;
+                if (responseList.Count - 1 == Global.e621SearchIndex[Context.Channel.Id])
+                {
+                    Global.e621SearchIndex[Context.Channel.Id] = 0;
+                }
                 if (responseList.Count == 0)
                 {
                     await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
@@ -89,8 +93,6 @@ namespace CoreWaggles.Commands
                     await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0));
                     return;
                 }
-                if (responseList.Count == Global.e621SearchIndex[Context.Channel.Id])
-                    Global.e621SearchIndex[Context.Channel.Id] = 0;
                 Global.e621SearchIndex[Context.Channel.Id]++;
                 await ReplyAsync(responseList.ElementAt(Global.e621SearchIndex[Context.Channel.Id]).file.url);
             }

@@ -29,6 +29,11 @@ namespace CoreWaggles
         //probably come up with a better name for this
         internal static Dictionary<ulong, int> e621SearchIndex = new Dictionary<ulong, int>();
 
+        //holds the JSON for the last danbooru search in the channel
+        internal static Dictionary<ulong, string> danbooruSearches = new Dictionary<ulong, string>();
+        //holds the index of last used element of JSON array in cache
+        internal static Dictionary<ulong, int> danbooruSearchIndex = new Dictionary<ulong, int>();
+
         // Test if string is indeed a Derpibooru or valid URL.
         // Quick validation, is this in either Derpi* domain, and can it possibly contain a valid ID?
         public static bool IsBooruUrl(string search) {
