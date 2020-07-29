@@ -128,7 +128,7 @@ namespace CoreWaggles.Commands
                     await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0));
                     return;
                 }
-                else if(responseList.Count < (Global.e621SearchIndex[Context.Channel.Id] + amount))
+                else if(responseList.Count - 1 < (Global.e621SearchIndex[Context.Channel.Id] + amount))
                 {
                     await ReplyAsync("Reached end of results, resetting index. Use ~enext to start again.");
                     Global.e621SearchIndex[Context.Channel.Id] = 0;

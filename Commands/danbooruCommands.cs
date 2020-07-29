@@ -42,8 +42,15 @@ namespace CoreWaggles.Commands
                 Random rand = new Random();
                 Global.danbooruSearchIndex[Context.Channel.Id] = rand.Next(0, responseList.Count);
                 danbooru.Image chosenImage = responseList[Global.danbooruSearchIndex[Context.Channel.Id]];
+                int loopCounter = 0;
                 while(chosenImage.file_url == null)
                 {
+                    loopCounter++;
+                    if (loopCounter > responseList.Count)
+                    {
+                        await ReplyAsync("No returned images had valid links, you may have searched a hidden tag such as loli. Make a new search.");
+                        return;
+                    }
                     Global.danbooruSearchIndex[Context.Channel.Id] = rand.Next(0, responseList.Count);
                     chosenImage = responseList[Global.danbooruSearchIndex[Context.Channel.Id]];
                 }
@@ -75,11 +82,25 @@ namespace CoreWaggles.Commands
                     await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0));
                     return;
                 }
-                
+                //counter to keep track of how many times the While loop goes, make sure it doesnt keep loopinging in on itself
+                int loopCounter = 0;
                 Global.danbooruSearchIndex[Context.Channel.Id]++;
                 while (responseList.ElementAt(Global.danbooruSearchIndex[Context.Channel.Id]).file_url == null)
                 {
-                    Global.danbooruSearchIndex[Context.Channel.Id]++;
+                    loopCounter++;
+                    if (loopCounter > responseList.Count)
+                    {
+                        await ReplyAsync("No returned images had valid links, you may have searched a hidden tag such as loli. Make a new search.");
+                        return;
+                    }
+                    if (Global.danbooruSearchIndex[Context.Channel.Id] + 1 == responseList.Count)
+                    {
+                        Global.danbooruSearchIndex[Context.Channel.Id] = 0;
+                    }
+                    else
+                    {
+                        Global.danbooruSearchIndex[Context.Channel.Id]++;
+                    }
                 }
                 await ReplyAsync(responseList.ElementAt(Global.danbooruSearchIndex[Context.Channel.Id]).file_url + "\n" 
                     + responseList.ElementAt(Global.danbooruSearchIndex[Context.Channel.Id]).tag_string_artist);
@@ -116,7 +137,7 @@ namespace CoreWaggles.Commands
                     await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0));
                     return;
                 }
-                else if (responseList.Count < (Global.danbooruSearchIndex[Context.Channel.Id] + amount))
+                else if (responseList.Count - 1 < (Global.danbooruSearchIndex[Context.Channel.Id] + amount))
                 {
                     await ReplyAsync("Reached end of results, resetting index. Use ~dnext to start again.");
                     Global.danbooruSearchIndex[Context.Channel.Id] = 0;
@@ -125,6 +146,8 @@ namespace CoreWaggles.Commands
                 //if all fail, proceed!
                 else
                 {
+                    //counter to keep track of how many times the While loop goes, make sure it doesnt keep loopinging in on itself
+                    int loopCounter = 0;
                     //loop through user provided amount
                     for (int counter = 0; counter < amount; counter++)
                     {
@@ -140,7 +163,20 @@ namespace CoreWaggles.Commands
                         }
                         while (responseList.ElementAt(Global.danbooruSearchIndex[Context.Channel.Id]).file_url == null)
                         {
-                            Global.danbooruSearchIndex[Context.Channel.Id]++;
+                            loopCounter++;
+                            if(loopCounter > responseList.Count)
+                            {
+                                await ReplyAsync("No returned images had valid links, you may have searched a hidden tag such as loli. Make a new search.");
+                                return;
+                            }
+                            if (Global.danbooruSearchIndex[Context.Channel.Id] + 1 == responseList.Count)
+                            {
+                                Global.danbooruSearchIndex[Context.Channel.Id] = 0;
+                            }
+                            else
+                            {
+                                Global.danbooruSearchIndex[Context.Channel.Id]++;
+                            }
                         }
                         response = response + responseList[Global.danbooruSearchIndex[Context.Channel.Id]].file_url + "\n";
                     }
