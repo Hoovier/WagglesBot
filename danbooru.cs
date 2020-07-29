@@ -50,7 +50,7 @@ namespace CoreWaggles
             public bool has_active_children { get; set; }
             public int bit_flags { get; set; }
             public int tag_count_meta { get; set; }
-            public bool has_large { get; set; }
+            public bool? has_large { get; set; }
             public bool has_visible_children { get; set; }
             public bool is_favorited { get; set; }
             public string tag_string_general { get; set; }

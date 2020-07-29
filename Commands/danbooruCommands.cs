@@ -42,6 +42,12 @@ namespace CoreWaggles.Commands
                 Random rand = new Random();
                 Global.danbooruSearchIndex[Context.Channel.Id] = rand.Next(0, responseList.Count);
                 danbooru.Image chosenImage = responseList[Global.danbooruSearchIndex[Context.Channel.Id]];
+                while(chosenImage.file_url == null)
+                {
+                    Global.danbooruSearchIndex[Context.Channel.Id] = rand.Next(0, responseList.Count);
+                    chosenImage = responseList[Global.danbooruSearchIndex[Context.Channel.Id]];
+                }
+                
                 await ReplyAsync(chosenImage.file_url + "\n" + chosenImage.tag_string_artist.Replace(" ", ", "));
             }
         }
@@ -71,6 +77,10 @@ namespace CoreWaggles.Commands
                 }
                 
                 Global.danbooruSearchIndex[Context.Channel.Id]++;
+                while (responseList.ElementAt(Global.danbooruSearchIndex[Context.Channel.Id]).file_url == null)
+                {
+                    Global.danbooruSearchIndex[Context.Channel.Id]++;
+                }
                 await ReplyAsync(responseList.ElementAt(Global.danbooruSearchIndex[Context.Channel.Id]).file_url + "\n" 
                     + responseList.ElementAt(Global.danbooruSearchIndex[Context.Channel.Id]).tag_string_artist);
             }
@@ -125,6 +135,10 @@ namespace CoreWaggles.Commands
                         }
                         //if everythings fine, increase index by 1
                         else
+                        {
+                            Global.danbooruSearchIndex[Context.Channel.Id]++;
+                        }
+                        while (responseList.ElementAt(Global.danbooruSearchIndex[Context.Channel.Id]).file_url == null)
                         {
                             Global.danbooruSearchIndex[Context.Channel.Id]++;
                         }
