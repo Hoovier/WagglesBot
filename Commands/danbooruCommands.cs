@@ -70,6 +70,10 @@ namespace CoreWaggles.Commands
                 ImageList responseList = JsonConvert.DeserializeObject<ImageList>(Global.danbooruSearches[Context.Channel.Id]);
                 if (responseList.Count - 1 == Global.danbooruSearchIndex[Context.Channel.Id])
                 {
+                    if (responseList.Count == 2)
+                    {
+                        await ReplyAsync("Only 2 results in this search!\n" + responseList[0].file_url + "\n" + responseList[0].tag_string_artist);
+                    }
                     Global.danbooruSearchIndex[Context.Channel.Id] = 0;
                 }
                 if (responseList.Count == 0)
@@ -84,6 +88,7 @@ namespace CoreWaggles.Commands
                 }
                 //counter to keep track of how many times the While loop goes, make sure it doesnt keep loopinging in on itself
                 int loopCounter = 0;
+                //increment counter by 1
                 Global.danbooruSearchIndex[Context.Channel.Id]++;
                 while (responseList.ElementAt(Global.danbooruSearchIndex[Context.Channel.Id]).file_url == null)
                 {
@@ -95,6 +100,13 @@ namespace CoreWaggles.Commands
                     }
                     if (Global.danbooruSearchIndex[Context.Channel.Id] + 1 == responseList.Count)
                     {
+                        //if there are only 2 results, this glitches and only shows the second image, this will catch that edge case and spit them both out. 
+                        if(responseList.Count == 2)
+                        {
+                            await ReplyAsync("Only 2 results in this search!\n" + responseList[1].file_url + "\n" + responseList[1].tag_string_artist
+                                + "\n" + responseList[0].file_url + "\n" + responseList[0].tag_string_artist);
+                            return;
+                        }
                         Global.danbooruSearchIndex[Context.Channel.Id] = 0;
                     }
                     else
@@ -102,8 +114,8 @@ namespace CoreWaggles.Commands
                         Global.danbooruSearchIndex[Context.Channel.Id]++;
                     }
                 }
-                await ReplyAsync(responseList.ElementAt(Global.danbooruSearchIndex[Context.Channel.Id]).file_url + "\n" 
-                    + responseList.ElementAt(Global.danbooruSearchIndex[Context.Channel.Id]).tag_string_artist);
+                await ReplyAsync(responseList[Global.danbooruSearchIndex[Context.Channel.Id]].file_url + "\n" 
+                    + responseList[Global.danbooruSearchIndex[Context.Channel.Id]].tag_string_artist);
             }
             else
             {
