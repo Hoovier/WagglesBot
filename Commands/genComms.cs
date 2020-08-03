@@ -101,16 +101,16 @@ public class GeneralCOmmands : ModuleBase<SocketCommandContext>
         var builder = new EmbedBuilder();
 
         builder.WithTitle("Aliases");
-        builder.AddInlineField("~Derpitags", "```~dt```");
-        builder.AddInlineField("~derpist", "```~st```");
-        builder.AddInlineField("~derpi", "```~d```");
-        builder.AddInlineField("~artist", "```~a```");
-        builder.AddInlineField("~next", "```~n```");
+        builder.AddField("~Derpitags", "```~dt```");
+        builder.AddField("~derpist", "```~st```");
+        builder.AddField("~derpi", "```~d```");
+        builder.AddField("~artist", "```~a```");
+        builder.AddField("~next", "```~n```");
         builder.WithThumbnailUrl("https://derpicdn.net/img/view/2019/1/10/1931169.png");
 
         builder.WithTitle("Aliases");
         builder.WithColor(66, 244, 238);
-        await Context.Channel.SendMessageAsync("", false, builder);
+        await Context.Channel.SendMessageAsync("", false, builder.Build());
 
 
         IEmote emote = Context.Guild.Emotes.First(e => e.Name == "rymwave");
