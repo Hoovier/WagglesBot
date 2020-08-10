@@ -31,6 +31,7 @@ namespace WagglesBot
             using (var services = ConfigureServices())
             {
                 var client = services.GetRequiredService<DiscordSocketClient>();
+                var cmd = services.GetRequiredService<CommandService>();
 
                 client.Log += Log;
                 client.JoinedGuild += OnJoinedGuild;
@@ -42,7 +43,18 @@ namespace WagglesBot
                     Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
                     Console.WriteLine(File.Exists("WagglesDB.db") ? "Database found!" : "ERROR Database not found!");
                 };
-                client.ReactionAdded += OnReactionAdded;
+                client.ReactionAdded += async (Cacheable<IUserMessage, ulong> cache, ISocketMessageChannel channel, SocketReaction reaction) =>
+                {
+                    if (Global.redditDictionary.ContainsKey(reaction.Channel.Id))
+                    {
+                        if (reaction.MessageId == Global.redditDictionary[reaction.Channel.Id].redditIDtoTrack && !reaction.User.Value.IsBot)
+                        {
+                            Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Rnext button!");
+                            await cmd.ExecuteAsync(Global.redditDictionary[reaction.Channel.Id].redContext, "rnext 5", services);
+                        }
+                    }
+                    await OnReactionAdded(cache, channel, reaction);
+                };
                 services.GetRequiredService<CommandService>().Log += Log;
 
                 // Tokens should be considered secret data and never hard-coded.
@@ -116,58 +128,51 @@ namespace WagglesBot
                     }
                 }
             }
-                //checks to see if its in the dictionary first!
-                if (Global.MessageIdToTrack.ContainsKey(channel.Id))
+            //checks to see if its in the dictionary first!
+            if (Global.MessageIdToTrack.ContainsKey(channel.Id))
+            {
+                if (reaction.MessageId == Global.MessageIdToTrack[channel.Id] && !reaction.User.Value.IsBot)
                 {
-                    if (reaction.MessageId == Global.MessageIdToTrack[channel.Id] && !reaction.User.Value.IsBot)
+                    if (reaction.Emote.Name == "🎉")
                     {
-                        if (reaction.Emote.Name == "🎉")
-                        {
-                            var clock = "**__Fun page__** \n **Boop**: Boop a user! \n **Pony**: Brings up a random image of me. \n " +
-                                "**Click**: Count! Adds one every time it runs. \n **Say**: Make me say whatever you want. " +
-                                "\n **Is**: Ask me a question and I'll guess! \n **Joke**: I'll tell you a joke. ";
-                            await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = clock);
-                            IEmote cloc = new Emoji("🎉");
-                            await Global.MessageTotrack[channel.Id].RemoveReactionAsync(cloc, reaction.User.Value);
-                        }
+                        var clock = "**__Fun page__** \n **Boop**: Boop a user! \n **Pony**: Brings up a random image of me. \n " +
+                            "**Click**: Count! Adds one every time it runs. \n **Say**: Make me say whatever you want. " +
+                            "\n **Is**: Ask me a question and I'll guess! \n **Joke**: I'll tell you a joke. ";
+                        await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = clock);
+                        IEmote cloc = new Emoji("🎉");
+                        await Global.MessageTotrack[channel.Id].RemoveReactionAsync(cloc, reaction.User.Value);
+                    }
 
-                        else if (reaction.Emote.Name == "🏠")
-                        {
-                            var cloke = "**__Hi there! I'm Waggles, let me show you what I can do!__** \n " +
-                                "I don't wanna cloud your view, so I made a machine to help me help you. All you have to do is react with one of the following emojis to get its corresponding page. " +
-                                "\n :wrench: - My admin tools! \n :tada: - The funnest commands! \n :house: - Takes you to the homepage. \n :horse: - Derpibooru commands!";
-                            await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = cloke);
-                            IEmote clock = new Emoji("🏠");
-                            await Global.MessageTotrack[channel.Id].RemoveReactionAsync(clock, reaction.User.Value);
-                        }
-                        else if (reaction.Emote.Name == "🐴")
-                        {
-                            var cloke = "**__Derpibooru page__** \n **Derpi**: Allows you to run a derpi query, returns only safe results unless the channel is marked NSFW. " +
-                                "\n **Derpist**: Returns the amount of images matching your query. \n **Derpitags**: Returns the tags of a linked or saved image. " +
-                                "\n **Next**: Returns another image of last derpi search. \n **Artist**: Returns the artist(s) page(s) of a linked or saved image.";
-                            await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = cloke);
-                            IEmote clock = new Emoji("🐴");
-                            await Global.MessageTotrack[channel.Id].RemoveReactionAsync(clock, reaction.User.Value);
-                        }
-                        else if (reaction.Emote.Name == "🔧")
-                        {
-                            var cloke = "**__Admin page__** \n **Ban**: Ban a user! \n **kick**: Kick a user. \n " +
-                                "**wlist**: add, remove, or view the list of channels that allow nsfw posts from derpibooru searches. \n " +
-                                "**alias**: add, remove, view, or edit the list of aliases.";
-                            await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = cloke);
-                            IEmote clock = new Emoji("🔧");
-                            await Global.MessageTotrack[channel.Id].RemoveReactionAsync(clock, reaction.User.Value);
-                        }
+                    else if (reaction.Emote.Name == "🏠")
+                    {
+                        var cloke = "**__Hi there! I'm Waggles, let me show you what I can do!__** \n " +
+                            "I don't wanna cloud your view, so I made a machine to help me help you. All you have to do is react with one of the following emojis to get its corresponding page. " +
+                            "\n :wrench: - My admin tools! \n :tada: - The funnest commands! \n :house: - Takes you to the homepage. \n :horse: - Derpibooru commands!";
+                        await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = cloke);
+                        IEmote clock = new Emoji("🏠");
+                        await Global.MessageTotrack[channel.Id].RemoveReactionAsync(clock, reaction.User.Value);
+                    }
+                    else if (reaction.Emote.Name == "🐴")
+                    {
+                        var cloke = "**__Derpibooru page__** \n **Derpi**: Allows you to run a derpi query, returns only safe results unless the channel is marked NSFW. " +
+                            "\n **Derpist**: Returns the amount of images matching your query. \n **Derpitags**: Returns the tags of a linked or saved image. " +
+                            "\n **Next**: Returns another image of last derpi search. \n **Artist**: Returns the artist(s) page(s) of a linked or saved image.";
+                        await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = cloke);
+                        IEmote clock = new Emoji("🐴");
+                        await Global.MessageTotrack[channel.Id].RemoveReactionAsync(clock, reaction.User.Value);
+                    }
+                    else if (reaction.Emote.Name == "🔧")
+                    {
+                        var cloke = "**__Admin page__** \n **Ban**: Ban a user! \n **kick**: Kick a user. \n " +
+                            "**wlist**: add, remove, or view the list of channels that allow nsfw posts from derpibooru searches. \n " +
+                            "**alias**: add, remove, view, or edit the list of aliases.";
+                        await Global.MessageTotrack[channel.Id].ModifyAsync(msg => msg.Content = cloke);
+                        IEmote clock = new Emoji("🔧");
+                        await Global.MessageTotrack[channel.Id].RemoveReactionAsync(clock, reaction.User.Value);
                     }
                 }
-                else if (reaction.MessageId == Global.redditDictionary[reaction.Channel.Id].redditIDtoTrack && !reaction.User.Value.IsBot)
-                {
-                    Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Rnext button!");
-                    // await _commands.ExecuteAsync(Global.redditDictionary[reaction.Channel.Id].redContext, "rnext 5");
-                }
-
-
-        }
+            }
+            }
 
         private Task Log(LogMessage arg)
         {

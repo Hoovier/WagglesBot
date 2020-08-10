@@ -38,7 +38,6 @@ namespace CoreWaggles.Services
         {
             // Ignore system messages, or messages from other bots
             if (!(rawMessage is SocketUserMessage message)) return;
-            if (message.Source != MessageSource.User) return;
             if(message.Author.Id == _discord.CurrentUser.Id)
             {
                 //initialize MessageLog object if it doesnt exist.
@@ -58,6 +57,8 @@ namespace CoreWaggles.Services
                 }
                 return;
             }
+
+            if (message.Source != MessageSource.User) return;
 
             // We case-insensitive search and compare key phrases of the message.
             string lowerCaseMessage = message.Content.ToLower();
@@ -144,5 +145,6 @@ namespace CoreWaggles.Services
             // the command failed, let's notify the user that something happened.
             await context.Channel.SendMessageAsync($"Error: {result.ErrorReason}");
         }
+
     }
 }
