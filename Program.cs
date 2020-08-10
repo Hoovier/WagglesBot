@@ -1,17 +1,16 @@
 ﻿using System;
 using Discord;
 using Discord.Commands;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Discord.WebSocket;
-using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using CoreWaggles;
-using Newtonsoft.Json;
 using System.IO;
-using System.Linq;
 using CoreWaggles.Commands;
+using System.Threading;
+using CoreWaggles.Services;
+using System.Net.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace WagglesBot
 {
@@ -20,78 +19,84 @@ namespace WagglesBot
     {
         static void Main(string[] args) => new Program().runBotAsync().GetAwaiter().GetResult();
 
-        private DiscordSocketClient _client;
-        private CommandService _commands;
-        private IServiceProvider _services;
 
         public async Task runBotAsync()
         {
-            _client = new DiscordSocketClient();
-            _commands = new CommandService();
-            _services = new ServiceCollection()
-                .AddSingleton(_client)
-                .AddSingleton(_commands)
-                .BuildServiceProvider();
             //Reddit Token stuff!
             string[] RedditTokens = System.IO.File.ReadAllLines("redditTokens.txt");
             Global.reddit = new Reddit.RedditClient(RedditTokens[0], RedditTokens[1], RedditTokens[2], RedditTokens[3]);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
             string botToken = keys[1];
-            
-            await RegisterCommandsAsync();
+            using (var services = ConfigureServices())
+            {
+                var client = services.GetRequiredService<DiscordSocketClient>();
+                var cmd = services.GetRequiredService<CommandService>();
 
-            await _client.LoginAsync(TokenType.Bot, botToken);
-            // event subscriptions
-            _client.Log += Log;
-            _client.ReactionAdded += OnReactionAdded;
-            
-            //_client.Ready += OnReady;
-            _client.JoinedGuild += OnJoinedGuild;
-            _client.Ready += OnReady;
-            // _client.UserJoined += AnnounceJoinedUser;
-            await _client.StartAsync();
+                client.Log += Log;
+                client.JoinedGuild += OnJoinedGuild;
+                client.Ready += async () =>
+                {
+                    Console.WriteLine("Logged in on Discord as: " + client.CurrentUser.Username);
+                    await client.SetGameAsync("with Mona");
+                    Console.WriteLine("In " + client.Guilds.Count + " servers!");
+                    Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
+                    Console.WriteLine(File.Exists("WagglesDB.db") ? "Database found!" : "ERROR Database not found!");
+                };
+                client.ReactionAdded += async (Cacheable<IUserMessage, ulong> cache, ISocketMessageChannel channel, SocketReaction reaction) =>
+                {
+                    if (Global.redditDictionary.ContainsKey(reaction.Channel.Id))
+                    {
+                        if (reaction.MessageId == Global.redditDictionary[reaction.Channel.Id].redditIDtoTrack && !reaction.User.Value.IsBot)
+                        {
+                            Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Rnext button!");
+                            await cmd.ExecuteAsync(Global.redditDictionary[reaction.Channel.Id].redContext, "rnext 5", services);
+                        }
+                    }
+                    await OnReactionAdded(cache, channel, reaction);
+                };
+                services.GetRequiredService<CommandService>().Log += Log;
 
-            await Task.Delay(-1);
+                // Tokens should be considered secret data and never hard-coded.
+                // We can read from the environment variable to avoid hardcoding.
+                await client.LoginAsync(TokenType.Bot, botToken);
+                await client.StartAsync();
+
+                // Here we initialize the logic required to register our commands.
+                await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
+
+                await Task.Delay(Timeout.Infinite);
+            }
         }
 
-        private async Task OnReady()
+        private ServiceProvider ConfigureServices()
         {
-            Console.WriteLine("Logged in on Discord as: " + _client.CurrentUser.Username);
-            await _client.SetGameAsync("with Mona");
-            Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
-            Console.WriteLine(File.Exists("WagglesDB.db") ? "Database found!" : "ERROR Database not found!");
-            Console.WriteLine("In " + _client.Guilds.Count + " servers!");
+            return new ServiceCollection()
+                .AddSingleton<DiscordSocketClient>()
+                .AddSingleton<CommandService>()
+                .AddSingleton<CommandHandlingService>()
+                .AddSingleton<HttpClient>()
+                .BuildServiceProvider();
         }
 
         private async Task OnJoinedGuild(SocketGuild arg)
         {
-            try
+            using (var services = ConfigureServices())
             {
-                SocketUser use = _client.GetUser(223651215337193472);
-                await use.SendMessageAsync("I joined a new server named: " + arg.Name + "\n" + "Owner info: " + arg.Owner.Username + arg.Owner.Discriminator);
-            }
-            catch
-            {
-                Console.WriteLine("I joined a new server named: " + arg.Name + "\n" + "Owner info: " + arg.Owner.Username + arg.Owner.Discriminator);
+                var client = services.GetRequiredService<DiscordSocketClient>();
+                try
+                {
+                    SocketUser use = client.GetUser(223651215337193472);
+                    await use.SendMessageAsync("I joined a new server named: " + arg.Name + "\n" + "Owner info: " + arg.Owner.Username + arg.Owner.Discriminator);
+                }
+                catch
+                {
+                    Console.WriteLine("I joined a new server named: " + arg.Name + "\n" + "Owner info: " + arg.Owner.Username + arg.Owner.Discriminator);
+                }
             }
 
         }
 
-
-
-        /* private async Task AnnounceJoinedUser(SocketGuildUser arg)
-         {
-
-             var channel = _client.GetChannel(480105955552395285) as SocketTextChannel; // Gets the channel to send the message in
-             await channel.SendMessageAsync($"Hi there {arg.Username}!"); //Welcomes the new user
-             IEmote emote = channel.Guild.Emotes.First(e => e.Name == "rymwave");
-
-
-
-             await channel.SendMessageAsync($"{emote}");
-         }
-         */
         private async Task OnReactionAdded(Cacheable<IUserMessage, ulong> cache, ISocketMessageChannel channel, SocketReaction reaction)
         {
             if (reaction.Emote.Name == "⭐")
@@ -104,13 +109,13 @@ namespace WagglesBot
                 int count = 0;
                 IEmote star = new Emoji("⭐");
                 count = message.Reactions[star].ReactionCount;
-                if(count > 1)
+                if (count > 1)
                 {
                     //if quote doesnt exist, add it
-                    if (DBTransaction.quoteExists(message.Author.Id, message.Content, Guild ) == false)
+                    if (DBTransaction.quoteExists(message.Author.Id, message.Content, Guild) == false)
                     {
                         bool addedCorrectly = DBTransaction.addQuote(message.Author.Id, message.Content, Guild);
-                        if(addedCorrectly)
+                        if (addedCorrectly)
                         {
                             await message.AddReactionAsync(new Emoji("🔖"));
                             Console.WriteLine("Added quote through reactions for: " + message.Author.Username + ": " + message.Content + " " + addedCorrectly);
@@ -126,7 +131,7 @@ namespace WagglesBot
             //checks to see if its in the dictionary first!
             if (Global.MessageIdToTrack.ContainsKey(channel.Id))
             {
-                if (reaction.MessageId == Global.MessageIdToTrack[channel.Id] && reaction.UserId != _client.CurrentUser.Id)
+                if (reaction.MessageId == Global.MessageIdToTrack[channel.Id] && !reaction.User.Value.IsBot)
                 {
                     if (reaction.Emote.Name == "🎉")
                     {
@@ -167,14 +172,7 @@ namespace WagglesBot
                     }
                 }
             }
-            else if (reaction.MessageId == Global.redditDictionary[reaction.Channel.Id].redditIDtoTrack && reaction.UserId != _client.CurrentUser.Id)
-            {
-                Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Rnext button!");
-                await _commands.ExecuteAsync(Global.redditDictionary[reaction.Channel.Id].redContext, "rnext 5");
             }
-            
-
-        }
 
         private Task Log(LogMessage arg)
         {
@@ -182,124 +180,6 @@ namespace WagglesBot
             return Task.CompletedTask;
         }
 
-        public async Task RegisterCommandsAsync()
-        {
-            _client.MessageReceived += HandleCommandAsync;
-            await _commands.AddModulesAsync(Assembly.GetEntryAssembly());
-        }
-
-
-        private async Task HandleCommandAsync(SocketMessage arg)
-        {
-           
-            var message = arg as SocketUserMessage;
-            //for tracking messages from bot
-            if(message.Author.Id == _client.CurrentUser.Id)
-            {
-                //initialize MessageLog object if it doesnt exist.
-                if (!Global.lastMessage.ContainsKey(message.Channel.Id))
-                    Global.lastMessage.Add(message.Channel.Id, new MessageLog());
-
-                //add message to stack
-                Global.lastMessage[message.Channel.Id].addElement(message.Id);
-            }
-
-            if (message is null || message.Author.Id == _client.CurrentUser.Id) return;
-
-            int argPos = 0;
-
-            //this checks to see if a message has embeds or attachments, and downloads all of them.
-            if (!message.Author.IsBot && message.Attachments.Count > 0)
-            {
-                var context = new SocketCommandContext(_client, message);
-
-
-                foreach (Attachment att in message.Attachments)
-                {
-                    //spams up console, but fun for notifications Console.WriteLine("Saved an attachment!");
-                    Global.miscLinks[message.Channel.Id] = att.Url;
-                }
-                return;
-            }
-
-            if (message.Author.Id == 141016540240805888 && message.HasStringPrefix("~", ref argPos))
-            {
-                var context = new SocketCommandContext(_client, message);
-                await context.Channel.SendMessageAsync("Youre not my supervisor!");
-            }
-          
-
-            // We case-insensitive search and compare key phrases of the message.
-            string lowerCaseMessage = message.Content.ToLower();
-          
-            // If URL posted is a Derpibooru URL, extract the ID and save to `links` cache.
-            if (Global.IsBooruUrl(lowerCaseMessage))
-            {
-                // Grab context for Channel info.
-                var context = new SocketCommandContext(_client, message);
-                // Extract the Derpibooru image ID.
-                int derpiID = Global.ExtractBooruId(message.Content);
-                // If an ID is able to be parsed out, add it to the `links` cache for the Channel.
-                if (derpiID != -1) {
-                    Global.LastDerpiID[context.Channel.Id] = derpiID.ToString();
-                }
-            }
-            // If a URL that is NOT booru related, then just save to `miscLinks` cache.
-            else if(lowerCaseMessage.Contains("https://") && !Global.IsBooruUrl(lowerCaseMessage))
-            {
-                var context = new SocketCommandContext(_client, message);
-                Global.miscLinks[context.Channel.Id] = message.Content;
-            }
-
-            if (message.HasStringPrefix("~", ref argPos) && message.Author.Id != 141016540240805888 && !message.HasStringPrefix("~~", ref argPos))
-            {
-                var context = new SocketCommandContext(_client, message);
-                Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{context.Channel.Name}] \n{message.Author.Username}: {message.Content}");
-                //get GuildID first, cause DM channels dont have one and cause errors!
-                ulong guildID = context.IsPrivate ? 0 : context.Guild.Id;
-                
-                //if the command is in DB, it will return actual command desired, otherwise returns string.empty and fails the check
-                string AliasedCommandCheck = DBTransaction.getAliasedCommand(message.Content.Trim('~'), guildID, true);
-                if ( AliasedCommandCheck != string.Empty)
-                {
-                   await _commands.ExecuteAsync(context, AliasedCommandCheck);
-                }
-                else
-                {
-                    var result = await _commands.ExecuteAsync(context, argPos, _services);
-                    if (!result.IsSuccess)
-                    {
-                        Console.WriteLine(result.ErrorReason);
-                        await context.Channel.SendMessageAsync("Sorry! Seems like I messed up, here's where it all went wrong: **" + result.ErrorReason + "**");
-                    }
-                }
-            }
-            else
-            {
-                var context = new SocketCommandContext(_client, message);
-                DBTransaction.processWitty(context, message.Content);
-            }
-
-            if ((message.Content.ToLower().Contains("lewd") || message.Content.ToLower().Contains("sexuals")) && message.Content.ToLower().Contains("rym"))
-            {
-                var context = new SocketCommandContext(_client, message);
-                await context.Channel.SendMessageAsync("Please don't! <:tears:409771767410851845>");
-                
-            }
-            if ((message.Content.ToLower().Contains("here's wonderwall") || message.Content.ToLower().Contains("heres wonderwall")) )
-            {
-                var context = new SocketCommandContext(_client, message);
-                await context.Channel.SendMessageAsync("https://www.youtube.com/watch?v=bx1Bh8ZvH84");
-                
-            }
-            if ((message.Content.ToLower().Contains("alexa play despacito") || message.Content.ToLower().Contains("thats so sad") || message.Content.ToLower().Contains("that's so sad")))
-            {
-                var context = new SocketCommandContext(_client, message);
-                await context.Channel.SendMessageAsync("https://www.youtube.com/watch?v=kJQP7kiw5Fk");
-
-            }
-
-        }
 
     }
 }
