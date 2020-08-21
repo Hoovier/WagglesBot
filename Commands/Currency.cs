@@ -58,6 +58,7 @@ namespace CoreWaggles.Commands
         }
 
         [Command("balance")]
+        [Alias("bal")]
 
         public async Task BalanceAsync()
         {
