@@ -58,7 +58,7 @@ namespace CoreWaggles.Services
                 return;
             }
 
-            if (message.Source == MessageSource.System || message.Source == MessageSource.Webhook) return;
+            if (message.Source == MessageSource.System || message.Source == MessageSource.Webhook || message.Author.Id == _discord.CurrentUser.Id) return;
 
             // We case-insensitive search and compare key phrases of the message.
             string lowerCaseMessage = message.Content.ToLower();
