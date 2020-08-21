@@ -131,14 +131,23 @@ namespace CoreWaggles.Commands
                 await ReplyAsync("You have to bet more than that! Cheapskate.");
                 return;
             }
+            int senderBal = int.Parse(balanceString);
+            if (amount > senderBal || amount <= 0)
+            {
+                await ReplyAsync("Sorry, your balance of " + senderBal + " Bits is too low!");
+                return;
+            }
             Random rand = new Random();
             int chosenNum = rand.Next(0, 100);
             int rowsAffected = 0;
-            //If bet is less than 100 give it a 40% chance to succeed!
-            //if amount is less than 251 give it a 25% chance to succeed!
-            //if amount is greater than 250 give it a 10% chance to succeed!
-            if ((amount > 0 && amount < 101 && chosenNum < 41)|| (amount > 100 && amount < 251 && chosenNum < 26) || (amount > 250 && chosenNum < 11))
+            //give it a 40% chance to succeed!
+            if (chosenNum < 41)
             {
+                //this makes sure that no matter how low they bet they will always get a prize if they win.
+                if(amount == 1)
+                {
+                    amount = 2;
+                }
                 rowsAffected = DBTransaction.payMoney(Context.User.Id, amount / 2, Context.Guild.Id);
                 if (rowsAffected == 1)
                 {
