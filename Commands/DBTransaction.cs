@@ -658,5 +658,107 @@ namespace CoreWaggles.Commands
             }
             return response;
         }
+        public static string getMoneyBalanceDMs(ulong userID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT COUNT(ServerID) FROM In_Server WHERE UserID={userID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfServers = rdr.GetInt32(0);
+            if (numberOfServers == 0)
+            {
+                return "NONE";
+            }
+            rdr.Close();
+
+            string response = "Server: Balance\n";
+            string bal = "0";
+            commd.CommandText = $"SELECT NAME, ServerID FROM In_Server JOIN Servers ON ServerID = ID WHERE UserID = {userID};";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            while (msgs.Read())
+            {
+                bal = getMoneyBalance(userID, (ulong)msgs.GetInt64(1));
+                if(bal == "NONE")
+                { bal = "0"; }
+                response = response + "**" + msgs.GetString(0) + ":** " + bal + " Bits\n";
+            }
+            return response;
+        }
+        public static void addUsertoMoney(ulong UserID, int amount, ulong serverID, string timestamp)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //Adds users to table with set money as well as a timestamp to determine when they can run their next ~daily
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"INSERT INTO Money(UserID, Amount, ServerID, TimeStamp) VALUES({UserID}, {amount}, {serverID}, @timestamp);";
+                cmd.Parameters.AddWithValue("@timestamp", timestamp);
+                cmd.ExecuteNonQuery();
+            }
+        }
+        public static void giveMoney(ulong UserID, int amount, ulong serverID, string timestamp)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //Adds users to table with set money as well as a timestamp to determine when they can run their next ~daily
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Money SET Amount = Amount + {amount}, TimeStamp = @timestamp WHERE UserID = {UserID} AND ServerID = {serverID};";
+                cmd.Parameters.AddWithValue("@timestamp", timestamp);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static int payMoney(ulong userID, int amount, ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            int rowsAffected = 0;
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Money SET Amount = Amount + {amount} WHERE UserID = {userID} AND ServerID = {serverID};";
+                rowsAffected = cmd.ExecuteNonQuery();
+            }
+            return rowsAffected;
+        }
+        public static string getMoneyTimeStamp(ulong userID, ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Count(TimeStamp) FROM Money WHERE UserID={userID} AND ServerID= {serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfTimestamps = rdr.GetInt32(0);
+            if (numberOfTimestamps == 0)
+            {
+                return "NONE";
+            }
+            rdr.Close();
+            commd.CommandText = $"SELECT TimeStamp FROM Money WHERE UserID={userID} AND ServerID= {serverID}";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            return msgs.GetString(0);
+        }
+
+        public static string getMoneyBalance(ulong userID, ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Count(Amount) FROM Money WHERE UserID={userID} AND ServerID= {serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfMoney = rdr.GetInt32(0);
+            if (numberOfMoney == 0)
+            {
+                return "NONE";
+            }
+            rdr.Close();
+            commd.CommandText = $"SELECT Amount FROM Money WHERE UserID={userID} AND ServerID= {serverID}";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            return msgs.GetInt32(0).ToString();
+        }
+
     }
 }
