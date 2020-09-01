@@ -326,7 +326,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Check if an a "~derpi" search has been made in this channel yet.
         if (Global.LastDerpiID.ContainsKey(Context.Channel.Id)) {
             // Handmade link + the channel ID to get the last stored ID.
-            string builtLink = "https://derpibooru.org/api/v1/json/search/images?q=id%3A" + Global.LastDerpiID[Context.Channel.Id] + "&filter_id=178065";
+            string builtLink = "https://derpibooru.org/api/v1/json/search/images?q=id%3A" + Global.LastDerpiID[Context.Channel.Id] + "&filter_id=56027";
             // Retrieves JSON and saves as string.
             string JSONresponse = Get.Derpibooru(builtLink).Result;
             // Finally makes the derpibooru object to leverage DerpiTagsDisplay().
@@ -378,7 +378,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // If you reach here, the "else" return case didn't happen and we can query Derpibooru.
         // We can use imageID to uniformly query DerpiBooru.
         string requestUrl = DerpiHelper.BuildDerpiUrl(this.baseURL, new Dictionary<string,string>() {
-            {"filter_id", "178065"},
+            {"filter_id", "56027"},
             {"q", $"id:{imageID}"},
         });
         string DerpiJson = Get.Derpibooru(requestUrl).Result;
