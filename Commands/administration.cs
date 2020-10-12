@@ -29,10 +29,18 @@ public class administration : ModuleBase<SocketCommandContext>
     public async Task ewwAsync()
     {
         ulong channel = Context.Channel.Id;
+
+        //if the dictionary doesnt have this channel in its memory that means she has not sent a message here yet.
+        if (!Global.lastMessage.ContainsKey(channel))
+        {
+            await ReplyAsync("No messages in my memory to delete!");
+            return;
+        }
+
         ulong lastID = Global.lastMessage[channel].getLastElement();
         
-        //if the dictionary doesnt have this channel in its memory that means she has not sent a message here yet.
-        if (lastID == MESSAGE_DELETED || !Global.lastMessage.ContainsKey(channel))
+        //if she has already deleted all three messages in her memory, it will be set to MESSAGE_DELETED, so just tell user that it did not work.
+        if (lastID == MESSAGE_DELETED)
         {
             await Context.Message.AddReactionAsync(new Emoji("❌"));
             return;

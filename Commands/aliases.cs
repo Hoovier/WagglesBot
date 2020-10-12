@@ -13,11 +13,11 @@ namespace CoreWaggles
     public class aliases : ModuleBase<SocketCommandContext>
     {
         [Command("alias add")]
-        public async Task setCommand(string name, [Remainder] string command)
+        public async Task setCommand(string name, string command, [Remainder] string args)
         {
             try
             {
-                string dbResponse = DBTransaction.addAliasedCommand(name, command, Context.Guild.Id);
+                string dbResponse = DBTransaction.addAliasedCommand(name, command + " " + args, Context.Guild.Id);
                 await ReplyAsync(dbResponse);
             }
             catch(SQLiteException ex)
@@ -29,7 +29,7 @@ namespace CoreWaggles
                     case 0:
                         Console.WriteLine("ServerID does not exist in DB, failed FOREIGN KEY check. Trying to add Server to DB now.");
                         DBTransaction.addOrUpdateServer(Context.Guild.Id, Context.Guild.Name);
-                        await setCommand(name, command);
+                        await setCommand(name, command, args);
                         Console.WriteLine("Success!?");
                         break;
                     //if its a duplicate problem, 
