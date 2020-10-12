@@ -131,7 +131,19 @@ namespace CoreWaggles.Services
                 string AliasedCommandCheck = DBTransaction.getAliasedCommand(context.Message.Content.Trim('~'), guildID, true);
                 if (AliasedCommandCheck != string.Empty)
                 {
-                    await _commands.ExecuteAsync(context, AliasedCommandCheck, _services);
+                    //this checks the command list to see if the aliased command exists at all.
+                    var found =_commands.Search(AliasedCommandCheck.Split()[0]);
+
+                    //hacky fix, if the aliased command is not found,
+                    //we edit the DB entry for the command and change it from whatever it used to be to an error message.
+                    if(!found.IsSuccess)
+                    {
+                        await context.Channel.SendMessageAsync("Aliased command: ``" + AliasedCommandCheck + "`` failed. Try rewriting your alias for that.");
+                    }
+                    else
+                    {
+                        await _commands.ExecuteAsync(context, AliasedCommandCheck, _services);
+                    }
                     return;
                 }
                 await context.Channel.SendMessageAsync("Command not found, try ~help");

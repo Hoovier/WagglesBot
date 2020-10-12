@@ -6,8 +6,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using ImageRoot = CoreWaggles.e621.RootObject;
 using ImageList = System.Collections.Generic.List<CoreWaggles.e621.Post>;
-
-
+using Discord.Rest;
+using Discord;
 
 namespace CoreWaggles.Commands
 {
@@ -61,7 +61,11 @@ namespace CoreWaggles.Commands
                 Random rand = new Random();
                 Global.e621SearchIndex[Context.Channel.Id] = rand.Next(0, responseList.Count);
                 e621.Post chosenImage = responseList[Global.e621SearchIndex[Context.Channel.Id]];
-                await ReplyAsync(chosenImage.file.url + "\n" + string.Join(",", chosenImage.tags.artist));
+                RestUserMessage msg = await Context.Channel.SendMessageAsync(chosenImage.file.url + "\n" + string.Join(",", chosenImage.tags.artist));
+                await msg.AddReactionAsync(new Emoji("▶"));
+                //set random info for running ~enext through emoji reactions.
+                Global.e621Context[Context.Channel.Id] = Context;
+                Global.e621MessageToTrack[Context.Channel.Id] = msg.Id;
             }
         }
         [Command("e")]
@@ -90,11 +94,15 @@ namespace CoreWaggles.Commands
                 }
                 if (responseList.Count == 1)
                 {
-                    await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0));
+                    await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0).file.url);
                     return;
                 }
                 Global.e621SearchIndex[Context.Channel.Id]++;
-                await ReplyAsync(responseList.ElementAt(Global.e621SearchIndex[Context.Channel.Id]).file.url);
+                RestUserMessage msg = await Context.Channel.SendMessageAsync(responseList.ElementAt(Global.e621SearchIndex[Context.Channel.Id]).file.url);
+                await msg.AddReactionAsync(new Emoji("▶"));
+                //set random info for running ~enext through emoji reactions.
+                Global.e621Context[Context.Channel.Id] = Context;
+                Global.e621MessageToTrack[Context.Channel.Id] = msg.Id;
             }
             else
             {
@@ -125,7 +133,7 @@ namespace CoreWaggles.Commands
                 }
                 if (responseList.Count == 1)
                 {
-                    await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0));
+                    await ReplyAsync("Only one result to show! \n" + responseList.ElementAt(0).file.url);
                     return;
                 }
                 else if(responseList.Count - 1 < (Global.e621SearchIndex[Context.Channel.Id] + amount))
@@ -154,7 +162,11 @@ namespace CoreWaggles.Commands
                     }
                 }
 
-                await ReplyAsync(response);
+                RestUserMessage msg = await Context.Channel.SendMessageAsync(response);
+                await msg.AddReactionAsync(new Emoji("▶"));
+                //set random info for running ~enext through emoji reactions.
+                Global.e621Context[Context.Channel.Id] = Context;
+                Global.e621MessageToTrack[Context.Channel.Id] = msg.Id;
             }
             else
             {

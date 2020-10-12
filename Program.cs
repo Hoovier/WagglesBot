@@ -53,6 +53,14 @@ namespace WagglesBot
                             await cmd.ExecuteAsync(Global.redditDictionary[reaction.Channel.Id].redContext, "rnext 5", services);
                         }
                     }
+                   if (Global.e621Searches.ContainsKey(reaction.Channel.Id))
+                    {
+                        if (reaction.MessageId == Global.e621MessageToTrack[reaction.Channel.Id] && !reaction.User.Value.IsBot)
+                        {
+                            Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Enext button!");
+                            await cmd.ExecuteAsync(Global.e621Context[reaction.Channel.Id], "enext 5", services);
+                        }
+                    }
                     await OnReactionAdded(cache, channel, reaction);
                 };
                 services.GetRequiredService<CommandService>().Log += Log;
