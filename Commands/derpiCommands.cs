@@ -1,4 +1,4 @@
-using CoreWaggles;
+﻿using CoreWaggles;
 using Discord.Commands;
 using Newtonsoft.Json;
 using System;
@@ -16,6 +16,8 @@ using DerpiRoot = WagglesBot.Modules.DerpibooruResponse.Rootobject;
 using DerpiFeatured = WagglesBot.Modules.DerpibooruResponse.FeaturedObject;
 using DerpiSearch = WagglesBot.Modules.DerpibooruResponse.Image;
 using CoreWaggles.Commands;
+using Discord.Rest;
+using Discord;
 
 public class DerpibooruComms : ModuleBase<SocketCommandContext>
 {
@@ -157,10 +159,15 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             // Add image ID to Global.links.
             // TODO: Describe where this is used better?
             Global.LastDerpiID[Context.Channel.Id] = randomElement.id.ToString();
-
-            await ReplyAsync(
+            RestUserMessage msg = await Context.Channel.SendMessageAsync(
                 DerpiHelper.BuildDiscordResponse(randomElement, artistAsLink, !safeOnly)
             );
+            await msg.AddReactionAsync(new Emoji("▶"));
+            //set random info for running ~enext through emoji reactions.
+            Global.derpiContext[Context.Channel.Id] = Context;
+            Global.derpiMessageToTrack[Context.Channel.Id] = msg.Id;
+
+            
 
         } catch {
             await ReplyAsync("Sorry! Something went wrong, your search terms are probably incorrect.");
@@ -190,16 +197,23 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             Global.DerpibooruSearchIndex[Context.Channel.Id] = 0;
         }
 
-        // The `~next` command is basically `~next {CurrentIndex + 1}`, lets treat it that way.
-        await DerpiNextPick(Global.DerpibooruSearchIndex[Context.Channel.Id]++);
+        // The `~next` command is just used again
+        await DerpiNextPick(1);
     }
 
-    // Allows you to select an item on the page of results by index number.
+    // Post the given amount of images!
     [Command("next")]
     [Alias("n")]
-    public async Task DerpiNextPick(int index)
+    public async Task DerpiNextPick(int amount)
     {
         await Context.Channel.TriggerTypingAsync();
+        string response = $"Posting {amount} links:\n";
+        //prevents the useless "posting 1 links" thing.
+        if (amount == 1)
+        {
+            response = "";
+        }
+        
 
         DerpiRoot DerpiResponse;
 
@@ -211,35 +225,59 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             return;
         }
        
-        if (DerpiResponse.images.Count() == 0) {
+        if (DerpiResponse.images.Count() == 0) 
+        {
             // No Results Message.
             await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
             return;
-        } else if (DerpiResponse.images.Count() == 1) {
+        }
+        else if(DerpiResponse.images.Count < amount)
+        {
+            response = "Not enough images to post, posting all \n";
+            amount = DerpiResponse.images.Count;
+        }
+        else if (DerpiResponse.images.Count() == 1) {
             // Only a single result, no pagination.
             await ReplyAsync("Only a single result in this image set.\n");
             // No return, let it continue to parsing the image below.
-        } else if (index < 0 || index >= DerpiResponse.images.Count()) {
-            // Out of Bounds Message.
-            await ReplyAsync("Your selection is out of range! Valid values are between 0 and " + (DerpiResponse.images.Count() - 1));
+        } 
+        
+        //check user provided amount
+        if (amount < 1 || amount > 5)
+        {
+            await ReplyAsync("Pick a number between 1 and 5!");
             return;
         }
 
         // If ~next goes off the globally cached page, loop around the beginning again.
-        if(Global.DerpibooruSearchIndex[Context.Channel.Id] + 1 > DerpiResponse.images.Count()) {
+        if (Global.DerpibooruSearchIndex[Context.Channel.Id] + amount > DerpiResponse.images.Count()) {
             Global.DerpibooruSearchIndex[Context.Channel.Id] = 0;
         }
-
-        // Get element at specified index.
-        DerpiSearch chosenElement = DerpiResponse.images.ElementAt(index);
+        for (int counter = 0; counter < amount; counter++)
+        {
+            if (DerpiResponse.images.Count < Global.DerpibooruSearchIndex[Context.Channel.Id] +1)
+            {
+                await ReplyAsync("Reached end of results, resetting index. Use ~enext to start again.");
+                Global.DerpibooruSearchIndex[Context.Channel.Id] = 0;
+            }
+            //if everythings fine, increase index by 1
+            else
+            {
+                response = response + DerpiHelper.BuildDiscordResponse(DerpiResponse.images[Global.DerpibooruSearchIndex[Context.Channel.Id]]) + "\n";
+                Global.DerpibooruSearchIndex[Context.Channel.Id]++;
+            }
+            
+        }
 
         // Add image ID to Global.links.
         // TODO: Describe where this is used better?
-        Global.LastDerpiID[Context.Channel.Id] = chosenElement.id.ToString();
+        Global.LastDerpiID[Context.Channel.Id] = DerpiResponse.images[Global.DerpibooruSearchIndex[Context.Channel.Id] - 1].id.ToString();
 
-        await ReplyAsync(
-            DerpiHelper.BuildDiscordResponse(chosenElement)
-        );
+        RestUserMessage msg = await Context.Channel.SendMessageAsync(response);
+        await msg.AddReactionAsync(new Emoji("▶"));
+        //set random info for running ~enext through emoji reactions.
+        Global.derpiContext[Context.Channel.Id] = Context;
+        Global.derpiMessageToTrack[Context.Channel.Id] = msg.Id;
     }
 
     // Gets the number of search results for a query.

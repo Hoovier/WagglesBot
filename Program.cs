@@ -61,6 +61,14 @@ namespace WagglesBot
                             await cmd.ExecuteAsync(Global.e621Context[reaction.Channel.Id], "enext 5", services);
                         }
                     }
+                    if (Global.DerpiSearchCache.ContainsKey(reaction.Channel.Id))
+                    {
+                        if (reaction.MessageId == Global.derpiMessageToTrack[reaction.Channel.Id] && !reaction.User.Value.IsBot)
+                        {
+                            Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Dnext button!");
+                            await cmd.ExecuteAsync(Global.derpiContext[reaction.Channel.Id], "next 5", services);
+                        }
+                    }
                     await OnReactionAdded(cache, channel, reaction);
                 };
                 services.GetRequiredService<CommandService>().Log += Log;

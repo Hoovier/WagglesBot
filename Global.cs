@@ -34,6 +34,11 @@ namespace CoreWaggles
         //dictionary to hold context for e621
         internal static Dictionary<ulong, Discord.Commands.SocketCommandContext> e621Context = new Dictionary<ulong, Discord.Commands.SocketCommandContext>();
 
+        //dictionary to hold ID of last derpi message in that channel, channel to messageID
+        internal static Dictionary<ulong, ulong> derpiMessageToTrack = new Dictionary<ulong, ulong>();
+        //dictionary to hold context for derpibooru
+        internal static Dictionary<ulong, Discord.Commands.SocketCommandContext> derpiContext = new Dictionary<ulong, Discord.Commands.SocketCommandContext>();
+
         //holds the JSON for the last danbooru search in the channel
         internal static Dictionary<ulong, string> danbooruSearches = new Dictionary<ulong, string>();
         //holds the index of last used element of JSON array in cache
