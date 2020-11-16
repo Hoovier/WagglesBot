@@ -760,5 +760,35 @@ namespace CoreWaggles.Commands
             return msgs.GetInt32(0).ToString();
         }
 
+        public static void setReactionRole(ulong roleID, ulong serverID, string emojiName, ulong messageID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //Adds a reaction and role pair to the DB
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"INSERT INTO Reaction_Roles(RoleID, ServerID, Emoji, MessageID) VALUES({roleID}, {serverID}, @emoji, @messageID);";
+                cmd.Parameters.AddWithValue("@emoji", emojiName);
+                cmd.Parameters.AddWithValue("@messageID", messageID);
+                cmd.ExecuteNonQuery();
+            }
+        }
+        public static ulong reactionRoleExists(ulong messageID, string emojiName)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT RoleID FROM Reaction_Roles WHERE MessageID={messageID} AND Emoji = '{emojiName}'", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            if(!rdr.HasRows)
+            {
+                return 0;
+            }
+            ulong roleID = (ulong)rdr.GetInt64(0);
+            rdr.Close();
+            //return the roleID so bot can turn it into a role!
+            return roleID;
+        }
+
     }
 }

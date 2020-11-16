@@ -69,6 +69,7 @@ namespace WagglesBot
                             await cmd.ExecuteAsync(Global.derpiContext[reaction.Channel.Id], "next 5", services);
                         }
                     }
+                    
                     await OnReactionAdded(cache, channel, reaction);
                 };
                 services.GetRequiredService<CommandService>().Log += Log;
@@ -144,6 +145,20 @@ namespace WagglesBot
                     }
                 }
             }
+
+            //for role adding through reactions!
+            ulong reactionRole = DBTransaction.reactionRoleExists(reaction.MessageId, reaction.Emote.ToString());
+            if (reactionRole != 0)
+            {
+                var message = await cache.DownloadAsync();
+                //get guild to find role!
+                var chnl = message.Channel as SocketGuildChannel;
+                var reactionUser = reaction.User.Value as IGuildUser;
+                Console.WriteLine("Giving role to " + reaction.User.Value.Username + "!");
+                await reactionUser.AddRoleAsync(chnl.Guild.GetRole(reactionRole));
+                await reactionUser.SendMessageAsync("Hi " + reactionUser.Username + "! I gave you the " + chnl.Guild.GetRole(reactionRole).Name + " role!");
+            }
+
             //checks to see if its in the dictionary first!
             if (Global.MessageIdToTrack.ContainsKey(channel.Id))
             {
