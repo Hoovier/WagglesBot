@@ -14,7 +14,7 @@ namespace CoreWaggles.Commands
         {
             //add a task to list
             DBTransaction.setReactionRole(role.Id, Context.Guild.Id, emoji, messageID);
-            await ReplyAsync(role.Id + " " + emoji);
+            await ReplyAsync("Success! Reacting with ``" + emoji + "`` will give the user the ``" + role.Name + "`` role!");
         }
 
         [Command("removerole")]
@@ -43,6 +43,12 @@ namespace CoreWaggles.Commands
                 response = response + Context.Guild.GetRole(pair.Key).Name + " " + pair.Value + "\n";
             }
             await ReplyAsync(response);
+        }
+        [Command("rolehelp")]
+        [Alias("rh", "roles")]
+         public async Task rolehelp()
+        {
+            await ReplyAsync("**Associated Commands:** \n```~addrole <@role> <:emoji:> <messageID of target message>\n~removerole <@role>\n~listroles```");
         }
     }
 }
