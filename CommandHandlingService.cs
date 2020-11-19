@@ -91,9 +91,11 @@ namespace CoreWaggles.Services
             // for a more traditional command format like !help.
             if (!message.HasCharPrefix('~', ref argPos) || message.HasStringPrefix("~~", ref argPos) || message.Author.Id == 141016540240805888)
             {
-                //throw message into witty processor if it doesnt match a command.
-                DBTransaction.processWitty(context, message.Content);
-
+                //throw message into witty processor if it doesnt match a command and is not a DM.
+                if (!context.IsPrivate)
+                {
+                    DBTransaction.processWitty(context, message.Content);
+                }
                 if ((message.Content.ToLower().Contains("lewd") || message.Content.ToLower().Contains("sexuals")) && message.Content.ToLower().Contains("rym"))
                 {
                     await context.Channel.SendMessageAsync("Please don't! <:tears:409771767410851845>");

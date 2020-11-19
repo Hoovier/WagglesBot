@@ -760,5 +760,73 @@ namespace CoreWaggles.Commands
             return msgs.GetInt32(0).ToString();
         }
 
+        public static void setReactionRole(ulong roleID, ulong serverID, string emojiName, ulong messageID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //Adds a reaction and role pair to the DB
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"INSERT INTO Reaction_Roles(RoleID, ServerID, Emoji, MessageID) VALUES({roleID}, {serverID}, @emoji, @messageID);";
+                cmd.Parameters.AddWithValue("@emoji", emojiName);
+                cmd.Parameters.AddWithValue("@messageID", messageID);
+                cmd.ExecuteNonQuery();
+            }
+        }
+        public static ulong reactionRoleExists(ulong messageID, string emojiName)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT RoleID FROM Reaction_Roles WHERE MessageID={messageID} AND Emoji = '{emojiName}'", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            if(!rdr.HasRows)
+            {
+                return 0;
+            }
+            ulong roleID = (ulong)rdr.GetInt64(0);
+            rdr.Close();
+            //return the roleID so bot can turn it into a role!
+            return roleID;
+        }
+
+        public static string removeRole(ulong roleID)
+        {
+            int rowsAffected = 0;
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"DELETE FROM Reaction_Roles WHERE RoleID= {roleID};";
+                rowsAffected = cmd.ExecuteNonQuery();
+            }
+            if (rowsAffected == 1)
+                return "Succesfully removed role from list!";
+            if (rowsAffected == 0)
+                return "An error occured, no role removed. Maybe the role was never saved!";
+            else
+                return "ERROR! Code: " + rowsAffected;
+        }
+
+        public static Dictionary<ulong, string> listRoles(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            Dictionary<ulong, string> temp = new Dictionary<ulong, string>();
+            using var commd = new SQLiteCommand($"SELECT RoleID, Emoji FROM Reaction_Roles WHERE ServerID={serverID}", con);
+            string response = $"**__Role Reactions for this server:__** \n";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            while (msgs.Read())
+            {
+                temp.Add((ulong)msgs.GetInt64(0), msgs.GetString(1));
+            }
+
+            if(temp.Count == 0) 
+            { 
+              temp.Add(0, "No Roles to show!");
+            }
+            return temp;
+        }
+
     }
 }
