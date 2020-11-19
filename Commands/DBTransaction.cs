@@ -790,5 +790,43 @@ namespace CoreWaggles.Commands
             return roleID;
         }
 
+        public static string removeRole(ulong roleID)
+        {
+            int rowsAffected = 0;
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"DELETE FROM Reaction_Roles WHERE RoleID= {roleID};";
+                rowsAffected = cmd.ExecuteNonQuery();
+            }
+            if (rowsAffected == 1)
+                return "Succesfully removed role from list!";
+            if (rowsAffected == 0)
+                return "An error occured, no role removed. Maybe the role was never saved!";
+            else
+                return "ERROR! Code: " + rowsAffected;
+        }
+
+        public static Dictionary<ulong, string> listRoles(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            Dictionary<ulong, string> temp = new Dictionary<ulong, string>();
+            using var commd = new SQLiteCommand($"SELECT RoleID, Emoji FROM Reaction_Roles WHERE ServerID={serverID}", con);
+            string response = $"**__Role Reactions for this server:__** \n";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            while (msgs.Read())
+            {
+                temp.Add((ulong)msgs.GetInt64(0), msgs.GetString(1));
+            }
+
+            if(temp.Count == 0) 
+            { 
+              temp.Add(0, "No Roles to show!");
+            }
+            return temp;
+        }
+
     }
 }
