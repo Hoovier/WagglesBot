@@ -94,8 +94,19 @@ namespace CoreWaggles.Services
                 //throw message into witty processor if it doesnt match a command and is not a DM.
                 if (!context.IsPrivate)
                 {
-                    DBTransaction.processWitty(context, message.Content);
-                }
+                    //very messy but im getting the 3 pieces of data from the DB, and turning it into an array
+                    string[] MateInfo = DBTransaction.getServerMate(context.Guild.Id).Split(",");
+                    //if the user is a Mate, dont process any witties for them
+                    if (context.User.Id.ToString() == MateInfo[2])
+                    {
+                        await context.Channel.SendMessageAsync("Youre a mate!");
+                        //DBTransaction.processMateResponse(context, MateInfo);
+                    }
+                    //otherwise do normal wittyprocessing
+                    else
+                    {
+                        DBTransaction.processWitty(context, message.Content);
+                    }                }
                 if ((message.Content.ToLower().Contains("lewd") || message.Content.ToLower().Contains("sexuals")) && message.Content.ToLower().Contains("rym"))
                 {
                     await context.Channel.SendMessageAsync("Please don't! <:tears:409771767410851845>");

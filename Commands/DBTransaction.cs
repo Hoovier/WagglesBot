@@ -828,5 +828,118 @@ namespace CoreWaggles.Commands
             return temp;
         }
 
+        public static int InsertMate(ulong userID, ulong serverID, string lastTimeStamp, string timeMated)
+        {
+            insertData("DELETE FROM Mates WHERE ServerID = " + serverID + ";");
+            //leverage existing function
+            string Mate = $"INSERT INTO Mates(UserID, ServerID, LastMessageSent, TimeMated, ChosenNick) VALUES({userID}, {serverID}, '{lastTimeStamp}', '{timeMated}', 'Mi amor');";
+            return insertData(Mate);
+        }
+
+        public static string getServerMate(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Count(UserID) FROM Mates WHERE  ServerID= {serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfMates = rdr.GetInt32(0);
+            if (numberOfMates == 0)
+            {
+                return "NONE";
+            }
+            rdr.Close();
+            commd.CommandText = $"SELECT Users.Username, Mates.ChosenNick, Mates.UserID FROM Mates join Users on Mates.UserID = Users.ID WHERE ServerID={serverID};";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            return msgs.GetString(0) + "," + msgs.GetString(1) + "," + msgs.GetInt64(2);
+        }
+
+        public static void setMateNick(ulong ServerID, string name)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Mates SET ChosenNick = @name WHERE ServerID = {ServerID};";
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static string getTimeMated(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Count(UserID) FROM Mates WHERE  ServerID= {serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfMates = rdr.GetInt32(0);
+            if (numberOfMates == 0)
+            {
+                return "NONE";
+            }
+            rdr.Close();
+            commd.CommandText = $"SELECT TimeMated FROM Mates WHERE ServerID= {serverID}";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            return msgs.GetString(0);
+        }
+        public static void processMateResponse(SocketCommandContext context, string[] MateInfo)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand("SELECT WittyID, Trigger, Probability FROM Wittys WHERE ServerID=" + context.Guild.Id, con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            Random rand = new Random();
+            //pick number between 0 and 100
+            int prob = rand.Next(0, 100);
+            //iterate through witties, see if a wittys regex matches the message
+            while (rdr.Read())
+            {
+                //if random number is less than probability * 100, run checks
+                // EX. prob = 37, wit.probability * 100 = 40
+                //60% chance prob is greater than, 40% chance its less than
+                if (prob < rdr.GetDouble(2) * 100)
+                {
+                    string response = "";
+                    Regex rx = new Regex(rdr.GetString(1));
+                    //if message fits the regex
+                    //fucked with this
+                    if (rx.IsMatch("stuff"))
+                    {
+                        //pick one of the registered responses!
+                        //get how many responses there are
+                        using var responseCommand = new SQLiteCommand("SELECT count(Response) FROM Responses WHERE WittyID = " + rdr.GetInt32(0), con);
+                        using SQLiteDataReader responseCount = responseCommand.ExecuteReader();
+                        //get first row
+                        responseCount.Read();
+                        int numOfResponses = responseCount.GetInt32(0);
+                        //close down reader so that responseCommand can be reused
+                        responseCount.Close();
+                        //get responses
+                        responseCommand.CommandText = "SELECT Response FROM Responses WHERE WittyID = " + rdr.GetInt32(0);
+                        using SQLiteDataReader responses = responseCommand.ExecuteReader();
+                        //get index of chosen response
+                        int chosen = rand.Next(0, numOfResponses);
+                        //loop through responses and move reader along until we reach desired index
+                        for (int counter = 0; counter <= chosen; counter++)
+                        {
+                            responses.Read();
+                            if (counter == chosen)
+                            {
+                                response = responses.GetString(0);
+                                context.Channel.SendMessageAsync(response);
+                                //return here or else itll keep making multiple matches
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
     }
 }
