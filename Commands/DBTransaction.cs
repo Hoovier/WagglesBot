@@ -3,7 +3,7 @@ using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
-using System.Text;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace CoreWaggles.Commands
@@ -867,6 +867,18 @@ namespace CoreWaggles.Commands
                 cmd.ExecuteNonQuery();
             }
         }
+        public static void setLastMateMessageTime(ulong ServerID)
+        {
+            string now = DateTime.Now.ToString("yyyy-MM-dd.HH:mm:ss");
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Mates SET LastMessageSent = '{now}' WHERE ServerID = {ServerID};";
+                cmd.ExecuteNonQuery();
+            }
+        }
 
         public static string getTimeMated(ulong serverID)
         {
@@ -886,58 +898,42 @@ namespace CoreWaggles.Commands
             msgs.Read();
             return msgs.GetString(0);
         }
-        public static void processMateResponse(SocketCommandContext context, string[] MateInfo)
+        //this function will check if its been more than a certain amount of time since last message from mate
+        public static string TimeSinceLastMateMessage(ulong serverID)
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
-            using var commd = new SQLiteCommand("SELECT WittyID, Trigger, Probability FROM Wittys WHERE ServerID=" + context.Guild.Id, con);
-            using SQLiteDataReader rdr = commd.ExecuteReader();
-            Random rand = new Random();
-            //pick number between 0 and 100
-            int prob = rand.Next(0, 100);
-            //iterate through witties, see if a wittys regex matches the message
-            while (rdr.Read())
+            using var commd = new SQLiteCommand($"SELECT Count(UserID) FROM Mates WHERE  ServerID= {serverID}", con);
+            commd.CommandText = $"SELECT LastMessageSent FROM Mates WHERE ServerID= {serverID}";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            DateTime stamp = DateTime.ParseExact(msgs.GetString(0), "yyyy-MM-dd.HH:mm:ss", CultureInfo.InvariantCulture);
+            TimeSpan span = DateTime.Now - stamp;
+            string length = "NONE"; //default no value for txt lookup
+            //if too short, dont send anything
+            if(span.TotalMinutes <= 20)
+            { return "NONE"; }
+
+            //if its been less than 2 hours but more than 20 minutes, do shortAbsence
+            else if (span.TotalHours < 2 && span.TotalMinutes > 20)
             {
-                //if random number is less than probability * 100, run checks
-                // EX. prob = 37, wit.probability * 100 = 40
-                //60% chance prob is greater than, 40% chance its less than
-                if (prob < rdr.GetDouble(2) * 100)
-                {
-                    string response = "";
-                    Regex rx = new Regex(rdr.GetString(1));
-                    //if message fits the regex
-                    //fucked with this
-                    if (rx.IsMatch("stuff"))
-                    {
-                        //pick one of the registered responses!
-                        //get how many responses there are
-                        using var responseCommand = new SQLiteCommand("SELECT count(Response) FROM Responses WHERE WittyID = " + rdr.GetInt32(0), con);
-                        using SQLiteDataReader responseCount = responseCommand.ExecuteReader();
-                        //get first row
-                        responseCount.Read();
-                        int numOfResponses = responseCount.GetInt32(0);
-                        //close down reader so that responseCommand can be reused
-                        responseCount.Close();
-                        //get responses
-                        responseCommand.CommandText = "SELECT Response FROM Responses WHERE WittyID = " + rdr.GetInt32(0);
-                        using SQLiteDataReader responses = responseCommand.ExecuteReader();
-                        //get index of chosen response
-                        int chosen = rand.Next(0, numOfResponses);
-                        //loop through responses and move reader along until we reach desired index
-                        for (int counter = 0; counter <= chosen; counter++)
-                        {
-                            responses.Read();
-                            if (counter == chosen)
-                            {
-                                response = responses.GetString(0);
-                                context.Channel.SendMessageAsync(response);
-                                //return here or else itll keep making multiple matches
-                                return;
-                            }
-                        }
-                    }
-                }
+                length = "short";
             }
+            //if it reaches here, and its been less than 8 hours but more than 2, pick a response to give!
+            else if(span.TotalHours <= 8)
+            {
+                length = "medium";
+            }
+            else
+            {
+                length = "long";
+            }
+            string[] lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\{length}Absence.txt");
+            Random rand = new Random();
+            int chosen = rand.Next(lines.Length);
+            //return random line from array of responses.
+            return lines[chosen];
+
         }
 
 

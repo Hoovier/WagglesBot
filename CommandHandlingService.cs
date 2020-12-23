@@ -95,12 +95,31 @@ namespace CoreWaggles.Services
                 if (!context.IsPrivate)
                 {
                     //very messy but im getting the 3 pieces of data from the DB, and turning it into an array
+                    //0 is Username
+                    //1 is the set nickname for the Mate
+                    //2 is the UserID
                     string[] MateInfo = DBTransaction.getServerMate(context.Guild.Id).Split(",");
                     //if the user is a Mate, dont process any witties for them
                     if (context.User.Id.ToString() == MateInfo[2])
                     {
-                        await context.Channel.SendMessageAsync("Youre a mate!");
-                        //DBTransaction.processMateResponse(context, MateInfo);
+                        //this function will either return a valid response or NONE which means not to say anything
+                        string response = DBTransaction.TimeSinceLastMateMessage(context.Guild.Id);
+                        if(response != "NONE")
+                        {
+                            //this well send the returned response, and replace any instances with the chosen nickname of the mate
+                            await context.Channel.SendMessageAsync(response.Replace("%name%", MateInfo[1]));
+                        }
+                        else
+                        {
+                            Random rand = new Random();
+                            int chosen = rand.Next(100);
+                            if(chosen < 30)
+                            {
+                                await context.Message.AddReactionAsync(new Emoji("💖"));
+                            }
+                        }
+                        //reset the timestamp for last message from Mate
+                        DBTransaction.setLastMateMessageTime(context.Guild.Id);
                     }
                     //otherwise do normal wittyprocessing
                     else

@@ -76,5 +76,14 @@ namespace CoreWaggles.Commands
             }
 
         }
+
+        [Command("absence")]
+        public async Task testabsences(string length)
+        {
+            string[] lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\{length}Absence.txt");
+            Random rand = new Random();
+            int chosen = rand.Next(lines.Length);
+            await ReplyAsync(lines[chosen]);
+        }
     }
 }
