@@ -11,6 +11,8 @@ using System.Threading;
 using CoreWaggles.Services;
 using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace WagglesBot
 {
@@ -25,6 +27,10 @@ namespace WagglesBot
             //Reddit Token stuff!
             string[] RedditTokens = System.IO.File.ReadAllLines("redditTokens.txt");
             Global.reddit = new Reddit.RedditClient(RedditTokens[0], RedditTokens[1], RedditTokens[2], RedditTokens[3]);
+            string heart = System.IO.File.ReadAllText(@"Commands\MateResponses\heart.JSON");
+            string mess = System.IO.File.ReadAllText(@"Commands\MateResponses\mess.JSON");
+            Global.MateHeartReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(heart);
+            Global.MateMessageReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(mess);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
             string botToken = keys[1];

@@ -113,10 +113,18 @@ namespace CoreWaggles.Services
                         {
                             Random rand = new Random();
                             int chosen = rand.Next(100);
-                            if(chosen < 30)
+                            if(chosen < Global.MateHeartReactChance[context.Guild.Id])
                             {
                                 await context.Message.AddReactionAsync(new Emoji("💖"));
                             }
+                            else if(chosen >= Global.MateMessageReactChance[context.Guild.Id])
+                            {
+                                string[] lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\randomResponse.txt");
+                                int index = rand.Next(lines.Length);
+                                //return random line from array of responses.
+                                await context.Channel.SendMessageAsync( lines[index].Replace("%name%", MateInfo[1]));
+                            }
+                            
                         }
                         //reset the timestamp for last message from Mate
                         DBTransaction.setLastMateMessageTime(context.Guild.Id);

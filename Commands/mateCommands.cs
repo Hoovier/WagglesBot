@@ -1,9 +1,8 @@
 ﻿using Discord.Commands;
 using Discord.WebSocket;
+using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace CoreWaggles.Commands
@@ -15,19 +14,23 @@ namespace CoreWaggles.Commands
         public async Task grantGFtoUser(SocketGuildUser user)
         {
             string stuff = DBTransaction.getServerMate(Context.Guild.Id);
-            if ( stuff != "NONE")
+            if (stuff != "NONE")
             {
                 string[] mateArray = stuff.Split(',');
                 await ReplyAsync("Sorry! I'm with " + mateArray[0] + "! (" + mateArray[1] + ")");
                 return;
             }
+            //initialize react chances with default values
+            Global.MateMessageReactChance[Context.Guild.Id] = 70;
+            Global.MateHeartReactChance[Context.Guild.Id] = 25;
+            await dumpmates();
 
             DateTime localDate = DateTime.Now;
             string timeNow = localDate.ToString("yyyy-MM-dd.HH:mm:ss");
             //add user to DB, putting the current time for the TimeMated as well as for last message received.
             DBTransaction.InsertMate(user.Id, Context.Guild.Id, timeNow, timeNow);
             await ReplyAsync("Hey " + user.Username + "~");
-            
+
         }
 
         [Command("callme")]
@@ -35,13 +38,13 @@ namespace CoreWaggles.Commands
         public async Task setMateNick(string nick)
         {
             string stuff = DBTransaction.getServerMate(Context.Guild.Id);
-            if(stuff == "NONE")
+            if (stuff == "NONE")
             {
                 await ReplyAsync("I'm not with anyone!");
                 return;
             }
             string[] mateArr = stuff.Split(',');
-            if(Context.User.Id.ToString() != mateArr[2])
+            if (Context.User.Id.ToString() != mateArr[2])
             {
                 await ReplyAsync("Sorry! You're not " + mateArr[1] + "!");
                 return;
@@ -76,6 +79,98 @@ namespace CoreWaggles.Commands
             }
 
         }
+        [Command("addresponse")]
+        public async Task addresponse(string type, [Remainder] string response)
+        {
+            if (type != "random" && type != "short" && type != "medium" && type != "long")
+            {
+                await ReplyAsync("Sorry! Choose one of the following response types: short, medium, long, random!");
+                return;
+            }
+            //if its any of the files ending in absence, just append it to that one, so not random
+            if (type != "random")
+            {
+                System.IO.File.AppendAllText($@"Commands\MateResponses\{type}Absence.txt", Environment.NewLine + response);
+                await ReplyAsync("Added **" + response + "** to the **" + type + "Absence** responses!");
+            }
+            else
+            {
+                System.IO.File.AppendAllText(@"Commands\MateResponses\randomResponse.txt", Environment.NewLine + response);
+                await ReplyAsync("Added **" + response + "** to the **random** responses!");
+            }
+        }
+
+        [Command("getresponses")]
+        public async Task getResponses(string type)
+        {
+            if (type != "random" && type != "short" && type != "medium" && type != "long")
+            {
+                await ReplyAsync("Sorry! Choose one of the following response types: short, medium, long, random!");
+                return;
+            }
+            //if its any of the files ending in absence, just append it to that one, so not random
+            if (type != "random")
+            {
+                string[] lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\{type}Absence.txt");
+                await ReplyAsync("**" + type + " responses:**\n" + string.Join("\n", lines));
+            }
+            else
+            {
+                string[] lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\randomResponse.txt");
+                await ReplyAsync("**" + type + " responses:**\n" + string.Join("\n", lines));
+            }
+        }
+
+        //sets and saves chances to file
+        [Command("dump mates")]
+        public async Task dumpmates()
+        {
+            Global.MateHeartReactChance[Context.Guild.Id] = 25;
+            Global.MateMessageReactChance[Context.Guild.Id] = 70;
+            string heart = JsonConvert.SerializeObject(Global.MateHeartReactChance);
+            string messReact = JsonConvert.SerializeObject(Global.MateMessageReactChance);
+            System.IO.File.WriteAllText(@"Commands\MateResponses\heart.JSON", heart );
+            System.IO.File.WriteAllText(@"Commands\MateResponses\mess.JSON", messReact);
+        }
+        private async Task dumpmateFromJSON()
+        {
+            string heart = JsonConvert.SerializeObject(Global.MateHeartReactChance);
+            string messReact = JsonConvert.SerializeObject(Global.MateMessageReactChance);
+            System.IO.File.WriteAllText(@"Commands\MateResponses\heart.JSON", heart);
+            System.IO.File.WriteAllText(@"Commands\MateResponses\mess.JSON", messReact);
+        }
+
+        [Command("setmatechance")]
+
+        public async Task setMateChance(string type, int value)
+        {
+            if(value < 0 || value > 100)
+            {
+                await ReplyAsync("Sorry! Enter a value between 1-100!");
+                return;
+            }
+            else if (type != "heart" && type != "message")
+            {
+                await ReplyAsync("Sorry! Pick a valid chance type such as **heart** or **message**!");
+                return;
+            }
+            else
+            {
+                if(type == "heart")
+                {
+                    Global.MateHeartReactChance[Context.Guild.Id] = value;
+                    await ReplyAsync("Success! Set Heart reaction chance to " + value);
+                }
+                else
+                {
+                    Global.MateMessageReactChance[Context.Guild.Id] = value;
+                    await ReplyAsync("Success! Set random message reaction chance to " + value);
+                }
+            }
+            await dumpmateFromJSON();
+        }
+
+
 
         [Command("absence")]
         public async Task testabsences(string length)
