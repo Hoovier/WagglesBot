@@ -75,22 +75,22 @@ namespace WagglesBot
                             await cmd.ExecuteAsync(Global.derpiContext[reaction.Channel.Id], "next 5", services);
                         }
                     }
-                    /*
+                    
                     SocketGuildChannel chanl = reaction.Channel as SocketGuildChannel;
                     string mateString = DBTransaction.getServerMate(chanl.Guild.Id);
+                    var mesg = reaction.Channel.GetMessageAsync(reaction.MessageId);
+
                     if (!mateString.Contains("NONE"))
                     {
                         string[] mateInfo = mateString.Split(",");
                         Random rand = new Random();
 
-                        if (mateInfo[2] != reaction.UserId.ToString() && reaction.Emote.Name == "💖" && !reaction.User.Value.IsBot && rand.Next(100) > 50)
+                        if (mateInfo[2] == mesg.Result.Author.Id.ToString() && reaction.Emote.Name == "💖" && !reaction.User.Value.IsBot && rand.Next(100) > 50)
                         {
-                            await reaction.Channel.SendMessageAsync(reaction.User.Value.Mention + " Woah woah woah! Thats *my* " + mateInfo[1]);
+                            await reaction.Channel.SendMessageAsync(reaction.User.Value.Mention + " Woah woah woah! Thats *my* " + mateInfo[1] + "! Hands off.");
                         }
-                        else
-                            Console.WriteLine("Didnt reach!");
                     }
-                    */
+                    
                     
                     await OnReactionAdded(cache, channel, reaction);
                 };
