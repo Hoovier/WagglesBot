@@ -100,34 +100,37 @@ namespace CoreWaggles.Services
                     //2 is the UserID
                     string[] MateInfo = DBTransaction.getServerMate(context.Guild.Id).Split(",");
                     //if the user is a Mate, dont process any witties for them
-                    if (context.User.Id.ToString() == MateInfo[2])
+                    if (MateInfo[0] != "NONE")
                     {
-                        //this function will either return a valid response or NONE which means not to say anything
-                        string response = DBTransaction.TimeSinceLastMateMessage(context.Guild.Id);
-                        if(response != "NONE")
+                        if (context.User.Id.ToString() == MateInfo[2])
                         {
-                            //this well send the returned response, and replace any instances with the chosen nickname of the mate
-                            await context.Channel.SendMessageAsync(response.Replace("%name%", MateInfo[1]));
-                        }
-                        else
-                        {
-                            Random rand = new Random();
-                            int chosen = rand.Next(100);
-                            if(chosen < Global.MateHeartReactChance[context.Guild.Id])
+                            //this function will either return a valid response or NONE which means not to say anything
+                            string response = DBTransaction.TimeSinceLastMateMessage(context.Guild.Id);
+                            if (response != "NONE")
                             {
-                                await context.Message.AddReactionAsync(new Emoji("💖"));
+                                //this well send the returned response, and replace any instances with the chosen nickname of the mate
+                                await context.Channel.SendMessageAsync(response.Replace("%name%", MateInfo[1]));
                             }
-                            else if(chosen >= Global.MateMessageReactChance[context.Guild.Id])
+                            else
                             {
-                                string[] lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\randomResponse.txt");
-                                int index = rand.Next(lines.Length);
-                                //return random line from array of responses.
-                                await context.Channel.SendMessageAsync( lines[index].Replace("%name%", MateInfo[1]));
+                                Random rand = new Random();
+                                int chosen = rand.Next(100);
+                                if (chosen < Global.MateHeartReactChance[context.Guild.Id])
+                                {
+                                    await context.Message.AddReactionAsync(new Emoji("💖"));
+                                }
+                                else if (chosen >= Global.MateMessageReactChance[context.Guild.Id])
+                                {
+                                    string[] lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\randomResponse.txt");
+                                    int index = rand.Next(lines.Length);
+                                    //return random line from array of responses.
+                                    await context.Channel.SendMessageAsync(lines[index].Replace("%name%", MateInfo[1]));
+                                }
+
                             }
-                            
+                            //reset the timestamp for last message from Mate
+                            DBTransaction.setLastMateMessageTime(context.Guild.Id);
                         }
-                        //reset the timestamp for last message from Mate
-                        DBTransaction.setLastMateMessageTime(context.Guild.Id);
                     }
                     //otherwise do normal wittyprocessing
                     else

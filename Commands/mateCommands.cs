@@ -2,7 +2,9 @@
 using Discord.WebSocket;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace CoreWaggles.Commands
@@ -100,6 +102,34 @@ namespace CoreWaggles.Commands
             }
         }
 
+        [Command("removeresponse")]
+        public async Task remResponse(string type, int index)
+        {
+            if (type != "random" && type != "short" && type != "medium" && type != "long")
+            {
+                await ReplyAsync("Sorry! Choose one of the following response types: short, medium, long, random!");
+                return;
+            }
+            //if its any of the files ending in absence, just append it to that one, so not random
+            if (type != "random")
+            {
+                List<string> lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\{type}Absence.txt").ToList();
+                string resp = lines[index - 1];
+                lines.RemoveAt(index - 1);
+                System.IO.File.WriteAllLines($@"Commands\MateResponses\{type}Absence.txt", lines.ToArray());
+                await ReplyAsync("Removed **" + resp + "** from the **" + type + "Absence** responses!");
+            }
+            else
+            {
+                List<string> lines = System.IO.File.ReadAllLines(@"Commands\MateResponses\randomResponse.txt").ToList();
+                string resp = lines[index - 1];
+                lines.RemoveAt(index - 1);
+                System.IO.File.WriteAllLines(@"Commands\MateResponses\randomResponse.txt", lines.ToArray());
+                await ReplyAsync("Removed **" + resp + "** from the **Random** responses!");
+            }
+            
+        }
+
         [Command("getresponses")]
         public async Task getResponses(string type)
         {
@@ -168,6 +198,13 @@ namespace CoreWaggles.Commands
                 }
             }
             await dumpmateFromJSON();
+        }
+
+        [Command("getmatechances")]
+        public async Task getChances()
+        {
+            await ReplyAsync("Heart React Chance: " + Global.MateHeartReactChance[Context.Guild.Id] + "\nRandom Message Chance: " 
+                + Global.MateMessageReactChance[Context.Guild.Id]);
         }
 
 
