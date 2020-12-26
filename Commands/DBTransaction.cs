@@ -928,7 +928,7 @@ namespace CoreWaggles.Commands
             {
                 length = "long";
             }
-            string[] lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\{length}Absence.txt");
+            string[] lines = System.IO.File.ReadAllLines($@"Commands/MateResponses/{length}Absence.txt");
             Random rand = new Random();
             int chosen = rand.Next(lines.Length);
             //return random line from array of responses.

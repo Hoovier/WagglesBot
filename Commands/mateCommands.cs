@@ -92,12 +92,12 @@ namespace CoreWaggles.Commands
             //if its any of the files ending in absence, just append it to that one, so not random
             if (type != "random")
             {
-                System.IO.File.AppendAllText($@"Commands\MateResponses\{type}Absence.txt", Environment.NewLine + response);
+                System.IO.File.AppendAllText($@"Commands/MateResponses/{type}Absence.txt", Environment.NewLine + response);
                 await ReplyAsync("Added **" + response + "** to the **" + type + "Absence** responses!");
             }
             else
             {
-                System.IO.File.AppendAllText(@"Commands\MateResponses\randomResponse.txt", Environment.NewLine + response);
+                System.IO.File.AppendAllText(@"Commands/MateResponses/randomResponse.txt", Environment.NewLine + response);
                 await ReplyAsync("Added **" + response + "** to the **random** responses!");
             }
         }
@@ -113,18 +113,18 @@ namespace CoreWaggles.Commands
             //if its any of the files ending in absence, just append it to that one, so not random
             if (type != "random")
             {
-                List<string> lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\{type}Absence.txt").ToList();
+                List<string> lines = System.IO.File.ReadAllLines($@"Commands/MateResponses/{type}Absence.txt").ToList();
                 string resp = lines[index - 1];
                 lines.RemoveAt(index - 1);
-                System.IO.File.WriteAllLines($@"Commands\MateResponses\{type}Absence.txt", lines.ToArray());
+                System.IO.File.WriteAllLines($@"Commands/MateResponses/{type}Absence.txt", lines.ToArray());
                 await ReplyAsync("Removed **" + resp + "** from the **" + type + "Absence** responses!");
             }
             else
             {
-                List<string> lines = System.IO.File.ReadAllLines(@"Commands\MateResponses\randomResponse.txt").ToList();
+                List<string> lines = System.IO.File.ReadAllLines(@"Commands/MateResponses/randomResponse.txt").ToList();
                 string resp = lines[index - 1];
                 lines.RemoveAt(index - 1);
-                System.IO.File.WriteAllLines(@"Commands\MateResponses\randomResponse.txt", lines.ToArray());
+                System.IO.File.WriteAllLines(@"Commands/MateResponses/randomResponse.txt", lines.ToArray());
                 await ReplyAsync("Removed **" + resp + "** from the **Random** responses!");
             }
             
@@ -141,12 +141,12 @@ namespace CoreWaggles.Commands
             //if its any of the files ending in absence, just append it to that one, so not random
             if (type != "random")
             {
-                string[] lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\{type}Absence.txt");
+                string[] lines = System.IO.File.ReadAllLines($@"Commands/MateResponses/{type}Absence.txt");
                 await ReplyAsync("**" + type + " responses:**\n" + string.Join("\n", lines));
             }
             else
             {
-                string[] lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\randomResponse.txt");
+                string[] lines = System.IO.File.ReadAllLines($@"Commands/MateResponses/randomResponse.txt");
                 await ReplyAsync("**" + type + " responses:**\n" + string.Join("\n", lines));
             }
         }
@@ -159,15 +159,15 @@ namespace CoreWaggles.Commands
             Global.MateMessageReactChance[Context.Guild.Id] = 70;
             string heart = JsonConvert.SerializeObject(Global.MateHeartReactChance);
             string messReact = JsonConvert.SerializeObject(Global.MateMessageReactChance);
-            System.IO.File.WriteAllText(@"Commands\MateResponses\heart.JSON", heart );
-            System.IO.File.WriteAllText(@"Commands\MateResponses\mess.JSON", messReact);
+            System.IO.File.WriteAllText(@"Commands/MateResponses/heart.JSON", heart );
+            System.IO.File.WriteAllText(@"Commands/MateResponses/mess.JSON", messReact);
         }
         private async Task dumpmateFromJSON()
         {
             string heart = JsonConvert.SerializeObject(Global.MateHeartReactChance);
             string messReact = JsonConvert.SerializeObject(Global.MateMessageReactChance);
-            System.IO.File.WriteAllText(@"Commands\MateResponses\heart.JSON", heart);
-            System.IO.File.WriteAllText(@"Commands\MateResponses\mess.JSON", messReact);
+            System.IO.File.WriteAllText(@"Commands/MateResponses/heart.JSON", heart);
+            System.IO.File.WriteAllText(@"Commands/MateResponses/mess.JSON", messReact);
         }
 
         [Command("setmatechance")]
@@ -212,7 +212,7 @@ namespace CoreWaggles.Commands
         [Command("absence")]
         public async Task testabsences(string length)
         {
-            string[] lines = System.IO.File.ReadAllLines($@"Commands\MateResponses\{length}Absence.txt");
+            string[] lines = System.IO.File.ReadAllLines($@"Commands/MateResponses/{length}Absence.txt");
             Random rand = new Random();
             int chosen = rand.Next(lines.Length);
             await ReplyAsync(lines[chosen]);

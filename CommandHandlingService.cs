@@ -121,15 +121,23 @@ namespace CoreWaggles.Services
                                 }
                                 else if (chosen >= Global.MateMessageReactChance[context.Guild.Id])
                                 {
-                                    string[] lines = System.IO.File.ReadAllLines($@"Command/MateResponses/randomResponse.txt");
+                                    string[] lines = System.IO.File.ReadAllLines($@"Commands/MateResponses/randomResponse.txt");
                                     int index = rand.Next(lines.Length);
                                     //return random line from array of responses.
                                     await context.Channel.SendMessageAsync(lines[index].Replace("%name%", MateInfo[1]));
+                                }
+                                else
+                                {
+                                    DBTransaction.processWitty(context, message.Content);
                                 }
 
                             }
                             //reset the timestamp for last message from Mate
                             DBTransaction.setLastMateMessageTime(context.Guild.Id);
+                        }
+                        else
+                        {
+                            DBTransaction.processWitty(context, message.Content);
                         }
                     }
                     //otherwise do normal wittyprocessing
