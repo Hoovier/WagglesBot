@@ -3,7 +3,7 @@ using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
-using System.Text;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace CoreWaggles.Commands
@@ -827,6 +827,115 @@ namespace CoreWaggles.Commands
             }
             return temp;
         }
+
+        public static int InsertMate(ulong userID, ulong serverID, string lastTimeStamp, string timeMated)
+        {
+            insertData("DELETE FROM Mates WHERE ServerID = " + serverID + ";");
+            //leverage existing function
+            string Mate = $"INSERT INTO Mates(UserID, ServerID, LastMessageSent, TimeMated, ChosenNick) VALUES({userID}, {serverID}, '{lastTimeStamp}', '{timeMated}', 'Mi amor');";
+            return insertData(Mate);
+        }
+
+        public static string getServerMate(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Count(UserID) FROM Mates WHERE  ServerID= {serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfMates = rdr.GetInt32(0);
+            if (numberOfMates == 0)
+            {
+                return "NONE";
+            }
+            rdr.Close();
+            commd.CommandText = $"SELECT Users.Username, Mates.ChosenNick, Mates.UserID FROM Mates join Users on Mates.UserID = Users.ID WHERE ServerID={serverID};";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            return msgs.GetString(0) + "," + msgs.GetString(1) + "," + msgs.GetInt64(2);
+        }
+
+        public static void setMateNick(ulong ServerID, string name)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Mates SET ChosenNick = @name WHERE ServerID = {ServerID};";
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.ExecuteNonQuery();
+            }
+        }
+        public static void setLastMateMessageTime(ulong ServerID)
+        {
+            string now = DateTime.Now.ToString("yyyy-MM-dd.HH:mm:ss");
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Mates SET LastMessageSent = '{now}' WHERE ServerID = {ServerID};";
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static string getTimeMated(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Count(UserID) FROM Mates WHERE  ServerID= {serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfMates = rdr.GetInt32(0);
+            if (numberOfMates == 0)
+            {
+                return "NONE";
+            }
+            rdr.Close();
+            commd.CommandText = $"SELECT TimeMated FROM Mates WHERE ServerID= {serverID}";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            return msgs.GetString(0);
+        }
+        //this function will check if its been more than a certain amount of time since last message from mate
+        public static string TimeSinceLastMateMessage(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Count(UserID) FROM Mates WHERE  ServerID= {serverID}", con);
+            commd.CommandText = $"SELECT LastMessageSent FROM Mates WHERE ServerID= {serverID}";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            DateTime stamp = DateTime.ParseExact(msgs.GetString(0), "yyyy-MM-dd.HH:mm:ss", CultureInfo.InvariantCulture);
+            TimeSpan span = DateTime.Now - stamp;
+            string length = "NONE"; //default no value for txt lookup
+            //if too short, dont send anything
+            if(span.TotalMinutes <= 20)
+            { return "NONE"; }
+
+            //if its been less than 2 hours but more than 20 minutes, do shortAbsence
+            else if (span.TotalHours < 2 && span.TotalMinutes > 20)
+            {
+                length = "short";
+            }
+            //if it reaches here, and its been less than 8 hours but more than 2, pick a response to give!
+            else if(span.TotalHours <= 8)
+            {
+                length = "medium";
+            }
+            else
+            {
+                length = "long";
+            }
+            string[] lines = System.IO.File.ReadAllLines($@"Commands/MateResponses/{length}Absence.txt");
+            Random rand = new Random();
+            int chosen = rand.Next(lines.Length);
+            //return random line from array of responses.
+            return lines[chosen];
+
+        }
+
 
     }
 }

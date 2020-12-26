@@ -1,0 +1,4 @@
+﻿Where have you been %name% huh?! Its been like a whole day since you last spoke to me!
+Estabas con otra? Porque no me has hablado?
+Ya no me quiéres? Eras mi %name%...
+No me hables %name%!

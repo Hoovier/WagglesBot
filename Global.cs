@@ -44,6 +44,11 @@ namespace CoreWaggles
         //holds the index of last used element of JSON array in cache
         internal static Dictionary<ulong, int> danbooruSearchIndex = new Dictionary<ulong, int>();
 
+        //temporarily holds the chance of a heart reaction and a random response for Mate functions
+        internal static Dictionary<ulong, int> MateHeartReactChance = new Dictionary<ulong, int>();
+        internal static Dictionary<ulong, int> MateMessageReactChance = new Dictionary<ulong, int>();
+
+
         // Test if string is indeed a Derpibooru or valid URL.
         // Quick validation, is this in either Derpi* domain, and can it possibly contain a valid ID?
         public static bool IsBooruUrl(string search) {

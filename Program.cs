@@ -11,6 +11,8 @@ using System.Threading;
 using CoreWaggles.Services;
 using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace WagglesBot
 {
@@ -25,9 +27,13 @@ namespace WagglesBot
             //Reddit Token stuff!
             string[] RedditTokens = System.IO.File.ReadAllLines("redditTokens.txt");
             Global.reddit = new Reddit.RedditClient(RedditTokens[0], RedditTokens[1], RedditTokens[2], RedditTokens[3]);
+            string heart = System.IO.File.ReadAllText(@"Commands/MateResponses/heart.JSON");
+            string mess = System.IO.File.ReadAllText(@"Commands/MateResponses/mess.JSON");
+            Global.MateHeartReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(heart);
+            Global.MateMessageReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(mess);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[1];
+            string botToken = keys[0];
             using (var services = ConfigureServices())
             {
                 var client = services.GetRequiredService<DiscordSocketClient>();
@@ -69,6 +75,22 @@ namespace WagglesBot
                             await cmd.ExecuteAsync(Global.derpiContext[reaction.Channel.Id], "next 5", services);
                         }
                     }
+                    
+                    SocketGuildChannel chanl = reaction.Channel as SocketGuildChannel;
+                    string mateString = DBTransaction.getServerMate(chanl.Guild.Id);
+                    var mesg = reaction.Channel.GetMessageAsync(reaction.MessageId);
+
+                    if (!mateString.Contains("NONE"))
+                    {
+                        string[] mateInfo = mateString.Split(",");
+                        Random rand = new Random();
+
+                        if (mateInfo[2] == mesg.Result.Author.Id.ToString() && reaction.Emote.Name == "💖" && !reaction.User.Value.IsBot && rand.Next(100) > 50)
+                        {
+                            await reaction.Channel.SendMessageAsync(reaction.User.Value.Mention + " Woah woah woah! Thats *my* " + mateInfo[1] + "! Hands off.");
+                        }
+                    }
+                    
                     
                     await OnReactionAdded(cache, channel, reaction);
                 };

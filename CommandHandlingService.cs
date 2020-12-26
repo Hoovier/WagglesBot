@@ -94,8 +94,57 @@ namespace CoreWaggles.Services
                 //throw message into witty processor if it doesnt match a command and is not a DM.
                 if (!context.IsPrivate)
                 {
-                    DBTransaction.processWitty(context, message.Content);
-                }
+                    //very messy but im getting the 3 pieces of data from the DB, and turning it into an array
+                    //0 is Username
+                    //1 is the set nickname for the Mate
+                    //2 is the UserID
+                    string[] MateInfo = DBTransaction.getServerMate(context.Guild.Id).Split(",");
+                    //if the user is a Mate, dont process any witties for them
+                    if (MateInfo[0] != "NONE")
+                    {
+                        if (context.User.Id.ToString() == MateInfo[2])
+                        {
+                            //this function will either return a valid response or NONE which means not to say anything
+                            string response = DBTransaction.TimeSinceLastMateMessage(context.Guild.Id);
+                            if (response != "NONE")
+                            {
+                                //this well send the returned response, and replace any instances with the chosen nickname of the mate
+                                await context.Channel.SendMessageAsync(response.Replace("%name%", MateInfo[1]));
+                            }
+                            else
+                            {
+                                Random rand = new Random();
+                                int chosen = rand.Next(100);
+                                if (chosen < Global.MateHeartReactChance[context.Guild.Id])
+                                {
+                                    await context.Message.AddReactionAsync(new Emoji("💖"));
+                                }
+                                else if (chosen >= Global.MateMessageReactChance[context.Guild.Id])
+                                {
+                                    string[] lines = System.IO.File.ReadAllLines($@"Commands/MateResponses/randomResponse.txt");
+                                    int index = rand.Next(lines.Length);
+                                    //return random line from array of responses.
+                                    await context.Channel.SendMessageAsync(lines[index].Replace("%name%", MateInfo[1]));
+                                }
+                                else
+                                {
+                                    DBTransaction.processWitty(context, message.Content);
+                                }
+
+                            }
+                            //reset the timestamp for last message from Mate
+                            DBTransaction.setLastMateMessageTime(context.Guild.Id);
+                        }
+                        else
+                        {
+                            DBTransaction.processWitty(context, message.Content);
+                        }
+                    }
+                    //otherwise do normal wittyprocessing
+                    else
+                    {
+                        DBTransaction.processWitty(context, message.Content);
+                    }                }
                 if ((message.Content.ToLower().Contains("lewd") || message.Content.ToLower().Contains("sexuals")) && message.Content.ToLower().Contains("rym"))
                 {
                     await context.Channel.SendMessageAsync("Please don't! <:tears:409771767410851845>");
