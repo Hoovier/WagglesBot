@@ -33,7 +33,7 @@ namespace WagglesBot
             Global.MateMessageReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(mess);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[0];
+            string botToken = keys[1];
             using (var services = ConfigureServices())
             {
                 var client = services.GetRequiredService<DiscordSocketClient>();
@@ -49,6 +49,7 @@ namespace WagglesBot
                     Console.WriteLine("Logged into Reddit as: " + Global.reddit.Account.Me.Name);
                     Console.WriteLine(File.Exists("WagglesDB.db") ? "Database found!" : "ERROR Database not found!");
                 };
+                client.ReactionRemoved += Client_ReactionRemoved;
                 client.ReactionAdded += async (Cacheable<IUserMessage, ulong> cache, ISocketMessageChannel channel, SocketReaction reaction) =>
                 {
                     if (Global.redditDictionary.ContainsKey(reaction.Channel.Id))
@@ -177,8 +178,16 @@ namespace WagglesBot
                 var chnl = message.Channel as SocketGuildChannel;
                 var reactionUser = reaction.User.Value as IGuildUser;
                 Console.WriteLine("Giving role to " + reaction.User.Value.Username + "!");
-                await reactionUser.AddRoleAsync(chnl.Guild.GetRole(reactionRole));
-                await reactionUser.SendMessageAsync("Hi " + reactionUser.Username + "! I gave you the " + chnl.Guild.GetRole(reactionRole).Name + " role!");
+                try
+                {
+                    await reactionUser.AddRoleAsync(chnl.Guild.GetRole(reactionRole));
+                    await reactionUser.SendMessageAsync("Hi " + reactionUser.Username + "! I gave you the " + chnl.Guild.GetRole(reactionRole).Name + " role!");
+                }
+                catch
+                {
+                    await reactionUser.SendMessageAsync("Sorry, something went wrong, I am either unable to modify roles or the chosen role is above me in settings. Contact an admin or Hoovier#4192 for assistance!");
+                    Console.WriteLine("Something went wrong giving out a role! Server: " + chnl.Guild.Name);
+                }
             }
 
             //checks to see if its in the dictionary first!
@@ -226,6 +235,30 @@ namespace WagglesBot
                 }
             }
             }
+
+        private async Task Client_ReactionRemoved(Cacheable<IUserMessage, ulong> cache, ISocketMessageChannel chan, SocketReaction reaction)
+        {
+            //for role removal after user unclicks a reaction.
+            ulong reactionRole = DBTransaction.reactionRoleExists(reaction.MessageId, reaction.Emote.ToString());
+            if (reactionRole != 0)
+            {
+                var message = await cache.DownloadAsync();
+                //get guild to find role!
+                var chnl = message.Channel as SocketGuildChannel;
+                var reactionUser = reaction.User.Value as IGuildUser;
+                Console.WriteLine("Removing role from " + reaction.User.Value.Username + "!");
+                try
+                {
+                    await reactionUser.RemoveRoleAsync(chnl.Guild.GetRole(reactionRole));
+                }
+                catch
+                {
+                    await reactionUser.SendMessageAsync("Sorry, something went wrong, I am either unable to modify roles or the chosen role is above me in settings. Contact an admin or Hoovier#4192 for assistance!");
+                    return;
+                }
+                await reactionUser.SendMessageAsync("Hi " + reactionUser.Username + "! I removed the " + chnl.Guild.GetRole(reactionRole).Name + " role!");
+            }
+        }
 
         private Task Log(LogMessage arg)
         {
