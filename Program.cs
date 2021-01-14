@@ -121,7 +121,7 @@ namespace WagglesBot
                 //just in case user has joined earlier without reacting, clear it out
                 DBTransaction.RemoveWelcomeUser(arg.Id, arg.Guild.Id);
                 ITextChannel channel = (ITextChannel)arg.Guild.GetChannel(Convert.ToUInt64(welcomeInfo[0]));
-                var msg = await channel.SendMessageAsync(welcomeInfo[1]);
+                var msg = await channel.SendMessageAsync(arg.Mention + " has joined the server.\n" + welcomeInfo[1]);
                 await msg.AddReactionAsync(new Emoji("✅"));
                 DBTransaction.InsertWelcomeUser(arg.Id, arg.Guild.Id, msg.Id);
             }
@@ -197,16 +197,14 @@ namespace WagglesBot
                 string[] WelcomeInfo = DBTransaction.getWelcomeInfo(Guild);
                 if(WelcomeInfo[0] != "NONE")
                 {
-                    Console.WriteLine("got this far");
                     //returns 0 if the reacting user isnt a target
                     ulong messageID = DBTransaction.getWelcomeUser(Guild, reaction.UserId, message.Id);
-                    Console.WriteLine(messageID);
                     if(messageID != 0)
                     {
-                        Console.WriteLine("Got this far 2");
                         var reactionUser = reaction.User.Value as IGuildUser;
+                        await channel.SendMessageAsync(reactionUser.Mention + " has been confirmed.\n" + WelcomeInfo[2]);
                         await reactionUser.AddRoleAsync(chnl.Guild.GetRole(Convert.ToUInt64(WelcomeInfo[3])));
-                        await channel.SendMessageAsync(WelcomeInfo[2]);
+                        DBTransaction.RemoveWelcomeUser(reactionUser.Id, chnl.Guild.Id);
                     }
                 }
             }
