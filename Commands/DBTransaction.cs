@@ -46,7 +46,7 @@ namespace CoreWaggles.Commands
                     }
                 }
             }
-            
+
             return rowsAffected;
         }
 
@@ -58,9 +58,9 @@ namespace CoreWaggles.Commands
             con.Open();
             using var cmd = new SQLiteCommand(con);
             {
-                    cmd.CommandText = $"INSERT INTO Servers VALUES({serverID}, @serverName) " +
-                    $"ON CONFLICT(ID) DO UPDATE SET Name = '@serverName';";
-                    cmd.Parameters.AddWithValue("@serverName", name);
+                cmd.CommandText = $"INSERT INTO Servers VALUES({serverID}, @serverName) " +
+                $"ON CONFLICT(ID) DO UPDATE SET Name = '@serverName';";
+                cmd.Parameters.AddWithValue("@serverName", name);
             }
         }
         //just runs SQL from two functions above to DB
@@ -89,7 +89,7 @@ namespace CoreWaggles.Commands
             //prepares response string by casting all columns to string regardless of type
             while (rdr.Read())
             {
-                for(int counter = 0; counter < rdr.FieldCount; counter++)
+                for (int counter = 0; counter < rdr.FieldCount; counter++)
                 {
                     response = response + " |" + rdr[counter].ToString() + "| \t";
                 }
@@ -188,7 +188,7 @@ namespace CoreWaggles.Commands
 
             while (rdr.Read())
             {
-                response = "Alias - Command ```Name: " + name + " - Command: " + rdr.GetString(0) + "```";   
+                response = "Alias - Command ```Name: " + name + " - Command: " + rdr.GetString(0) + "```";
             }
             return response;
         }
@@ -234,14 +234,14 @@ namespace CoreWaggles.Commands
                 cmd.Parameters.AddWithValue("@Probability", probability);
                 cmd.Parameters.AddWithValue("@ServerID", serverID);
                 rowsAffected = cmd.ExecuteNonQuery();
-                    foreach(string response in responses)
-                    {
-                        //multiple Inserts, dont know if this affects performance but its the only way to do prepared statements
-                        cmd.CommandText = "INSERT INTO Responses VALUES(@Response, @WittyID);";
-                        cmd.Parameters.AddWithValue("@Response", response);
-                        cmd.Parameters.AddWithValue("@WittyID", witID);
-                        rowsAffected = cmd.ExecuteNonQuery();
-                    }
+                foreach (string response in responses)
+                {
+                    //multiple Inserts, dont know if this affects performance but its the only way to do prepared statements
+                    cmd.CommandText = "INSERT INTO Responses VALUES(@Response, @WittyID);";
+                    cmd.Parameters.AddWithValue("@Response", response);
+                    cmd.Parameters.AddWithValue("@WittyID", witID);
+                    rowsAffected = cmd.ExecuteNonQuery();
+                }
             }
             return "Added Witty!";
         }
@@ -296,7 +296,7 @@ namespace CoreWaggles.Commands
 
             while (rdr.Read())
             {
-                response = "```Name: " + rdr.GetString(0) + "\nTrigger: " + rdr.GetString(1) +  "\nProbability: " + rdr.GetDouble(2) + "```";
+                response = "```Name: " + rdr.GetString(0) + "\nTrigger: " + rdr.GetString(1) + "\nProbability: " + rdr.GetDouble(2) + "```";
             }
             return response;
         }
@@ -338,7 +338,7 @@ namespace CoreWaggles.Commands
                         //get index of chosen response
                         int chosen = rand.Next(0, numOfResponses);
                         //loop through responses and move reader along until we reach desired index
-                        for(int counter = 0; counter <= chosen; counter++)
+                        for (int counter = 0; counter <= chosen; counter++)
                         {
                             responses.Read();
                             if (counter == chosen)
@@ -464,7 +464,7 @@ namespace CoreWaggles.Commands
                 }
                 return true;
             }
-            catch(SQLiteException ex)
+            catch (SQLiteException ex)
             {
                 return false;
             }
@@ -478,7 +478,7 @@ namespace CoreWaggles.Commands
             //by default make string to add to SQL when a user is specified
             string userString = " AND UserID = " + userID.ToString();
             //if 0 is passed, assume any user allowed!
-            if(userID == 0)
+            if (userID == 0)
             {
                 userString = "";
             }
@@ -568,11 +568,11 @@ namespace CoreWaggles.Commands
             //use insertData cause it does the same thing as what we want to do here, despite name.
             rowsAffected = insertData("DELETE FROM Quotes WHERE rowid = " + rowid);
             if (rowsAffected == 1)
-                    return "Succesfully removed quote!";
+                return "Succesfully removed quote!";
             if (rowsAffected == 0)
-                    return "An error occured, no quote was removed.";
+                return "An error occured, no quote was removed.";
             else
-                    return "ERROR! Code: " + rowsAffected;
+                return "ERROR! Code: " + rowsAffected;
         }
         public static void addTask(ulong UserID, string name, string description)
         {
@@ -626,7 +626,7 @@ namespace CoreWaggles.Commands
             using SQLiteDataReader msgs = commd.ExecuteReader();
             while (msgs.Read())
             {
-                response = response + "**" + index + ". " + msgs.GetString(0) +":** "+ msgs.GetString(1) +  "\n";
+                response = response + "**" + index + ". " + msgs.GetString(0) + ":** " + msgs.GetString(1) + "\n";
                 index++;
             }
             return response;
@@ -679,7 +679,7 @@ namespace CoreWaggles.Commands
             while (msgs.Read())
             {
                 bal = getMoneyBalance(userID, (ulong)msgs.GetInt64(1));
-                if(bal == "NONE")
+                if (bal == "NONE")
                 { bal = "0"; }
                 response = response + "**" + msgs.GetString(0) + ":** " + bal + " Bits\n";
             }
@@ -780,7 +780,7 @@ namespace CoreWaggles.Commands
             using var commd = new SQLiteCommand($"SELECT RoleID FROM Reaction_Roles WHERE MessageID={messageID} AND Emoji = '{emojiName}'", con);
             using SQLiteDataReader rdr = commd.ExecuteReader();
             rdr.Read();
-            if(!rdr.HasRows)
+            if (!rdr.HasRows)
             {
                 return 0;
             }
@@ -821,9 +821,9 @@ namespace CoreWaggles.Commands
                 temp.Add((ulong)msgs.GetInt64(0), msgs.GetString(1));
             }
 
-            if(temp.Count == 0) 
-            { 
-              temp.Add(0, "No Roles to show!");
+            if (temp.Count == 0)
+            {
+                temp.Add(0, "No Roles to show!");
             }
             return temp;
         }
@@ -911,7 +911,7 @@ namespace CoreWaggles.Commands
             TimeSpan span = DateTime.Now - stamp;
             string length = "NONE"; //default no value for txt lookup
             //if too short, dont send anything
-            if(span.TotalMinutes <= 20)
+            if (span.TotalMinutes <= 20)
             { return "NONE"; }
 
             //if its been less than 2 hours but more than 20 minutes, do shortAbsence
@@ -920,7 +920,7 @@ namespace CoreWaggles.Commands
                 length = "short";
             }
             //if it reaches here, and its been less than 8 hours but more than 2, pick a response to give!
-            else if(span.TotalHours <= 8)
+            else if (span.TotalHours <= 8)
             {
                 length = "medium";
             }
@@ -936,6 +936,97 @@ namespace CoreWaggles.Commands
 
         }
 
+        public static void InsertWelcomeInfo(ulong channelID, ulong serverID, ulong roleID)
+        {
+            insertData($"INSERT INTO Welcome_Info(ChannelID, ServerID, RoleId, WelcomeMessage, PostMessage) " +
+                $"VALUES({channelID}, {serverID}, {roleID}, 'Hi! Welcome to the server! Please click the reaction below to confirm that you are 18 or over!', 'You have confirmed!')");
+        }
+        public static int RemoveWelcomeInfo(ulong serverID)
+        {
+            int rowsAff = insertData($"DELETE FROM Welcome_Info WHERE serverID={serverID}");
+            return rowsAff;
+        }
 
+        public static int setWelcomeMessage(ulong ServerID, string message)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            int amount = 0;
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Welcome_Info SET WelcomeMessage = @message WHERE ServerID = {ServerID};";
+                cmd.Parameters.AddWithValue("@message", message);
+                amount = cmd.ExecuteNonQuery();
+            }
+            return amount;
+        }
+
+        public static int setConfirmationMessage(ulong ServerID, string message)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            int amount = 0;
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Welcome_Info SET PostMessage = @message WHERE ServerID = {ServerID};";
+                cmd.Parameters.AddWithValue("@message", message);
+                amount = cmd.ExecuteNonQuery();
+            }
+            return amount;
+        }
+
+        public static string[] getWelcomeInfo(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Count(ChannelID) FROM Welcome_Info WHERE  ServerID= {serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfWelcomes = rdr.GetInt32(0);
+            if (numberOfWelcomes == 0)
+            {
+                string[] temp = { "NONE" };
+                return temp;
+            }
+            rdr.Close();
+            commd.CommandText = $"SELECT ChannelID, WelcomeMessage, PostMessage, RoleID FROM Welcome_Info WHERE ServerID={serverID};";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            string[] tempArr = { msgs.GetInt64(0).ToString(), msgs.GetString(1), msgs.GetString(2), msgs.GetInt64(3).ToString() };
+            return tempArr;
+        }
+
+        public static ulong getWelcomeUser(ulong serverID, ulong userID, ulong messageID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Count(UserID) FROM Welcome_Users WHERE ServerID= {serverID} AND UserID = {userID} AND MessageID= {messageID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfUsers = rdr.GetInt32(0);
+            if (numberOfUsers == 0)
+            {
+                ulong temp = 0;
+                return temp;
+            }
+            rdr.Close();
+            commd.CommandText = $"SELECT MessageID FROM Welcome_Users WHERE ServerID= {serverID} AND UserID = {userID} AND MessageID= {messageID}";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            ulong tempArr = (ulong)msgs.GetInt64(0);
+            return tempArr;
+        }
+
+        public static void InsertWelcomeUser(ulong userID, ulong serverID, ulong msgID)
+        {
+            insertData($"INSERT INTO Welcome_Users(UserID, MessageID, ServerID) VALUES({userID}, {msgID}, {serverID})");
+        }
+
+        public static void RemoveWelcomeUser(ulong userID, ulong serverID)
+        {
+            insertData($"DELETE FROM Welcome_Users WHERE ServerID={serverID} AND UserID={userID}");
+        }
     }
 }

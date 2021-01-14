@@ -13,6 +13,7 @@ using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using Discord.Rest;
 
 namespace WagglesBot
 {
@@ -41,6 +42,7 @@ namespace WagglesBot
 
                 client.Log += Log;
                 client.JoinedGuild += OnJoinedGuild;
+                client.UserJoined += Client_UserJoined;
                 client.Ready += async () =>
                 {
                     Console.WriteLine("Logged in on Discord as: " + client.CurrentUser.Username);
@@ -97,6 +99,7 @@ namespace WagglesBot
                 };
                 services.GetRequiredService<CommandService>().Log += Log;
 
+
                 // Tokens should be considered secret data and never hard-coded.
                 // We can read from the environment variable to avoid hardcoding.
                 await client.LoginAsync(TokenType.Bot, botToken);
@@ -106,6 +109,21 @@ namespace WagglesBot
                 await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
 
                 await Task.Delay(Timeout.Infinite);
+            }
+        }
+
+        private async Task Client_UserJoined(SocketGuildUser arg)
+        {
+            //0channel, 1welcome, 2post
+            string[] welcomeInfo = DBTransaction.getWelcomeInfo(arg.Guild.Id);
+            if(!(welcomeInfo[0] == "NONE"))
+            {
+                //just in case user has joined earlier without reacting, clear it out
+                DBTransaction.RemoveWelcomeUser(arg.Id, arg.Guild.Id);
+                ITextChannel channel = (ITextChannel)arg.Guild.GetChannel(Convert.ToUInt64(welcomeInfo[0]));
+                var msg = await channel.SendMessageAsync(welcomeInfo[1]);
+                await msg.AddReactionAsync(new Emoji("✅"));
+                DBTransaction.InsertWelcomeUser(arg.Id, arg.Guild.Id, msg.Id);
             }
         }
 
@@ -165,6 +183,30 @@ namespace WagglesBot
                             Console.WriteLine("Failed to add quote through reactions for: " + message.Author.Username + ": " + message.Content + " " + addedCorrectly);
                             await message.AddReactionAsync(new Emoji("❌"));
                         }
+                    }
+                }
+            }
+            //for welcome message CHECKMARK
+            if (reaction.Emote.Name == "✅")
+            {
+                var message = await cache.DownloadAsync();
+                //get guildID for DB
+                var chnl = message.Channel as SocketGuildChannel;
+                var Guild = chnl.Guild.Id;
+                //0channel, 1welcome, 2post
+                string[] WelcomeInfo = DBTransaction.getWelcomeInfo(Guild);
+                if(WelcomeInfo[0] != "NONE")
+                {
+                    Console.WriteLine("got this far");
+                    //returns 0 if the reacting user isnt a target
+                    ulong messageID = DBTransaction.getWelcomeUser(Guild, reaction.UserId, message.Id);
+                    Console.WriteLine(messageID);
+                    if(messageID != 0)
+                    {
+                        Console.WriteLine("Got this far 2");
+                        var reactionUser = reaction.User.Value as IGuildUser;
+                        await reactionUser.AddRoleAsync(chnl.Guild.GetRole(Convert.ToUInt64(WelcomeInfo[3])));
+                        await channel.SendMessageAsync(WelcomeInfo[2]);
                     }
                 }
             }
