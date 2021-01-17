@@ -123,6 +123,9 @@ namespace WagglesBot
                 ITextChannel channel = (ITextChannel)arg.Guild.GetChannel(Convert.ToUInt64(welcomeInfo[0]));
                 var msg = await channel.SendMessageAsync(arg.Mention + " has joined the server.\n" + welcomeInfo[1]);
                 await msg.AddReactionAsync(new Emoji("✅"));
+                List<SocketGuildUser> temp = new List<SocketGuildUser>();
+                temp.Add(arg);
+                DBTransaction.updateUserList(temp, arg.Guild.Id);
                 DBTransaction.InsertWelcomeUser(arg.Id, arg.Guild.Id, msg.Id);
             }
         }
