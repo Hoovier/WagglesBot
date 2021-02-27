@@ -15,7 +15,7 @@ namespace CoreWaggles.Commands
         [Alias("daily", "gimme", "giv", "gibplz")]
         public async Task DailyAsync()
         {
-            if(Context.IsPrivate)
+            if (Context.IsPrivate)
             {
                 await ReplyAsync("Please run this command within the server of your choice!");
                 return;
@@ -33,8 +33,8 @@ namespace CoreWaggles.Commands
             //figure out how long its been since the last ~daily
             DateTime stamp = DateTime.ParseExact(timestamp, "yyyy-MM-dd.HH:mm:ss", CultureInfo.InvariantCulture);
             TimeSpan span = localDate - stamp;
-            
-            if(span.TotalHours > 8)
+
+            if (span.TotalHours > 8)
             {
                 DBTransaction.giveMoney(Context.User.Id, 100, Context.Guild.Id, dateString);
                 string bal = DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id);
@@ -43,7 +43,7 @@ namespace CoreWaggles.Commands
             else
             {
                 double remaining = Math.Round(480 - span.TotalMinutes);
-                if(remaining < 61)
+                if (remaining < 61)
                 {
                     await ReplyAsync("Sorry, wait " + remaining.ToString() + " Minutes!");
                 }
@@ -69,7 +69,7 @@ namespace CoreWaggles.Commands
                 return;
             }
             string bal = DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id);
-            if(bal == "NONE")
+            if (bal == "NONE")
             {
                 await ReplyAsync("You are poor and destitute, not a cent to your name! Use ~bonus to beg for some.");
             }
@@ -79,6 +79,7 @@ namespace CoreWaggles.Commands
             }
         }
         [Command("balance")]
+        [Alias("bal")]
         public async Task BalanceAsync(SocketGuildUser user)
         {
             if (Context.IsPrivate)
@@ -107,12 +108,12 @@ namespace CoreWaggles.Commands
                 return;
             }
             int senderBal = int.Parse(balanceString);
-            if(amount > senderBal || amount <= 0)
+            if (amount > senderBal || amount <= 0)
             {
                 await ReplyAsync("Sorry, your balance of " + senderBal + " Bits is too low!");
                 return;
             }
-            if(DBTransaction.payMoney(user.Id, amount, Context.Guild.Id) == 1)
+            if (DBTransaction.payMoney(user.Id, amount, Context.Guild.Id) == 1)
             {
                 DBTransaction.payMoney(Context.User.Id, -amount, Context.Guild.Id);
                 await ReplyAsync("Payment succesful! Your balance is now " + (senderBal - amount) + " Bits!");
@@ -127,7 +128,7 @@ namespace CoreWaggles.Commands
                 await ReplyAsync("You dont have any money to bet!");
                 return;
             }
-            if (amount < 1)
+            if (amount < 2)
             {
                 await ReplyAsync("You have to bet more than that! Cheapskate.");
                 return;
@@ -144,15 +145,10 @@ namespace CoreWaggles.Commands
             //give it a 40% chance to succeed!
             if (chosenNum < 41)
             {
-                //this makes sure that no matter how low they bet they will always get a prize if they win.
-                if(amount == 1)
-                {
-                    amount = 2;
-                }
-                rowsAffected = DBTransaction.payMoney(Context.User.Id, amount / 2, Context.Guild.Id);
+                rowsAffected = DBTransaction.payMoney(Context.User.Id, amount, Context.Guild.Id);
                 if (rowsAffected == 1)
                 {
-                    await ReplyAsync("Congrats! You won " + (amount / 2) + " Bits, bringing your balance to " + (int.Parse(balanceString) + (amount / 2)) + "Bits!");
+                    await ReplyAsync("Congrats! You won " + amount + " Bits, bringing your balance to " + (int.Parse(balanceString) + amount) + "Bits!");
                 }
                 else
                 {
@@ -161,17 +157,81 @@ namespace CoreWaggles.Commands
             }
             else
             {
-                rowsAffected = DBTransaction.payMoney(Context.User.Id, -(amount / 2), Context.Guild.Id);
+                rowsAffected = DBTransaction.payMoney(Context.User.Id, -amount, Context.Guild.Id);
                 if (rowsAffected == 1)
                 {
-                    await ReplyAsync("Oof. You lost " + (amount / 2) + " Bits, bringing your balance to " + (int.Parse(balanceString) - (amount / 2)) + "Bits!");
+                    await ReplyAsync("Oof. You lost " + amount + " Bits, bringing your balance to " + (int.Parse(balanceString) - amount) + "Bits!");
                 }
                 else
                 {
                     await ReplyAsync("An error occurred! Contact Hoovier!");
                 }
             }
+        }
 
+        [Command("slots")]
+        public async Task playSlots(int amount)
+        {
+            //check if user has the bits
+            string balanceString = DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id);
+            if (balanceString == "NONE" || balanceString == "0")
+            {
+                await ReplyAsync("You dont have any money to bet!");
+                return;
+            }
+            if (amount < 2)
+            {
+                await ReplyAsync("You have to bet more than that! Cheapskate.");
+                return;
+            }
+            int senderBal = int.Parse(balanceString);
+            if (amount > senderBal || amount <= 0)
+            {
+                await ReplyAsync("Sorry, your balance of " + senderBal + " Bits is too low!");
+                return;
+            }
+            //hard codes the emojis that will correspond with every random number
+            Dictionary<int, string> emojiDic = new Dictionary<int, string>
+            {
+                {0, "<:momoderp:670375029741060103>" },
+                {1, "<:stare:785151828114931732>" },
+                {2, "<:rymnut:644961603619651584>" },
+                {3, ":star:" },
+                {4, "<:FloDelet:767858750761467904>" }
+            };
+            int rowsAffected;
+            List<int> chosenNumbers = new List<int>();
+            Random rand = new Random();
+            string response = "";
+            for (int i = 0; i < 3; i++)
+            {
+                //gets a random number and stores it in the list
+                chosenNumbers.Add(rand.Next(5));
+                //gets random number generated from list.
+                response += emojiDic[chosenNumbers[i]] + " ";
+            }
+            //all match
+            if (chosenNumbers[0] == chosenNumbers[1] && chosenNumbers[2] == chosenNumbers[1])
+            {
+                await ReplyAsync(response);
+                rowsAffected = DBTransaction.payMoney(Context.User.Id, amount * 3, Context.Guild.Id);
+                await ReplyAsync("3 matches! You win " + (amount * 3) + " Bits, bringing your balance to " + (int.Parse(balanceString) + (amount * 3)) + "Bits!");
+                return;
+            }
+            // if 0 matches 1, if 1 matches 2, or 0 matches 2, but not all three
+            else if (chosenNumbers[0] == chosenNumbers[1] || chosenNumbers[2] == chosenNumbers[1] || chosenNumbers[0] == chosenNumbers[2])
+            {
+                await ReplyAsync(response);
+                rowsAffected = DBTransaction.payMoney(Context.User.Id, amount, Context.Guild.Id);
+                await ReplyAsync("2 matches! You win " + amount + " Bits, bringing your balance to " + (int.Parse(balanceString) + amount) + "Bits!");
+                return;
+            }
+            else
+            {
+                await ReplyAsync(response);
+                rowsAffected = DBTransaction.payMoney(Context.User.Id, -amount, Context.Guild.Id);
+                await ReplyAsync("Whoops, you lost " + amount + "Bits, bringing your balance to " + (int.Parse(balanceString) - amount) + "Bits!");
+            }
         }
     }
 }
