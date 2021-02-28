@@ -760,6 +760,21 @@ namespace CoreWaggles.Commands
             return msgs.GetInt32(0).ToString();
         }
 
+        public static string getMoneyLeaders( ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            string board = "**Leaderboard:**\n```";
+            using var commd = new SQLiteCommand($"SELECT Amount, Users.Username FROM Money JOIN Users ON Users.ID = Money.UserID WHERE ServerID={serverID} GROUP BY Users.Username ORDER BY Amount DESC LIMIT 10", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while(rdr.Read())
+            {
+                board = board + rdr.GetString(1)  + ": " + rdr.GetInt64(0) + " Bits\n";
+            }
+
+            return board + "```";
+        }
+
         public static void setReactionRole(ulong roleID, ulong serverID, string emojiName, ulong messageID)
         {
             using var con = new SQLiteConnection(cs);

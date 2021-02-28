@@ -34,7 +34,7 @@ namespace CoreWaggles.Commands
             DateTime stamp = DateTime.ParseExact(timestamp, "yyyy-MM-dd.HH:mm:ss", CultureInfo.InvariantCulture);
             TimeSpan span = localDate - stamp;
 
-            if (span.TotalHours > 8)
+            if (span.TotalHours > 1)
             {
                 DBTransaction.giveMoney(Context.User.Id, 100, Context.Guild.Id, dateString);
                 string bal = DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id);
@@ -42,7 +42,7 @@ namespace CoreWaggles.Commands
             }
             else
             {
-                double remaining = Math.Round(480 - span.TotalMinutes);
+                double remaining = Math.Round(60 - span.TotalMinutes);
                 if (remaining < 61)
                 {
                     await ReplyAsync("Sorry, wait " + remaining.ToString() + " Minutes!");
@@ -97,6 +97,20 @@ namespace CoreWaggles.Commands
             {
                 await ReplyAsync(bal + " Bits!");
             }
+        }
+
+        [Command("leaders")]
+        [Alias("leaderboard")]
+        public async Task MoneyLeadersAsync()
+        {
+            if (Context.IsPrivate)
+            {
+                await ReplyAsync("Sorry, this command is for server use only.");
+                return;
+            }
+            string leaderString = DBTransaction.getMoneyLeaders(Context.Guild.Id);
+
+            await ReplyAsync(leaderString);
         }
 
         [Command("pay")]
