@@ -247,5 +247,75 @@ namespace CoreWaggles.Commands
                 await ReplyAsync("Whoops, you lost " + amount + "Bits, bringing your balance to " + (int.Parse(balanceString) - amount) + "Bits!");
             }
         }
-    }
+
+        [Command("lootbox")]
+        [Alias("lb")]
+
+        public async Task lootbox()
+        {
+            await ReplyAsync("Purchasable Lootboxes:\n**Stone:** 100 Bits```0-200 Bit Prizes```**Iron:** 250 Bits\n```100-400 Bit Prizes```**Gold**: 1000 Bits\n```250-2000 Bit Prizes```");
+        }
+
+        [Command("lootbox")]
+        [Alias("lb")]
+        public async Task lootbox(string option)
+        {
+            //check if user has the bits
+            string balanceString = DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id);
+            if (balanceString == "NONE" || balanceString == "0")
+            {
+                await ReplyAsync("You dont have any money!");
+                return;
+            }
+            int senderBal = int.Parse(balanceString);
+            if ((100 > senderBal && option == "stone") || (250 > senderBal && option == "iron") || (1000 > senderBal && option == "gold"))
+            {
+                await ReplyAsync("Sorry, your balance of " + senderBal + " Bits is too low!");
+                return;
+            }
+            Random rand = new Random();
+            int prize = 0;
+            if(option == "stone")
+            {
+                prize = rand.Next(200);
+                await ReplyAsync("You paid 100 Bits for a Stone Lootbox and got " + prize + "Bits bringing your balance to " + (senderBal - 100 + prize));
+                DBTransaction.payMoney(Context.User.Id, prize-100, Context.Guild.Id);
+            }
+            else if (option == "iron")
+            {
+                prize = rand.Next(400); 
+                await ReplyAsync("You paid 250 Bits for a Iron Lootbox and got " + prize + "Bits bringing your balance to " + (senderBal - 250 + prize));
+                DBTransaction.payMoney(Context.User.Id, prize - 250, Context.Guild.Id);
+            }
+            else if (option == "gold")
+            {
+                prize = rand.Next(2000);
+                await ReplyAsync("You paid 1000 Bits for a Gold Lootbox and got " + prize + "Bits bringing your balance to " + (senderBal - 1000 + prize));
+                DBTransaction.payMoney(Context.User.Id, prize - 1000, Context.Guild.Id);
+            }
+            else
+            {
+                await ReplyAsync("Sorry, you can choose Stone, Iron, or Gold lootboxes only!");
+            }
+        }
+
+        [Command("lootboxtest")]
+        [Alias("lbtest")]
+        public async Task lootboxSim(int stoneMin, int stoneMax, int ironMin, int IronMax, int goldMin, int goldMax, int iterations)
+        {
+            Random rand = new Random();
+            int stonetotal = 0, irontotal = 0, goldtotal = 0;
+
+            for (int i = 0; i < iterations; i++)
+            {
+                stonetotal = stonetotal + rand.Next(stoneMin, stoneMax);
+                irontotal = irontotal + rand.Next(ironMin, IronMax);
+                goldtotal = goldtotal + rand.Next(goldMin, goldMax);
+            }
+            await ReplyAsync($"**Stone:** {stoneMin}-{stoneMax}\n**Iron:** {ironMin}-{IronMax}\n**Gold:** {goldMin}-{goldMax}\n**{iterations} iterations run:**\n**StoneSpent:** {iterations * 100} " +
+                $"**TotalStone Winnings:** {stonetotal} **StoneAVG:** {stonetotal / iterations}\n**IronSpent:** {iterations * 250} **TotalIron Winnings:** {irontotal} **IronAVG:** {irontotal / iterations}\n" +
+                $"**GoldSpent:** {iterations * 1000} **TotalGold Winnings:** {goldtotal} **GoldAVG:** {goldtotal / iterations}");
+        }
+
+        }
 }
