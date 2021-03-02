@@ -283,13 +283,13 @@ namespace CoreWaggles.Commands
             }
             else if (option == "iron")
             {
-                prize = rand.Next(400); 
+                prize = rand.Next(100,400); 
                 await ReplyAsync("You paid 250 Bits for a Iron Lootbox and got " + prize + "Bits bringing your balance to " + (senderBal - 250 + prize));
                 DBTransaction.payMoney(Context.User.Id, prize - 250, Context.Guild.Id);
             }
             else if (option == "gold")
             {
-                prize = rand.Next(2000);
+                prize = rand.Next(250,2000);
                 await ReplyAsync("You paid 1000 Bits for a Gold Lootbox and got " + prize + "Bits bringing your balance to " + (senderBal - 1000 + prize));
                 DBTransaction.payMoney(Context.User.Id, prize - 1000, Context.Guild.Id);
             }
