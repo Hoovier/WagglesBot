@@ -1043,5 +1043,65 @@ namespace CoreWaggles.Commands
         {
             insertData($"DELETE FROM Welcome_Users WHERE ServerID={serverID} AND UserID={userID}");
         }
+
+        public static void AddReminder(ulong userID, ulong serverID, string title, int interval, string timeAdded)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //Adds a reminder to the table
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"INSERT INTO Reminders(UserID, ServerID, Title, TimeInterval, TimeAdded) VALUES({userID}, {serverID}, @title, @interval, @timeAdded);";
+                cmd.Parameters.AddWithValue("@title", title);
+                cmd.Parameters.AddWithValue("@interval", interval);
+                cmd.Parameters.AddWithValue("@timeAdded", timeAdded);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static List<ReminderObject> getReminders()
+        {
+            using var con = new SQLiteConnection(cs);
+            List<ReminderObject> temp = new List<ReminderObject>();
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT TimeAdded, Title, TimeInterval, UserID, ServerID FROM Reminders;", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                temp.Add(new ReminderObject(rdr.GetString(0), rdr.GetString(1), rdr.GetInt32(2), (ulong)rdr.GetInt64(3), (ulong)rdr.GetInt64(4)));
+            }
+            return temp;
+        }
+        public static void removeReminder(string title, ulong serverID, ulong userID)
+        {
+            int rowsAffected = 0;
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"DELETE FROM Reminders WHERE title= '{title}' AND ServerID = {serverID} AND UserID= {userID};";
+                rowsAffected = cmd.ExecuteNonQuery();
+            }
+            if (rowsAffected == 1)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Succesfully removed stored reminder!");
+                Console.ResetColor();
+                return;
+            }
+            if (rowsAffected == 0)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Failed to remove stored reminder!");
+                Console.ResetColor();
+                return;
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Something went wrong with removing a reminder!!");
+                Console.ResetColor();
+            }
+        }
     }
 }

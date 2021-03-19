@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using Discord.Rest;
+using System.Timers;
 
 namespace WagglesBot
 {
@@ -107,6 +108,31 @@ namespace WagglesBot
 
                 // Here we initialize the logic required to register our commands.
                 await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
+                //here we make a timer and make it wait to trigger every 10 seconds!
+                System.Timers.Timer aTimer = new System.Timers.Timer(10000);
+                //this is the actual function that runs when the time runs out
+                aTimer.Elapsed += async (object sender, ElapsedEventArgs e) => 
+                {
+                    //get all reminders!
+                    List<ReminderObject> listOfReminders = DBTransaction.getReminders();
+
+                    foreach (ReminderObject item in listOfReminders)
+                    {
+                        DateTime timeAdded = DateTime.Parse(item.timeAdded);
+                        DateTime now = DateTime.Now;
+                        //get the amount of time passed since the reminder was added!
+                        TimeSpan span = now - timeAdded;
+                        //if enough time has passed to be equal to or greater than the specified time interval, go
+                        if (span.TotalMinutes >= item.timeInterval)
+                        {
+                            //gets the server, uses that to get the user, and then finally sends the message
+                            await client.GetGuild(item.serverID).GetUser(item.userID).GetOrCreateDMChannelAsync().Result.SendMessageAsync(item.title);
+                            DBTransaction.removeReminder(item.title, item.serverID, item.userID);
+                        }
+                    }
+                };
+                aTimer.AutoReset = true;
+                aTimer.Enabled = true;
 
                 await Task.Delay(Timeout.Infinite);
             }
