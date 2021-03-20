@@ -1072,7 +1072,20 @@ namespace CoreWaggles.Commands
             }
             return temp;
         }
-        public static void removeReminder(string title, ulong serverID, ulong userID)
+        public static List<ReminderObject> getReminders(ulong userID)
+        {
+            using var con = new SQLiteConnection(cs);
+            List<ReminderObject> temp = new List<ReminderObject>();
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT TimeAdded, Title, TimeInterval, UserID, ServerID FROM Reminders WHERE UserID = {userID};", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                temp.Add(new ReminderObject(rdr.GetString(0), rdr.GetString(1), rdr.GetInt32(2), (ulong)rdr.GetInt64(3), (ulong)rdr.GetInt64(4)));
+            }
+            return temp;
+        }
+        public static int removeReminder(string title, ulong serverID, ulong userID)
         {
             int rowsAffected = 0;
             using var con = new SQLiteConnection(cs);
@@ -1087,20 +1100,21 @@ namespace CoreWaggles.Commands
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Succesfully removed stored reminder!");
                 Console.ResetColor();
-                return;
+                return rowsAffected;
             }
             if (rowsAffected == 0)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Failed to remove stored reminder!");
                 Console.ResetColor();
-                return;
+                return rowsAffected;
             }
             else
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("Something went wrong with removing a reminder!!");
                 Console.ResetColor();
+                return rowsAffected;
             }
         }
     }
