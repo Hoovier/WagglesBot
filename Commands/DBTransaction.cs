@@ -1092,7 +1092,8 @@ namespace CoreWaggles.Commands
             con.Open();
             using var cmd = new SQLiteCommand(con);
             {
-                cmd.CommandText = $"DELETE FROM Reminders WHERE title= '{title}' AND ServerID = {serverID} AND UserID= {userID};";
+                cmd.CommandText = $"DELETE FROM Reminders WHERE title= @title AND ServerID = {serverID} AND UserID= {userID};";
+                cmd.Parameters.AddWithValue("@title", title);
                 rowsAffected = cmd.ExecuteNonQuery();
             }
             if (rowsAffected == 1)

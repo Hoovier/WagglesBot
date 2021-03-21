@@ -170,7 +170,7 @@ namespace CoreWaggles.Services
         public async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
         {
             //command was executed, log it to console, if it isnt a currency related command.
-            if (!context.Message.Content.Contains("slots") && !context.Message.Content.Contains("bet") && !context.Message.Content.Contains("daily"))
+            if (!context.Message.Content.Contains("slots") && !context.Message.Content.Contains("bet") && !context.Message.Content.Contains("daily") && !context.Message.Content.Contains("lb "))
             {
                 Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{context.Channel.Name}] \n{context.Message.Author}: {context.Message}");
             }
