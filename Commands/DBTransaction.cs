@@ -1118,5 +1118,61 @@ namespace CoreWaggles.Commands
                 return rowsAffected;
             }
         }
+
+        public static void addStonk(string name, int numOfShares, double price)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"INSERT INTO Stonks VALUES(@name, @shares, {price});";
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.Parameters.AddWithValue("@shares", numOfShares);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static string getStonks()
+        {
+            using var con = new SQLiteConnection(cs);
+            string response = "``Current Stonks:``\n";
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Name, NumberOfShares, Price FROM Stonks;", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                response = response + $"**{rdr.GetString(0)}** Max: {rdr.GetInt32(1)} Price: ${rdr.GetDouble(2)}\n";
+            }
+            return response;
+        }
+
+        public static void editStonk(string name, int numOfShares)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Stonks SET NumberOfShares = @shares WHERE Name = @name ;";
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.Parameters.AddWithValue("@shares", numOfShares);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static void editStonk(string name, double price)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Stonks SET Price = @price WHERE Name = @name ;";
+                cmd.Parameters.AddWithValue("@price", price);
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.ExecuteNonQuery();
+            }
+        }
     }
 }
