@@ -1119,7 +1119,7 @@ namespace CoreWaggles.Commands
             }
         }
 
-        public static void addStonk(string name, int numOfShares, double price)
+        public static void addStonk(string name, int numOfShares, int price)
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
@@ -1142,12 +1142,29 @@ namespace CoreWaggles.Commands
             using SQLiteDataReader rdr = commd.ExecuteReader();
             while (rdr.Read())
             {
-                response = response + $"**{rdr.GetString(0)}** Max: {rdr.GetInt32(1)} Price: ${rdr.GetDouble(2)}\n";
+                response = response + $"**{rdr.GetString(0)}** Max: {rdr.GetInt32(1)} Price: ${rdr.GetInt32(2)}\n";
             }
             return response;
         }
 
-        public static void editStonk(string name, int numOfShares)
+        public static List<string> getStonkInfo(string name)
+        {
+            using var con = new SQLiteConnection(cs);
+            List<string> temp = new List<string>();
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Name, NumberOfShares, Price FROM Stonks WHERE Name = @name;", con);
+            commd.Parameters.AddWithValue("@name", name);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                temp.Add(rdr.GetString(0));
+                temp.Add((rdr.GetInt32(1)).ToString());
+                temp.Add((rdr.GetInt32(2)).ToString());
+            }
+            return temp;
+        }
+
+        public static void editStonkShares(string name, int numOfShares)
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
@@ -1161,7 +1178,7 @@ namespace CoreWaggles.Commands
             }
         }
 
-        public static void editStonk(string name, double price)
+        public static void editStonkPrice(string name, int price)
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
@@ -1173,6 +1190,97 @@ namespace CoreWaggles.Commands
                 cmd.Parameters.AddWithValue("@name", name);
                 cmd.ExecuteNonQuery();
             }
+        }
+
+        public static void addStonkPurchase(string name, int numOfShares, ulong userID, ulong serverID, string date)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using (var transaction = con.BeginTransaction())
+            {
+                var command = con.CreateCommand();
+                command.CommandText =
+                $"INSERT INTO Stonk_Purchases(StonkName, UserID, ServerID, DateAdded) VALUES(@name, @userID, @serverID, @date);";
+                command.Parameters.AddWithValue("@name", name);
+                command.Parameters.AddWithValue("@userID", userID);
+                command.Parameters.AddWithValue("@serverID", serverID);
+                command.Parameters.AddWithValue("@date", date);
+                // Insert a lot of data
+                var random = new Random();
+                for (var i = 0; i < numOfShares; i++)
+                {
+                    command.ExecuteNonQuery();
+                }
+
+                transaction.Commit();
+            }
+        }
+
+        public static List<int> getMaxShares(string name, ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            List<int> temp = new List<int>();
+            using var commd = new SQLiteCommand($"SELECT NumberOfShares, Price FROM Stonks WHERE Name=@name;", con);
+            commd.Parameters.AddWithValue("@name", name);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            if (rdr.Read())
+            {
+                temp.Add(rdr.GetInt32(0));
+                temp.Add(rdr.GetInt32(1));
+
+            }
+            else
+            {
+                return temp;
+            }
+            rdr.Close();
+            commd.CommandText = "SELECT COUNT(*) FROM Stonk_Purchases WHERE StonkName = @name AND ServerID = @serverID";
+            commd.Parameters.AddWithValue("@name", name);
+            commd.Parameters.AddWithValue("@serverID", serverID);
+            using SQLiteDataReader reader = commd.ExecuteReader();
+            reader.Read();
+            temp.Add(reader.GetInt32(0));
+            return temp;
+        }
+
+        public static string getOwnedStonks(ulong userID, ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            string response = "``Owned Stonks:``\n";
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT StonkName, COUNT(StonkName) FROM Stonk_Purchases WHERE UserID = {userID} AND ServerID = {serverID} GROUP BY StonkName", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                response = response + $"**{rdr.GetString(0)}** Owned: {rdr.GetInt32(1)}\n";
+            }
+            return response;
+        }
+        public static bool hasEnoughStonk(ulong userID, ulong serverID, string stonkName, int amount)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT COUNT(StonkName) FROM Stonk_Purchases WHERE UserID = {userID} AND ServerID = {serverID} AND StonkName= @name GROUP BY StonkName", con);
+            commd.Parameters.AddWithValue("@name", stonkName);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                if(rdr.GetInt32(0) >= amount)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static void sellStonk(ulong userID, ulong serverID, string stonkName, int amount)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"DELETE FROM Stonk_Purchases WHERE rowid = (SELECT rowid FROM Stonk_Purchases WHERE StonkName = @name AND ServerID = {serverID} AND UserID = {userID} LIMIT {amount})", con);
+            commd.Parameters.AddWithValue("@name", stonkName);
+            commd.ExecuteNonQuery();
         }
     }
 }
