@@ -17,7 +17,7 @@ namespace CoreWaggles.Commands
             }
             else
             {
-                DBTransaction.addStonk(name, numOfShares, price);
+                DBTransaction.addStonk(name, numOfShares, price, Context.Guild.Id);
                 await ReplyAsync($"Added ``{name}`` stonk!");
             }
 
@@ -54,7 +54,7 @@ namespace CoreWaggles.Commands
         [Command("stonks")]
         public async Task postStonk()
         {
-                await ReplyAsync(DBTransaction.getStonks());
+                await ReplyAsync(DBTransaction.getStonks(Context.Guild.Id));
         }
 
         [Command("mystonks")]
@@ -67,6 +67,7 @@ namespace CoreWaggles.Commands
         [Command("buystonk")]
         public async Task buyStonk(string stonk, int amount)
         {
+            stonk = stonk.ToUpper();
             //0 = MaxNumOfShares
             //1 = stonkPrice
             //2 = OwnedShares
@@ -98,6 +99,7 @@ namespace CoreWaggles.Commands
         [Command("sellstonk")]
         public async Task sellStonk(string name, int amount)
         {
+            name = name.ToUpper();
             //1 = name, 2 = numOfShares, 3 = price
             List<string> stonkInfo = DBTransaction.getStonkInfo(name);
             int balance = int.Parse(DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id));

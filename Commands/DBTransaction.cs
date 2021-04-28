@@ -1119,22 +1119,24 @@ namespace CoreWaggles.Commands
             }
         }
 
-        public static void addStonk(string name, int numOfShares, int price)
+        public static void addStonk(string name, int numOfShares, int price, ulong serverID)
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
             //use prepared statement to make sure user provided data doesn't cause issues
             using var cmd = new SQLiteCommand(con);
             {
-                cmd.CommandText = $"INSERT INTO Stonks VALUES(@name, @shares, {price});";
+                cmd.CommandText = $"INSERT INTO Stonks VALUES(@name, @shares, {price}, {serverID});";
                 cmd.Parameters.AddWithValue("@name", name);
                 cmd.Parameters.AddWithValue("@shares", numOfShares);
                 cmd.ExecuteNonQuery();
             }
         }
 
-        public static string getStonks()
+        public static string getStonks(ulong serverID)
         {
+            Dictionary<string, int> availStonks = getPurchasedStonks(serverID);
+            int availableStonks = 0;
             using var con = new SQLiteConnection(cs);
             string response = "``Current Stonks:``\n";
             con.Open();
@@ -1142,9 +1144,31 @@ namespace CoreWaggles.Commands
             using SQLiteDataReader rdr = commd.ExecuteReader();
             while (rdr.Read())
             {
-                response = response + $"**{rdr.GetString(0)}** Max: {rdr.GetInt32(1)} Price: ${rdr.GetInt32(2)}\n";
+                if (availStonks.ContainsKey(rdr.GetString(0)))
+                {
+                    availableStonks = rdr.GetInt32(1) - availStonks[rdr.GetString(0)];
+                }
+                else
+                {
+                    availableStonks = rdr.GetInt32(1);
+                }
+                response = response + $"__{rdr.GetString(0)}__\n" + $"**Max:** {rdr.GetInt32(1)}".PadRight(15, ' ') + $"**Available for purchase:** {availableStonks}".PadRight(40, ' ') + $" **Price:** ${rdr.GetInt32(2)}\n";
             }
             return response;
+        }
+
+        public static Dictionary<string, int> getPurchasedStonks(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            Dictionary<string, int> temp = new Dictionary<string, int>();
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT StonkName, COUNT(*) FROM Stonk_Purchases WHERE ServerID = {serverID} GROUP BY StonkName;", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                temp.Add(rdr.GetString(0), rdr.GetInt32(1));
+            }
+            return temp;
         }
 
         public static List<string> getStonkInfo(string name)
@@ -1278,7 +1302,7 @@ namespace CoreWaggles.Commands
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
-            using var commd = new SQLiteCommand($"DELETE FROM Stonk_Purchases WHERE rowid = (SELECT rowid FROM Stonk_Purchases WHERE StonkName = @name AND ServerID = {serverID} AND UserID = {userID} LIMIT {amount})", con);
+            using var commd = new SQLiteCommand($"DELETE FROM Stonk_Purchases WHERE rowid IN (SELECT rowid FROM Stonk_Purchases WHERE StonkName = @name AND ServerID = {serverID} AND UserID = {userID} LIMIT {amount})", con);
             commd.Parameters.AddWithValue("@name", stonkName);
             commd.ExecuteNonQuery();
         }
