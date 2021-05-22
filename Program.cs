@@ -110,6 +110,7 @@ namespace WagglesBot
                 await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
                 //here we make a timer and make it wait to trigger every 10 seconds!
                 System.Timers.Timer aTimer = new System.Timers.Timer(10000);
+                System.Timers.Timer Stonktimer = new System.Timers.Timer(60000);
                 //this is the actual function that runs when the time runs out
                 aTimer.Elapsed += async (object sender, ElapsedEventArgs e) => 
                 {
@@ -131,9 +132,41 @@ namespace WagglesBot
                         }
                     }
                 };
+                Stonktimer.Elapsed += async (object sender, ElapsedEventArgs e) =>
+                {
+
+                    //Stonks price check
+                    string response = "Stonk Updates:";
+                    Random rand = new Random();
+                    foreach (var server in client.Guilds)
+                    {
+                        List<Stonk> stonks = DBTransaction.getStonkObj(server.Id);
+                        foreach (Stonk stonk in stonks)
+                        {
+                            int oldPrice = stonk.Price;
+                            double percentageChange = rand.Next(0, 101) * .1;
+                            int newprice;
+                            //50/50 chance
+                            //if 1, stonk price rise
+                            //if 2, stonk price drop
+                            if (rand.Next(0,2) > 0)
+                            {
+                                newprice = oldPrice + (int)(oldPrice * percentageChange);
+                            }
+                            else
+                            {
+                                newprice = oldPrice - (int)(oldPrice * percentageChange);
+                            }
+                            DBTransaction.editStonkPrice(stonk.Name, newprice, stonk.ServerID);
+                            response = response + "\n__" + stonk.Name + "__ **Old Price:** " + oldPrice + "**New Price:** " + newprice;
+                        }
+                        //ADD USE OF CONFIG STONKS CHANNEL AND SEND RESPONSE + STONK PRICE CHART
+                    }
+                };
+                Stonktimer.AutoReset = true;
+                Stonktimer.Enabled = true;
                 aTimer.AutoReset = true;
                 aTimer.Enabled = true;
-
                 await Task.Delay(Timeout.Infinite);
             }
         }

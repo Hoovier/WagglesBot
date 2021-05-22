@@ -1133,6 +1133,20 @@ namespace CoreWaggles.Commands
             }
         }
 
+        public static List<Stonk> getStonkObj(ulong serverID)
+        {
+            List<Stonk> temp = new List<Stonk>();
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Name, NumberOfShares, Price FROM Stonks WHERE ServerID = {serverID};", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                temp.Add(new Stonk(rdr.GetString(0), rdr.GetInt32(1), rdr.GetInt32(2), serverID));
+            }
+            return temp;
+        }
+
         public static string getStonks(ulong serverID)
         {
             Dictionary<string, int> availStonks = getPurchasedStonks(serverID);
@@ -1140,7 +1154,7 @@ namespace CoreWaggles.Commands
             using var con = new SQLiteConnection(cs);
             string response = "``Current Stonks:``\n";
             con.Open();
-            using var commd = new SQLiteCommand($"SELECT Name, NumberOfShares, Price FROM Stonks;", con);
+            using var commd = new SQLiteCommand($"SELECT Name, NumberOfShares, Price FROM Stonks WHERE ServerID = {serverID};", con);
             using SQLiteDataReader rdr = commd.ExecuteReader();
             while (rdr.Read())
             {
@@ -1202,14 +1216,14 @@ namespace CoreWaggles.Commands
             }
         }
 
-        public static void editStonkPrice(string name, int price)
+        public static void editStonkPrice(string name, int price, ulong serverID)
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
             //use prepared statement to make sure user provided data doesn't cause issues
             using var cmd = new SQLiteCommand(con);
             {
-                cmd.CommandText = $"UPDATE Stonks SET Price = @price WHERE Name = @name ;";
+                cmd.CommandText = $"UPDATE Stonks SET Price = @price WHERE Name = @name AND ServerID = {serverID} ;";
                 cmd.Parameters.AddWithValue("@price", price);
                 cmd.Parameters.AddWithValue("@name", name);
                 cmd.ExecuteNonQuery();

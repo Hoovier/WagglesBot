@@ -84,7 +84,7 @@ namespace CoreWaggles.Commands
             }
             else if (stonkInfo[1] * amount > balance)
             {
-                await ReplyAsync("Sorry! You don't have enough Bits for this. The price for " + amount + "shares of this stonk is " + stonkInfo[1] * amount);
+                await ReplyAsync("Sorry! You don't have enough Bits for this. The price for " + amount + " shares of this stonk is " + stonkInfo[1] * amount);
             }
             else
             {
