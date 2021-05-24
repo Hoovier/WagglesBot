@@ -1320,5 +1320,36 @@ namespace CoreWaggles.Commands
             commd.Parameters.AddWithValue("@name", stonkName);
             commd.ExecuteNonQuery();
         }
+
+        public static void stonkConfigSetup(ulong serverID, ulong channelID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"INSERT INTO StonkConfig(ServerID, ChannelID) VALUES({serverID}, {channelID}) ON CONFLICT(ServerID) DO UPDATE SET ChannelID={channelID};";
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static ulong getStonkChannel(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Count(ServerID) FROM StonkConfig WHERE ServerID= {serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfChannels = rdr.GetInt32(0);
+            if (numberOfChannels == 0)
+            {
+                return 0;
+            }
+            rdr.Close();
+            commd.CommandText = $"SELECT ChannelID FROM StonkConfig WHERE ServerID= {serverID}";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            return (ulong)msgs.GetInt64(0);
+        }
     }
 }

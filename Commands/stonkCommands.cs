@@ -1,4 +1,5 @@
 ﻿using Discord.Commands;
+using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -45,7 +46,7 @@ namespace CoreWaggles.Commands
             }
             else
             {
-                DBTransaction.editStonkPrice(name, price);
+                DBTransaction.editStonkPrice(name, price, Context.Guild.Id);
                 await ReplyAsync($"Edited ``{name}`` stonk!");
             }
 
@@ -114,6 +115,13 @@ namespace CoreWaggles.Commands
             {
                 await ReplyAsync("Sorry! You dont have enough shares of that stonk to complete this transaction.");
             }
+        }
+
+        [Command("stonksetup")]
+        public async Task stonkSetup(SocketGuildChannel channel)
+        {
+            DBTransaction.stonkConfigSetup(channel.Guild.Id, channel.Id);
+            await ReplyAsync("Added " + channel.Name + " as the channel for all stonk updates!");
         }
 
 

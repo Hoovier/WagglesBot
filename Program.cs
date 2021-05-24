@@ -110,7 +110,7 @@ namespace WagglesBot
                 await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
                 //here we make a timer and make it wait to trigger every 10 seconds!
                 System.Timers.Timer aTimer = new System.Timers.Timer(10000);
-                System.Timers.Timer Stonktimer = new System.Timers.Timer(60000);
+                System.Timers.Timer Stonktimer = new System.Timers.Timer(11000);
                 //this is the actual function that runs when the time runs out
                 aTimer.Elapsed += async (object sender, ElapsedEventArgs e) => 
                 {
@@ -134,7 +134,7 @@ namespace WagglesBot
                 };
                 Stonktimer.Elapsed += async (object sender, ElapsedEventArgs e) =>
                 {
-
+                    Console.WriteLine("time to boogie!");
                     //Stonks price check
                     string response = "Stonk Updates:";
                     Random rand = new Random();
@@ -160,6 +160,11 @@ namespace WagglesBot
                             DBTransaction.editStonkPrice(stonk.Name, newprice, stonk.ServerID);
                             response = response + "\n__" + stonk.Name + "__ **Old Price:** " + oldPrice + "**New Price:** " + newprice;
                         }
+                        ulong channelID = DBTransaction.getStonkChannel(server.Id);
+                        if (channelID != 0) {
+
+                            await client.GetGuild(server.Id).GetTextChannel(channelID).SendMessageAsync(response);
+                            }
                         //ADD USE OF CONFIG STONKS CHANNEL AND SEND RESPONSE + STONK PRICE CHART
                     }
                 };
