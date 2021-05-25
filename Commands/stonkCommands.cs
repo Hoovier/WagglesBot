@@ -92,6 +92,8 @@ namespace CoreWaggles.Commands
                 DateTime localDate = DateTime.Now;
                 string dateString = localDate.ToString("yyyy-MM-dd.HH:mm:ss");
                 DBTransaction.addStonkPurchase(stonk, amount, Context.User.Id, Context.Guild.Id, dateString);
+                int totalPrice = stonkInfo[1] * amount;
+                DBTransaction.payMoney(Context.User.Id, -totalPrice, Context.Guild.Id);
                 await ReplyAsync("Stonks purchased! Your new balance is " + (balance - (stonkInfo[1] * amount)) + " Bits!");
             }
             
