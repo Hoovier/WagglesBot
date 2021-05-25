@@ -35,7 +35,7 @@ namespace WagglesBot
             Global.MateMessageReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(mess);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[1];
+            string botToken = keys[0];
             using (var services = ConfigureServices())
             {
                 var client = services.GetRequiredService<DiscordSocketClient>();
@@ -135,11 +135,11 @@ namespace WagglesBot
                 Stonktimer.Elapsed += async (object sender, ElapsedEventArgs e) =>
                 {
                     //Stonks price check
-                    string response = "Stonk Updates:";
                     Random rand = new Random();
                     //foreach server, iterate through and change the price of each stonk.
                     foreach (var server in client.Guilds)
                     {
+                        string response = "Stonk Updates:";
                         List<Stonk> stonks = DBTransaction.getStonkObj(server.Id);
                         foreach (Stonk stonk in stonks)
                         {

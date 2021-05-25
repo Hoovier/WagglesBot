@@ -1259,7 +1259,7 @@ namespace CoreWaggles.Commands
             using var con = new SQLiteConnection(cs);
             con.Open();
             List<int> temp = new List<int>();
-            using var commd = new SQLiteCommand($"SELECT NumberOfShares, Price FROM Stonks WHERE Name=@name;", con);
+            using var commd = new SQLiteCommand($"SELECT NumberOfShares, Price FROM Stonks WHERE Name=@name AND ServerID={serverID};", con);
             commd.Parameters.AddWithValue("@name", name);
             using SQLiteDataReader rdr = commd.ExecuteReader();
             if (rdr.Read())
