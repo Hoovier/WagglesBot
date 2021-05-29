@@ -105,6 +105,7 @@ namespace CoreWaggles.Commands
             name = name.ToUpper();
             //1 = name, 2 = numOfShares, 3 = price
             List<string> stonkInfo = DBTransaction.getStonkInfo(name);
+            Console.WriteLine(stonkInfo[0] + " " + stonkInfo[1] + " " + stonkInfo[2]);
             int balance = int.Parse(DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id));
             bool enoughStonks = DBTransaction.hasEnoughStonk(Context.User.Id, Context.Guild.Id, name, amount);
             if(enoughStonks)

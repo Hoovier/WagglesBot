@@ -1176,7 +1176,7 @@ namespace CoreWaggles.Commands
             using var con = new SQLiteConnection(cs);
             Dictionary<string, int> temp = new Dictionary<string, int>();
             con.Open();
-            using var commd = new SQLiteCommand($"SELECT StonkName, COUNT(*) FROM Stonk_Purchases WHERE ServerID = {serverID} GROUP BY StonkName;", con);
+            using var commd = new SQLiteCommand($"SELECT StonkName, SUM(NumOfShares) FROM Stonk_Record WHERE ServerID = {serverID} GROUP BY StonkName;", con);
             using SQLiteDataReader rdr = commd.ExecuteReader();
             while (rdr.Read())
             {
@@ -1234,24 +1234,14 @@ namespace CoreWaggles.Commands
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
-            using (var transaction = con.BeginTransaction())
-            {
                 var command = con.CreateCommand();
                 command.CommandText =
-                $"INSERT INTO Stonk_Purchases(StonkName, UserID, ServerID, DateAdded) VALUES(@name, @userID, @serverID, @date);";
+                $"INSERT INTO Stonk_Record(StonkName, UserID, ServerID, NumOfShares) VALUES(@name, @userID, @serverID, @shares) ON CONFLICT(UserID, ServerID, StonkName) DO UPDATE SET NumOfShares= NumOfShares + {numOfShares};";
                 command.Parameters.AddWithValue("@name", name);
                 command.Parameters.AddWithValue("@userID", userID);
                 command.Parameters.AddWithValue("@serverID", serverID);
-                command.Parameters.AddWithValue("@date", date);
-                // Insert a lot of data
-                var random = new Random();
-                for (var i = 0; i < numOfShares; i++)
-                {
-                    command.ExecuteNonQuery();
-                }
-
-                transaction.Commit();
-            }
+                command.Parameters.AddWithValue("@shares", numOfShares);
+                command.ExecuteNonQuery();
         }
 
         public static List<int> getMaxShares(string name, ulong serverID)
@@ -1273,12 +1263,16 @@ namespace CoreWaggles.Commands
                 return temp;
             }
             rdr.Close();
-            commd.CommandText = "SELECT COUNT(*) FROM Stonk_Purchases WHERE StonkName = @name AND ServerID = @serverID";
+            int purchasedShares = 0;
+            commd.CommandText = "SELECT NumOfShares FROM Stonk_Record WHERE StonkName = @name AND ServerID = @serverID";
             commd.Parameters.AddWithValue("@name", name);
             commd.Parameters.AddWithValue("@serverID", serverID);
             using SQLiteDataReader reader = commd.ExecuteReader();
-            reader.Read();
-            temp.Add(reader.GetInt32(0));
+            while(reader.Read())
+            {
+                purchasedShares = purchasedShares + reader.GetInt32(0);
+            }
+            temp.Add(purchasedShares);
             return temp;
         }
 
@@ -1287,11 +1281,14 @@ namespace CoreWaggles.Commands
             using var con = new SQLiteConnection(cs);
             string response = "``Owned Stonks:``\n";
             con.Open();
-            using var commd = new SQLiteCommand($"SELECT StonkName, COUNT(StonkName) FROM Stonk_Purchases WHERE UserID = {userID} AND ServerID = {serverID} GROUP BY StonkName", con);
+            using var commd = new SQLiteCommand($"SELECT StonkName, NumOfShares FROM Stonk_Record WHERE UserID = {userID} AND ServerID = {serverID} GROUP BY StonkName", con);
             using SQLiteDataReader rdr = commd.ExecuteReader();
             while (rdr.Read())
             {
-                response = response + $"**{rdr.GetString(0)}** Owned: {rdr.GetInt32(1)}\n";
+                if (rdr.GetInt32(1) != 0)
+                {
+                    response = response + $"**{rdr.GetString(0)}** Owned: {rdr.GetInt32(1)}\n";
+                }
             }
             return response;
         }
@@ -1299,7 +1296,7 @@ namespace CoreWaggles.Commands
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
-            using var commd = new SQLiteCommand($"SELECT COUNT(StonkName) FROM Stonk_Purchases WHERE UserID = {userID} AND ServerID = {serverID} AND StonkName= @name GROUP BY StonkName", con);
+            using var commd = new SQLiteCommand($"SELECT NumOfShares FROM Stonk_Record WHERE UserID = {userID} AND ServerID = {serverID} AND StonkName= @name GROUP BY StonkName", con);
             commd.Parameters.AddWithValue("@name", stonkName);
             using SQLiteDataReader rdr = commd.ExecuteReader();
             while (rdr.Read())
@@ -1316,7 +1313,7 @@ namespace CoreWaggles.Commands
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
-            using var commd = new SQLiteCommand($"DELETE FROM Stonk_Purchases WHERE rowid IN (SELECT rowid FROM Stonk_Purchases WHERE StonkName = @name AND ServerID = {serverID} AND UserID = {userID} LIMIT {amount})", con);
+            using var commd = new SQLiteCommand($"UPDATE Stonk_Record SET NumOfShares = NumOfShares - {amount} WHERE StonkName = @name AND ServerID = {serverID} AND UserID = {userID}", con);
             commd.Parameters.AddWithValue("@name", stonkName);
             commd.ExecuteNonQuery();
         }
