@@ -35,7 +35,7 @@ namespace WagglesBot
             Global.MateMessageReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(mess);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[1];
+            string botToken = keys[0];
             using (var services = ConfigureServices())
             {
                 var client = services.GetRequiredService<DiscordSocketClient>();
@@ -110,6 +110,7 @@ namespace WagglesBot
                 await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
                 //here we make a timer and make it wait to trigger every 10 seconds!
                 System.Timers.Timer aTimer = new System.Timers.Timer(10000);
+                System.Timers.Timer Stonktimer = new System.Timers.Timer(3600000);
                 //this is the actual function that runs when the time runs out
                 aTimer.Elapsed += async (object sender, ElapsedEventArgs e) => 
                 {
@@ -131,9 +132,57 @@ namespace WagglesBot
                         }
                     }
                 };
+                Stonktimer.Elapsed += async (object sender, ElapsedEventArgs e) =>
+                {
+                    //Stonks price check
+                    Random rand = new Random();
+                    //foreach server, iterate through and change the price of each stonk.
+                    foreach (var server in client.Guilds)
+                    {
+                        string response = "Stonk Updates:";
+                        List<Stonk> stonks = DBTransaction.getStonkObj(server.Id);
+                        foreach (Stonk stonk in stonks)
+                        {
+                            int oldPrice = stonk.Price;
+                            int newprice;
+                            //if the stonk price drops to 50 or less, skyrocket the price to restart its trip down.
+                            if (oldPrice < 51)
+                            {
+                                double increasePercentage = rand.Next(0, 101) * .1;
+
+                                newprice = oldPrice + (int)(oldPrice * increasePercentage);
+                            }
+                            //otherwise use algorithm from stackexchange
+                            else
+                            {
+                                double volatility = .50;
+                                double randDouble = rand.NextDouble();
+                                double percentageChange = 2 * volatility * randDouble;
+                                if (percentageChange > volatility)
+                                {
+                                    percentageChange -= (2 * volatility);
+                                }
+                                double priceChange = oldPrice * percentageChange;
+                                newprice = Convert.ToInt32(oldPrice + priceChange);
+                            }
+                            //change the stonk price in the database
+                            DBTransaction.editStonkPrice(stonk.Name, newprice, stonk.ServerID);
+                            //construct response
+                            response = response + "\n__" + stonk.Name + "__ **Old Price:** " + oldPrice + " **New Price:** " + newprice;
+                        }
+                        ulong channelID = DBTransaction.getStonkChannel(server.Id);
+
+                        //if there is no Stonk channel in the config, do not post anything.
+                        if (channelID != 0) {
+
+                            await client.GetGuild(server.Id).GetTextChannel(channelID).SendMessageAsync(response);
+                            }
+                    }
+                };
+                Stonktimer.AutoReset = true;
+                Stonktimer.Enabled = true;
                 aTimer.AutoReset = true;
                 aTimer.Enabled = true;
-
                 await Task.Delay(Timeout.Infinite);
             }
         }

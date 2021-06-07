@@ -1118,5 +1118,235 @@ namespace CoreWaggles.Commands
                 return rowsAffected;
             }
         }
+
+        public static void addStonk(string name, int numOfShares, int price, ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"INSERT INTO Stonks VALUES(@name, @shares, {price}, {serverID});";
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.Parameters.AddWithValue("@shares", numOfShares);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static List<Stonk> getStonkObj(ulong serverID)
+        {
+            List<Stonk> temp = new List<Stonk>();
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Name, NumberOfShares, Price FROM Stonks WHERE ServerID = {serverID};", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                temp.Add(new Stonk(rdr.GetString(0), rdr.GetInt32(1), rdr.GetInt32(2), serverID));
+            }
+            return temp;
+        }
+
+        public static string getStonks(ulong serverID)
+        {
+            Dictionary<string, int> availStonks = getPurchasedStonks(serverID);
+            int availableStonks = 0;
+            using var con = new SQLiteConnection(cs);
+            string response = "``Current Stonks:``\n";
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Name, NumberOfShares, Price FROM Stonks WHERE ServerID = {serverID};", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                if (availStonks.ContainsKey(rdr.GetString(0)))
+                {
+                    availableStonks = rdr.GetInt32(1) - availStonks[rdr.GetString(0)];
+                }
+                else
+                {
+                    availableStonks = rdr.GetInt32(1);
+                }
+                response = response + $"__{rdr.GetString(0)}__\n" + $"**Max:** {rdr.GetInt32(1)}".PadRight(15, ' ') + $"**Available for purchase:** {availableStonks}".PadRight(40, ' ') + $" **Price:** ${rdr.GetInt32(2)}\n";
+            }
+            return response;
+        }
+
+        public static Dictionary<string, int> getPurchasedStonks(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            Dictionary<string, int> temp = new Dictionary<string, int>();
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT StonkName, SUM(NumOfShares) FROM Stonk_Record WHERE ServerID = {serverID} GROUP BY StonkName;", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                temp.Add(rdr.GetString(0), rdr.GetInt32(1));
+            }
+            return temp;
+        }
+
+        public static List<string> getStonkInfo(string name)
+        {
+            using var con = new SQLiteConnection(cs);
+            List<string> temp = new List<string>();
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Name, NumberOfShares, Price FROM Stonks WHERE Name = @name;", con);
+            commd.Parameters.AddWithValue("@name", name);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                temp.Add(rdr.GetString(0));
+                temp.Add((rdr.GetInt32(1)).ToString());
+                temp.Add((rdr.GetInt32(2)).ToString());
+            }
+            return temp;
+        }
+
+        public static void editStonkShares(string name, int numOfShares)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Stonks SET NumberOfShares = @shares WHERE Name = @name ;";
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.Parameters.AddWithValue("@shares", numOfShares);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static void editStonkPrice(string name, int price, ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"UPDATE Stonks SET Price = @price WHERE Name = @name AND ServerID = {serverID} ;";
+                cmd.Parameters.AddWithValue("@price", price);
+                cmd.Parameters.AddWithValue("@name", name);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static void addStonkPurchase(string name, int numOfShares, ulong userID, ulong serverID, string date)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+                var command = con.CreateCommand();
+                command.CommandText =
+                $"INSERT INTO Stonk_Record(StonkName, UserID, ServerID, NumOfShares) VALUES(@name, @userID, @serverID, @shares) ON CONFLICT(UserID, ServerID, StonkName) DO UPDATE SET NumOfShares= NumOfShares + {numOfShares};";
+                command.Parameters.AddWithValue("@name", name);
+                command.Parameters.AddWithValue("@userID", userID);
+                command.Parameters.AddWithValue("@serverID", serverID);
+                command.Parameters.AddWithValue("@shares", numOfShares);
+                command.ExecuteNonQuery();
+        }
+
+        public static List<int> getMaxShares(string name, ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            List<int> temp = new List<int>();
+            using var commd = new SQLiteCommand($"SELECT NumberOfShares, Price FROM Stonks WHERE Name=@name AND ServerID={serverID};", con);
+            commd.Parameters.AddWithValue("@name", name);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            if (rdr.Read())
+            {
+                temp.Add(rdr.GetInt32(0));
+                temp.Add(rdr.GetInt32(1));
+
+            }
+            else
+            {
+                return temp;
+            }
+            rdr.Close();
+            int purchasedShares = 0;
+            commd.CommandText = "SELECT NumOfShares FROM Stonk_Record WHERE StonkName = @name AND ServerID = @serverID";
+            commd.Parameters.AddWithValue("@name", name);
+            commd.Parameters.AddWithValue("@serverID", serverID);
+            using SQLiteDataReader reader = commd.ExecuteReader();
+            while(reader.Read())
+            {
+                purchasedShares = purchasedShares + reader.GetInt32(0);
+            }
+            temp.Add(purchasedShares);
+            return temp;
+        }
+
+        public static string getOwnedStonks(ulong userID, ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            string response = "``Owned Stonks:``\n";
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT StonkName, NumOfShares FROM Stonk_Record WHERE UserID = {userID} AND ServerID = {serverID} GROUP BY StonkName", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                if (rdr.GetInt32(1) != 0)
+                {
+                    response = response + $"**{rdr.GetString(0)}** Owned: {rdr.GetInt32(1)}\n";
+                }
+            }
+            return response;
+        }
+        public static bool hasEnoughStonk(ulong userID, ulong serverID, string stonkName, int amount)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT NumOfShares FROM Stonk_Record WHERE UserID = {userID} AND ServerID = {serverID} AND StonkName= @name GROUP BY StonkName", con);
+            commd.Parameters.AddWithValue("@name", stonkName);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            while (rdr.Read())
+            {
+                if(rdr.GetInt32(0) >= amount)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static void sellStonk(ulong userID, ulong serverID, string stonkName, int amount)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"UPDATE Stonk_Record SET NumOfShares = NumOfShares - {amount} WHERE StonkName = @name AND ServerID = {serverID} AND UserID = {userID}", con);
+            commd.Parameters.AddWithValue("@name", stonkName);
+            commd.ExecuteNonQuery();
+        }
+
+        public static void stonkConfigSetup(ulong serverID, ulong channelID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = $"INSERT INTO StonkConfig(ServerID, ChannelID) VALUES({serverID}, {channelID}) ON CONFLICT(ServerID) DO UPDATE SET ChannelID={channelID};";
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public static ulong getStonkChannel(ulong serverID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Count(ServerID) FROM StonkConfig WHERE ServerID= {serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfChannels = rdr.GetInt32(0);
+            if (numberOfChannels == 0)
+            {
+                return 0;
+            }
+            rdr.Close();
+            commd.CommandText = $"SELECT ChannelID FROM StonkConfig WHERE ServerID= {serverID}";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            msgs.Read();
+            return (ulong)msgs.GetInt64(0);
+        }
     }
 }
