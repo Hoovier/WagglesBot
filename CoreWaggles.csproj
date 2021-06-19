@@ -47,6 +47,9 @@
     <None Update="Keys.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="oicoTimeStamp.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="redditTokens.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

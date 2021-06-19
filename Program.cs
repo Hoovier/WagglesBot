@@ -15,6 +15,8 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using Discord.Rest;
 using System.Timers;
+using System.Xml.XPath;
+using System.Xml;
 
 namespace WagglesBot
 {
@@ -134,6 +136,13 @@ namespace WagglesBot
                 };
                 Stonktimer.Elapsed += async (object sender, ElapsedEventArgs e) =>
                 {
+
+                    //squeeze in OICO check, cause its also on an hour interval
+                    string oico = Oico();
+                    if (oico != "NONE")
+                    {
+                        await client.GetGuild(606504338143182868).GetTextChannel(758138741318484039).SendMessageAsync(oico);
+                    }
                     //Stonks price check
                     Random rand = new Random();
                     //foreach server, iterate through and change the price of each stonk.
@@ -382,6 +391,53 @@ namespace WagglesBot
         {
             Console.WriteLine(arg);
             return Task.CompletedTask;
+        }
+
+        private string Oico()
+        {
+
+            // URL to oico's youtube video feed.
+            string oico = "https://www.youtube.com/feeds/videos.xml?channel_id=UC7y4zXXFxr6pBw-5kuYNrig";
+            // URL to video. Self explanatory.
+            string urlQuery = "string(//ns:entry[1]/ns:link/@href)";
+            // Video timestamp. ISO-8601 format.
+            // Format: YYYY-MM-DD[T]HH:MM:SS[Z]
+            // [T] is a literal "T" character to separate date and time.
+            // [Z] is the timezone offset. Example, CA is UTC-7, so [Z] becomes -07:00.
+            // Example: 2021-06-08T02:51:18+00:00
+            string dateQuery = "string(//ns:entry[1]/ns:published)";
+
+            // Load the remote XML file to an XPath Document [Allows for smart parsing.]
+            XPathDocument document = new XPathDocument(oico);
+            // Gets a "navigator" to find items within the parsed document.
+            XPathNavigator navigator = document.CreateNavigator();
+
+            // XML Namespace manager (for reasons).
+            // Give a usable alias ("ns") to the Atom namespace used.
+            XmlNamespaceManager manager = new XmlNamespaceManager(navigator.NameTable);
+            manager.AddNamespace("ns", "http://www.w3.org/2005/Atom");
+
+            // Set up XPath Queries and add the namespace context to them.
+            XPathExpression query = navigator.Compile(dateQuery);
+            query.SetContext(manager);
+            var latestVideoUpload = navigator.Evaluate(query).ToString();
+            var fakeDate = System.IO.File.ReadAllText("oicoTimeStamp.txt"); //Yesterdays Oico vid published.
+
+            // Compare `latestVideoUpload` with your cached/stored Oico date.
+            if (String.Compare(latestVideoUpload, fakeDate) > 0)
+            {
+                // If newest video in feed is actually new, then fetch the URL and toss it to Discord!
+                query = navigator.Compile(urlQuery);
+                query.SetContext(manager);
+                var latestVideoUrl = navigator.Evaluate(query).ToString();
+
+                // Don't forget to update your cached date!
+                File.WriteAllText("oicoTimeStamp.txt", latestVideoUpload);
+                //return new URL to where it was called
+                return latestVideoUrl;
+            }
+            return "NONE";
+            // Do nothing if the feed hasn't changed.
         }
 
 
