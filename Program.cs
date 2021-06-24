@@ -407,35 +407,45 @@ namespace WagglesBot
             // Example: 2021-06-08T02:51:18+00:00
             string dateQuery = "string(//ns:entry[1]/ns:published)";
 
-            // Load the remote XML file to an XPath Document [Allows for smart parsing.]
-            XPathDocument document = new XPathDocument(oico);
-            // Gets a "navigator" to find items within the parsed document.
-            XPathNavigator navigator = document.CreateNavigator();
-
-            // XML Namespace manager (for reasons).
-            // Give a usable alias ("ns") to the Atom namespace used.
-            XmlNamespaceManager manager = new XmlNamespaceManager(navigator.NameTable);
-            manager.AddNamespace("ns", "http://www.w3.org/2005/Atom");
-
-            // Set up XPath Queries and add the namespace context to them.
-            XPathExpression query = navigator.Compile(dateQuery);
-            query.SetContext(manager);
-            var latestVideoUpload = navigator.Evaluate(query).ToString();
-            var fakeDate = System.IO.File.ReadAllText("oicoTimeStamp.txt"); //Yesterdays Oico vid published.
-
-            // Compare `latestVideoUpload` with your cached/stored Oico date.
-            if (String.Compare(latestVideoUpload, fakeDate) > 0)
+            try
             {
-                // If newest video in feed is actually new, then fetch the URL and toss it to Discord!
-                query = navigator.Compile(urlQuery);
-                query.SetContext(manager);
-                var latestVideoUrl = navigator.Evaluate(query).ToString();
+                // Load the remote XML file to an XPath Document [Allows for smart parsing.]
+                XPathDocument document = new XPathDocument(oico);
+                // Gets a "navigator" to find items within the parsed document.
+                XPathNavigator navigator = document.CreateNavigator();
 
-                // Don't forget to update your cached date!
-                File.WriteAllText("oicoTimeStamp.txt", latestVideoUpload);
-                //return new URL to where it was called
-                return latestVideoUrl;
+                // XML Namespace manager (for reasons).
+                // Give a usable alias ("ns") to the Atom namespace used.
+                XmlNamespaceManager manager = new XmlNamespaceManager(navigator.NameTable);
+                manager.AddNamespace("ns", "http://www.w3.org/2005/Atom");
+
+                // Set up XPath Queries and add the namespace context to them.
+                XPathExpression query = navigator.Compile(dateQuery);
+                query.SetContext(manager);
+                var latestVideoUpload = navigator.Evaluate(query).ToString();
+                var fakeDate = System.IO.File.ReadAllText("oicoTimeStamp.txt"); //Yesterdays Oico vid published.
+
+                // Compare `latestVideoUpload` with your cached/stored Oico date.
+                if (String.Compare(latestVideoUpload, fakeDate) > 0)
+                {
+                    // If newest video in feed is actually new, then fetch the URL and toss it to Discord!
+                    query = navigator.Compile(urlQuery);
+                    query.SetContext(manager);
+                    var latestVideoUrl = navigator.Evaluate(query).ToString();
+
+                    // Don't forget to update your cached date!
+                    File.WriteAllText("oicoTimeStamp.txt", latestVideoUpload);
+                    //return new URL to where it was called
+                    return latestVideoUrl;
+                }
             }
+            catch
+            {
+                // If unable to open Oico's feed, then print the error and then resume operating as if no video was posted.
+                Console.WriteLine("Unable to access Oico's XML video feed. Most likely a 404.");
+                return "NONE";
+            }
+            
             return "NONE";
             // Do nothing if the feed hasn't changed.
         }
