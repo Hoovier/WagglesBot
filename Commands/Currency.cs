@@ -114,14 +114,14 @@ namespace CoreWaggles.Commands
         }
 
         [Command("pay")]
-        public async Task PayAsync(SocketGuildUser user, int amount)
+        public async Task PayAsync(SocketGuildUser user, long amount)
         {
             string balanceString = DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id);
             if (balanceString == "NONE")
             {
                 return;
             }
-            int senderBal = int.Parse(balanceString);
+            long senderBal = long.Parse(balanceString);
             if (amount > senderBal || amount <= 0)
             {
                 await ReplyAsync("Sorry, your balance of " + senderBal + " Bits is too low!");
@@ -134,7 +134,7 @@ namespace CoreWaggles.Commands
             }
         }
         [Command("bet")]
-        public async Task BetAsync(int amount)
+        public async Task BetAsync(long amount)
         {
             string balanceString = DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id);
             if (balanceString == "NONE" || balanceString == "0")
@@ -147,7 +147,8 @@ namespace CoreWaggles.Commands
                 await ReplyAsync("You have to bet more than that! Cheapskate.");
                 return;
             }
-            int senderBal = int.Parse(balanceString);
+            
+            long senderBal = long.Parse(balanceString);
             if (amount > senderBal || amount <= 0)
             {
                 await ReplyAsync("Sorry, your balance of " + senderBal + " Bits is too low!");
@@ -162,7 +163,7 @@ namespace CoreWaggles.Commands
                 rowsAffected = DBTransaction.payMoney(Context.User.Id, amount, Context.Guild.Id);
                 if (rowsAffected == 1)
                 {
-                    await ReplyAsync("Congrats! You won " + amount + " Bits, bringing your balance to " + (int.Parse(balanceString) + amount) + "Bits!");
+                    await ReplyAsync("Congrats! You won " + amount + " Bits, bringing your balance to " + (long.Parse(balanceString) + amount) + "Bits!");
                 }
                 else
                 {
@@ -174,7 +175,7 @@ namespace CoreWaggles.Commands
                 rowsAffected = DBTransaction.payMoney(Context.User.Id, -amount, Context.Guild.Id);
                 if (rowsAffected == 1)
                 {
-                    await ReplyAsync("Oof. You lost " + amount + " Bits, bringing your balance to " + (int.Parse(balanceString) - amount) + "Bits!");
+                    await ReplyAsync("Oof. You lost " + amount + " Bits, bringing your balance to " + (long.Parse(balanceString) - amount) + "Bits!");
                 }
                 else
                 {
@@ -184,7 +185,7 @@ namespace CoreWaggles.Commands
         }
 
         [Command("slots")]
-        public async Task playSlots(int amount)
+        public async Task playSlots(long amount)
         {
             //check if user has the bits
             string balanceString = DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id);
@@ -198,7 +199,7 @@ namespace CoreWaggles.Commands
                 await ReplyAsync("You have to bet more than that! Cheapskate.");
                 return;
             }
-            int senderBal = int.Parse(balanceString);
+            long senderBal = long.Parse(balanceString);
             if (amount > senderBal || amount <= 0)
             {
                 await ReplyAsync("Sorry, your balance of " + senderBal + " Bits is too low!");
@@ -229,7 +230,7 @@ namespace CoreWaggles.Commands
             {
                 await ReplyAsync(response);
                 rowsAffected = DBTransaction.payMoney(Context.User.Id, amount * 3, Context.Guild.Id);
-                await ReplyAsync("3 matches! You win " + (amount * 3) + " Bits, bringing your balance to " + (int.Parse(balanceString) + (amount * 3)) + "Bits!");
+                await ReplyAsync("3 matches! You win " + (amount * 3) + " Bits, bringing your balance to " + (long.Parse(balanceString) + (amount * 3)) + "Bits!");
                 return;
             }
             // if 0 matches 1, if 1 matches 2, or 0 matches 2, but not all three
@@ -237,14 +238,14 @@ namespace CoreWaggles.Commands
             {
                 await ReplyAsync(response);
                 rowsAffected = DBTransaction.payMoney(Context.User.Id, amount, Context.Guild.Id);
-                await ReplyAsync("2 matches! You win " + amount + " Bits, bringing your balance to " + (int.Parse(balanceString) + amount) + "Bits!");
+                await ReplyAsync("2 matches! You win " + amount + " Bits, bringing your balance to " + (long.Parse(balanceString) + amount) + "Bits!");
                 return;
             }
             else
             {
                 await ReplyAsync(response);
                 rowsAffected = DBTransaction.payMoney(Context.User.Id, -amount, Context.Guild.Id);
-                await ReplyAsync("Whoops, you lost " + amount + "Bits, bringing your balance to " + (int.Parse(balanceString) - amount) + "Bits!");
+                await ReplyAsync("Whoops, you lost " + amount + "Bits, bringing your balance to " + (long.Parse(balanceString) - amount) + "Bits!");
             }
         }
 
@@ -267,14 +268,14 @@ namespace CoreWaggles.Commands
                 await ReplyAsync("You dont have any money!");
                 return;
             }
-            int senderBal = int.Parse(balanceString);
+            long senderBal = long.Parse(balanceString);
             if ((100 > senderBal && option == "stone") || (250 > senderBal && option == "iron") || (1000 > senderBal && option == "gold"))
             {
                 await ReplyAsync("Sorry, your balance of " + senderBal + " Bits is too low!");
                 return;
             }
             Random rand = new Random();
-            int prize = 0;
+            long prize = 0;
             if(option == "stone")
             {
                 prize = rand.Next(200);
