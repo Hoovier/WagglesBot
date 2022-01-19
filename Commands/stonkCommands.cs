@@ -73,7 +73,7 @@ namespace CoreWaggles.Commands
             //1 = stonkPrice
             //2 = OwnedShares
             List<int> stonkInfo = DBTransaction.getMaxShares(stonk, Context.Guild.Id);
-            int balance = int.Parse(DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id));
+            long balance = long.Parse(DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id));
 
             if (stonkInfo.Count == 0)
             {
@@ -92,7 +92,7 @@ namespace CoreWaggles.Commands
                 DateTime localDate = DateTime.Now;
                 string dateString = localDate.ToString("yyyy-MM-dd.HH:mm:ss");
                 DBTransaction.addStonkPurchase(stonk, amount, Context.User.Id, Context.Guild.Id, dateString);
-                int totalPrice = stonkInfo[1] * amount;
+                long totalPrice = stonkInfo[1] * amount;
                 DBTransaction.payMoney(Context.User.Id, -totalPrice, Context.Guild.Id);
                 await ReplyAsync("Stonks purchased! Your new balance is " + (balance - (stonkInfo[1] * amount)) + " Bits!");
             }
@@ -106,7 +106,7 @@ namespace CoreWaggles.Commands
             //1 = name, 2 = numOfShares, 3 = price
             List<string> stonkInfo = DBTransaction.getStonkInfo(name);
             Console.WriteLine(stonkInfo[0] + " " + stonkInfo[1] + " " + stonkInfo[2]);
-            int balance = int.Parse(DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id));
+            long balance = long.Parse(DBTransaction.getMoneyBalance(Context.User.Id, Context.Guild.Id));
             bool enoughStonks = DBTransaction.hasEnoughStonk(Context.User.Id, Context.Guild.Id, name, amount);
             if(enoughStonks)
             {
