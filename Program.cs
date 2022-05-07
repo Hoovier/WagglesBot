@@ -17,6 +17,7 @@ using Discord.Rest;
 using System.Timers;
 using System.Xml.XPath;
 using System.Xml;
+using System.Linq;
 
 namespace WagglesBot
 {
@@ -37,7 +38,7 @@ namespace WagglesBot
             Global.MateMessageReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(mess);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[1];
+            string botToken = keys[0];
             using (var services = ConfigureServices())
             {
                 var client = services.GetRequiredService<DiscordSocketClient>();
@@ -259,7 +260,17 @@ namespace WagglesBot
                     //if quote doesnt exist, add it
                     if (DBTransaction.quoteExists(message.Author.Id, message.Content, Guild) == false)
                     {
-                        bool addedCorrectly = DBTransaction.addQuote(message.Author.Id, message.Content, Guild);
+
+                        string messageToAdd = message.Content;
+                        //check if the message has a image attached
+                        if (message.Attachments.Count > 0)
+                        {
+                            //combine message with url to message
+                            messageToAdd = messageToAdd + "\n" + message.Attachments.ElementAt(0).Url;
+                            await message.AddReactionAsync(new Emoji("📷"));
+                        }
+                        bool addedCorrectly = DBTransaction.addQuote(message.Author.Id, messageToAdd, Guild);
+                        
                         if (addedCorrectly)
                         {
                             await message.AddReactionAsync(new Emoji("🔖"));
