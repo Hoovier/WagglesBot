@@ -710,7 +710,7 @@ namespace CoreWaggles.Commands
             }
         }
 
-        public static int payMoney(ulong userID, int amount, ulong serverID)
+        public static int payMoney(ulong userID, long amount, ulong serverID)
         {
             using var con = new SQLiteConnection(cs);
             con.Open();
@@ -748,7 +748,7 @@ namespace CoreWaggles.Commands
             using var commd = new SQLiteCommand($"SELECT Count(Amount) FROM Money WHERE UserID={userID} AND ServerID= {serverID}", con);
             using SQLiteDataReader rdr = commd.ExecuteReader();
             rdr.Read();
-            int numberOfMoney = rdr.GetInt32(0);
+            long numberOfMoney = rdr.GetInt64(0);
             if (numberOfMoney == 0)
             {
                 return "NONE";
@@ -757,7 +757,7 @@ namespace CoreWaggles.Commands
             commd.CommandText = $"SELECT Amount FROM Money WHERE UserID={userID} AND ServerID= {serverID}";
             using SQLiteDataReader msgs = commd.ExecuteReader();
             msgs.Read();
-            return msgs.GetInt32(0).ToString();
+            return msgs.GetInt64(0).ToString();
         }
 
         public static string getMoneyLeaders( ulong serverID)
