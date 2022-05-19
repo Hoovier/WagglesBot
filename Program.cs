@@ -76,10 +76,13 @@ namespace WagglesBot
                     }
                     if (Global.DerpiSearchCache.ContainsKey(reaction.Channel.Id))
                     {
-                        if (reaction.MessageId == Global.derpiMessageToTrack[reaction.Channel.Id] && !reaction.User.Value.IsBot)
+                        if (Global.derpiMessageToTrack.ContainsKey(reaction.Channel.Id))
                         {
-                            Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Dnext button!");
-                            await cmd.ExecuteAsync(Global.derpiContext[reaction.Channel.Id], "next 5", services);
+                            if (reaction.MessageId == Global.derpiMessageToTrack[reaction.Channel.Id] && !reaction.User.Value.IsBot)
+                            {
+                                Console.WriteLine($"[{DateTime.Now.ToString("h:mm:ss")} #{reaction.Channel.Name}] \n{reaction.User.Value.Username}: Clicked Dnext button!");
+                                await cmd.ExecuteAsync(Global.derpiContext[reaction.Channel.Id], "next 5", services);
+                            }
                         }
                     }
                     
