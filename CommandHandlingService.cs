@@ -144,7 +144,12 @@ namespace CoreWaggles.Services
                     else
                     {
                         DBTransaction.processWitty(context, message.Content);
-                    }                }
+                    }
+                    if(Global.wordGameDic.ContainsKey(context.Channel.Id) && !message.Content.Contains(" ") && !message.Content.Contains(":") )
+                    {
+                        await Global.wordGameDic[context.Channel.Id].checkWord(context, message.Content.ToUpper());
+                    }
+                }
                 if ((message.Content.ToLower().Contains("lewd") || message.Content.ToLower().Contains("sexuals")) && message.Content.ToLower().Contains("rym"))
                 {
                     await context.Channel.SendMessageAsync("Please don't! <:tears:409771767410851845>");
@@ -157,6 +162,7 @@ namespace CoreWaggles.Services
                 {
                     await context.Channel.SendMessageAsync("https://www.youtube.com/watch?v=kJQP7kiw5Fk");
                 }
+                
                 return;
             }
             // Perform the execution of the command. In this method,

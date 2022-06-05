@@ -1348,5 +1348,17 @@ namespace CoreWaggles.Commands
             msgs.Read();
             return (ulong)msgs.GetInt64(0);
         }
+
+        public static string getUserFromID(ulong userID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Username FROM Users WHERE ID={userID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            string username = rdr.GetString(0);
+            return username;
+          
+        }
     }
 }
