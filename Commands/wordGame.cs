@@ -42,6 +42,11 @@ namespace CoreWaggles.Commands
         [Alias("word score", "wscore", "wgscore")]
         public async Task printWGScore()
         {
+            if(!Global.wordGameDic.ContainsKey(Context.Channel.Id))
+            {
+                await ReplyAsync("No currently active game.");
+                return;
+            }
             string scoreboard = "**Scores:**\n";
             foreach (KeyValuePair<ulong, int> item in Global.wordGameDic[Context.Channel.Id].scoreCard)
             {
@@ -66,6 +71,12 @@ namespace CoreWaggles.Commands
             Global.wordGameDic.Remove(id);
         }
 
+        [Command("define")]
+        [Alias("def")]
+        public async Task defineWord(string word)
+        {
+            await ReplyAsync(DBTransaction.getWordDefinition(word));
+        }
 
     }
 
