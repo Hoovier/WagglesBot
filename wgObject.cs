@@ -30,7 +30,7 @@ namespace CoreWaggles
         {
             if(foundWords.Contains(word))
             {
-                await context.Message.AddReactionAsync(new Emoji("❌"));
+                await context.Message.AddReactionAsync(new Emoji("🔁"));
                 return;
             }
             foreach (char item in word)
