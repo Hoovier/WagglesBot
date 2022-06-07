@@ -48,6 +48,9 @@ namespace CoreWaggles
         internal static Dictionary<ulong, int> MateHeartReactChance = new Dictionary<ulong, int>();
         internal static Dictionary<ulong, int> MateMessageReactChance = new Dictionary<ulong, int>();
 
+        //Dictionary of gameObjects that holds serverID->gamedata
+        internal static Dictionary<ulong, wgObject> wordGameDic = new Dictionary<ulong, wgObject>();
+
 
         // Test if string is indeed a Derpibooru or valid URL.
         // Quick validation, is this in either Derpi* domain, and can it possibly contain a valid ID?

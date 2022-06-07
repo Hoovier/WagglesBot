@@ -17,6 +17,9 @@ namespace CoreWaggles.Commands
         //cs is connection string for DB
         private static readonly string cs = @"URI=file:WagglesDB.db; foreign keys=true;";
 
+        //dictionary DB
+        private static readonly string dictionaryCS = @"URI=file:Dictionary.db; foreign keys=true;";
+
         public static int getErrorID(string errMessage)
         {
             if (errMessage.Contains("FOREIGN KEY"))
@@ -1347,6 +1350,39 @@ namespace CoreWaggles.Commands
             using SQLiteDataReader msgs = commd.ExecuteReader();
             msgs.Read();
             return (ulong)msgs.GetInt64(0);
+        }
+
+        public static string getUserFromID(ulong userID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Username FROM Users WHERE ID={userID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            string username = rdr.GetString(0);
+            return username;
+          
+        }
+
+        public static string getWordDefinition(string word)
+        {
+            string response = "Definitions:";
+            int counter = 0;
+            using var con = new SQLiteConnection(dictionaryCS);
+            con.Open();
+            using var commd = new SQLiteCommand("SELECT word, definition FROM entries WHERE word=@word", con);
+            commd.Parameters.AddWithValue("@word", word);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            if(!rdr.HasRows)
+            {
+                return "No definitions found. Is your word a plural or past tense? IE try 'Run' instead of 'running'";
+            }
+            while (rdr.Read() && counter < 11 && response.Length < 1800)
+            {
+                counter++;
+                response = response + "\n**" + rdr.GetString(0) + " -** " + rdr.GetString(1).Replace("\n", "").Replace("  ", " ");
+            }
+            return response;
         }
     }
 }
