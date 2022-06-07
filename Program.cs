@@ -38,7 +38,7 @@ namespace WagglesBot
             Global.MateMessageReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(mess);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[1];
+            string botToken = keys[0];
             using (var services = ConfigureServices())
             {
                 var client = services.GetRequiredService<DiscordSocketClient>();
@@ -133,7 +133,14 @@ namespace WagglesBot
                         if (span.TotalMinutes >= item.timeInterval)
                         {
                             //gets the server, uses that to get the user, and then finally sends the message
-                            await client.GetGuild(item.serverID).GetUser(item.userID).GetOrCreateDMChannelAsync().Result.SendMessageAsync(item.title);
+                            try
+                            {
+                                await client.GetGuild(item.serverID).GetUser(item.userID).GetOrCreateDMChannelAsync().Result.SendMessageAsync(item.title);
+                            }
+                            catch
+                            {
+                                Console.WriteLine("Reminder message failed! User: " + item.userID + "Server: " + item.serverID +  " Reminder: " + item.title);
+                            }
                             DBTransaction.removeReminder(item.title, item.serverID, item.userID);
                         }
                     }
