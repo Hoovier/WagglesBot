@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Data.SQLite;
+using Discord.WebSocket;
 
 namespace CoreWaggles.Commands
 {
@@ -44,6 +45,45 @@ namespace CoreWaggles.Commands
                 }
             }
         }
+        [Command("witty exclude")]
+        [Alias("witty ignore")]
+        [RequireUserPermission(Discord.GuildPermission.ManageChannels)]
+        public async Task ignoreUserWitty(SocketGuildUser user)
+        {
+            int returncode = DBTransaction.addWittyExclusion(user.Id, Context.Guild.Id);
+            if(returncode > 0)
+            {
+                await ReplyAsync("User added to witty exclusion list, ignored from all wittys.");
+            }
+            else
+            {
+                await ReplyAsync("User not added to exclusion, maybe they are already in the list?");
+            }
+        }
+
+        [Command("witty include")]
+        [RequireUserPermission(Discord.GuildPermission.ManageChannels)]
+        public async Task includeUserWitty(SocketGuildUser user)
+        {
+            int returncode = DBTransaction.removeWittyExclusion(user.Id, Context.Guild.Id);
+            if (returncode > 0)
+            {
+                await ReplyAsync("User removed from witty exclusion list");
+            }
+            else
+            {
+                await ReplyAsync("Something went wrong, user not removed from exclusion.");
+            }
+        }
+
+        [Command("wittyexclusions")]
+        [Alias("witty exclusions")]
+        public async Task listWittyExclusions()
+        {
+            await ReplyAsync(DBTransaction.listWittyExclusions(Context.Guild.Id));
+        }
+
+
         [Command("witty remove")]
         public async Task RemWitty(string name)
         {
