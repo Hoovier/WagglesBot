@@ -303,9 +303,23 @@ namespace CoreWaggles.Commands
             }
             return response;
         }
+        public static bool userInExclusionList(ulong userID, ulong serverID)
+        {
+            //if the user exists in the exclusion table, do not respond to them.
+            using var conExclusion = new SQLiteConnection(cs);
+            conExclusion.Open();
+            using var ExclusionCommand = new SQLiteCommand("SELECT * FROM Witty_Exclusions WHERE ServerID=" + serverID + " AND UserID=" + userID, conExclusion);
+            using SQLiteDataReader exrdr = ExclusionCommand.ExecuteReader();
+            return exrdr.HasRows;
+        }
 
         public static void processWitty(SocketCommandContext context, string message)
         {
+            if(userInExclusionList(context.User.Id, context.Guild.Id))
+            {
+                return;
+            }
+
             using var con = new SQLiteConnection(cs);
             con.Open();
             using var commd = new SQLiteCommand("SELECT WittyID, Trigger, Probability FROM Wittys WHERE ServerID=" + context.Guild.Id, con);
@@ -355,6 +369,61 @@ namespace CoreWaggles.Commands
                     }
                 }
             }
+        }
+
+        public static int addWittyExclusion(ulong userID, ulong serverID)
+        {
+            if(userInExclusionList(userID, serverID))
+            {
+                return 0;
+            }
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            int effected = 0;
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = "INSERT INTO Witty_Exclusions VALUES(@ServerID, @UserID);";
+                cmd.Parameters.AddWithValue("@ServerID", serverID);
+                cmd.Parameters.AddWithValue("@UserID", userID);
+                effected = cmd.ExecuteNonQuery();
+            }
+            return effected;
+        }
+
+        public static int removeWittyExclusion(ulong userID, ulong serverID)
+        {
+            int rowsAffected = 0;
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            //use prepared statement to make sure user provided data doesn't cause issues
+            using var cmd = new SQLiteCommand(con);
+            {
+                cmd.CommandText = "DELETE FROM Witty_Exclusions WHERE ServerID = @ServerID AND UserID = @UserID;";
+                cmd.Parameters.AddWithValue("@ServerID", serverID);
+                cmd.Parameters.AddWithValue("@UserID", userID);
+                rowsAffected = cmd.ExecuteNonQuery();
+            }
+            return rowsAffected;
+
+        }
+
+        public static string listWittyExclusions(ulong serverID)
+        {
+            string response = "Excluded Users: ```\n";
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT Users.Username FROM Witty_Exclusions INNER JOIN Users on Users.ID = Witty_Exclusions.UserID WHERE ServerID ={serverID}", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            //same idea as listWitty, just loop through all the responses and spit out names of whitelisted channels!
+            while (rdr.Read())
+            {
+                response = response + rdr.GetString(0) + "\n";
+            }
+            if (response == "Excluded Users: ```\n")
+                return "No excluded users for this server found!";
+            else
+                return response + "```";
         }
 
         public static void addChannelToWhitelist(ulong channelID, ulong serverID, string channelName)
