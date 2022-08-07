@@ -36,9 +36,11 @@ namespace WagglesBot
             string mess = System.IO.File.ReadAllText(@"Commands/MateResponses/mess.JSON");
             Global.MateHeartReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(heart);
             Global.MateMessageReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(mess);
-            //Waggles = 0, Mona = 1
+            //Waggles = 0, Mona = 1, OpenAI key = 2
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[0];
+            //setup API for openAI
+            Global.api = new OpenAI_API.OpenAIAPI(keys[2], engine: OpenAI_API.Engine.Curie);
+            string botToken = keys[1];
             using (var services = ConfigureServices())
             {
                 var client = services.GetRequiredService<DiscordSocketClient>();

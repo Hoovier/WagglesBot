@@ -51,6 +51,9 @@ namespace CoreWaggles
         //Dictionary of gameObjects that holds serverID->gamedata
         internal static Dictionary<ulong, wgObject> wordGameDic = new Dictionary<ulong, wgObject>();
 
+        //openAI object!
+        internal static OpenAI_API.OpenAIAPI api;
+
 
         // Test if string is indeed a Derpibooru or valid URL.
         // Quick validation, is this in either Derpi* domain, and can it possibly contain a valid ID?
