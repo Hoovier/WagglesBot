@@ -91,17 +91,25 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
     [Alias("d")]
     public async Task DerpiDefault([Remainder]string search) {
         // Regular Derpi search should just be the Sorted one with a default sorting option.
-        await DerpiMaster(false, 4, search);
+        await DerpiMaster(false, 4, search, "1");
+    }
+
+    [Command("dpage")]
+    [Alias("dp")]
+    public async Task DerpiPage(int page, [Remainder] string search)
+    {
+        // Regular Derpi search should just be the Sorted one with a default sorting option.
+        await DerpiMaster(false, 4, search, page.ToString());
     }
 
     [Command("derpi")]
     [Alias("d")]
     public async Task DerpiSorted(int Sort, [Remainder]string search) {
-        await DerpiMaster(false, Sort, search);
+        await DerpiMaster(false, Sort, search, "1");
     }
 
     // "Master" Derpibooru/~derpi searching method. Not a discord-accessible method.
-    private async Task DerpiMaster(bool artistAsLink, int Sort, string search) {
+    private async Task DerpiMaster(bool artistAsLink, int Sort, string search, string page) {
         // Broadcasts "User is typing..." message to Discord channel.
         await Context.Channel.TriggerTypingAsync();
 
@@ -121,7 +129,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             {"sf", sortParam}, 
             {"sd", "desc"}, 
             {"per_page", "50"},
-            {"page", "1"},
+            {"page", page},
         };
 
         // If the channel is not on the list of NSFW enabled channels do not allow NSFW results.
@@ -147,7 +155,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
             // Convert Search Array to a List, to use List functionality.
             List<DerpiSearch> imageList = DerpiResponse.images;
             if (imageList.Count == 0) {
-                await ReplyAsync("No results! The tag may be misspelled, or the results could be filtered out due to channel!");
+                await ReplyAsync("No results! The tag may be misspelled, the chosen page number might be too high, or the results could be filtered out due to channel!");
                 return;
             }
             // Get random number generator and random entry.
@@ -311,7 +319,7 @@ public class DerpibooruComms : ModuleBase<SocketCommandContext>
         // Get image ID from art URL.
         int imageID = Global.ExtractBooruId(srch);
         // Get Derpibooru search on this specific ID. Display artist as link!
-        await DerpiMaster(true, this.sortingOptions.Length - 1, $"id:{imageID}");
+        await DerpiMaster(true, this.sortingOptions.Length - 1, $"id:{imageID}", "1");
     }
     
     [Command("artist")]
