@@ -57,6 +57,9 @@
     <None Update="oicoTimeStamp.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="pokemoneng.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="redditTokens.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

@@ -7,6 +7,69 @@ using System.Threading.Tasks;
 
 namespace CoreWaggles
 {
+    public class hmObject
+    {
+        public string solution;
+        public string letters = "";
+        public string hmBoard;
+        public Discord.Rest.RestUserMessage message;
+        List<char> foundLetters = new List<char>();
+        public void generateHMboard()
+        {
+            string board = "";
+            foreach (char item in solution)
+            {
+                if(letters.Contains(item))
+                {
+                    board = board + item;
+                }
+                else
+                {
+                    board = board + "\\_ ";
+                }
+            }
+            hmBoard = board;
+        }
+        public async Task checkLetterOrWord(Discord.Commands.SocketCommandContext context, string guess)
+        {
+            if(guess.Length == 1)
+            {
+                //treat as char
+                if (!letters.Contains(guess) && solution.Contains(guess))
+                {
+                    letters = letters + guess;
+                    await context.Message.DeleteAsync();
+                    generateHMboard();
+                    await message.ModifyAsync(msg => msg.Content = hmBoard);
+                    if (!hmBoard.Contains("_"))
+                    {
+                        await context.Channel.SendMessageAsync("Solution found by " + context.Message.Author.Username + "!");
+                        Global.hmGameDic.Remove(context.Channel.Id);
+                    }
+                    return;
+                }
+                await context.Message.AddReactionAsync(new Emoji("❌"));
+                return;
+
+            }
+            else
+            {
+                //treat as string
+                if(guess == solution)
+                {
+                    letters = solution;
+                    generateHMboard();
+                    await context.Channel.SendMessageAsync("Solution found by " + context.Message.Author.Username + "!");
+                    Global.hmGameDic.Remove(context.Channel.Id);
+                    return;
+                }
+                await context.Message.AddReactionAsync(new Emoji("❌"));
+
+            }
+            
+        }
+
+    }
     public class wgObject
     {
         public string letters;

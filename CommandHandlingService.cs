@@ -149,6 +149,10 @@ namespace CoreWaggles.Services
                     {
                         await Global.wordGameDic[context.Channel.Id].checkWord(context, message.Content.ToUpper());
                     }
+                    if (Global.hmGameDic.ContainsKey(context.Channel.Id) && !message.Content.Contains(" ") && !message.Content.Contains(":"))
+                    {
+                        await Global.hmGameDic[context.Channel.Id].checkLetterOrWord(context, message.Content.ToUpper());
+                    }
                 }
                 if ((message.Content.ToLower().Contains("lewd") || message.Content.ToLower().Contains("sexuals")) && message.Content.ToLower().Contains("rym"))
                 {
