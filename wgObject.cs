@@ -11,6 +11,7 @@ namespace CoreWaggles
     {
         public string solution;
         public string letters = "";
+        public string wrongLetters = "";
         public string hmBoard;
         public Discord.Rest.RestUserMessage message;
         List<char> foundLetters = new List<char>();
@@ -27,6 +28,11 @@ namespace CoreWaggles
                 {
                     board = board + "\\_ ";
                 }
+            }
+            board = board + "\nWrong Letters:\n";
+            foreach (char item in wrongLetters)
+            {
+                board = board + item + " ";
             }
             hmBoard = board;
         }
@@ -48,9 +54,18 @@ namespace CoreWaggles
                     }
                     return;
                 }
-                await context.Message.AddReactionAsync(new Emoji("❌"));
+                else if (!wrongLetters.Contains(guess))
+                {
+                    wrongLetters = wrongLetters + guess;
+                    await context.Message.DeleteAsync();
+                    generateHMboard();
+                    await message.ModifyAsync(msg => msg.Content = hmBoard);
+                }
+                else if(wrongLetters.Contains(guess))
+                {
+                    await context.Message.DeleteAsync();
+                }
                 return;
-
             }
             else
             {
