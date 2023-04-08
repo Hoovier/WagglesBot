@@ -41,7 +41,7 @@ namespace CoreWaggles
                     return;
                 }
             }
-            using (StreamReader sr = new StreamReader("sowpods.txt"))
+            using (StreamReader sr = new StreamReader("TXTResources/sowpods.txt"))
             {
                 string line = "";
                 while((line = sr.ReadLine()) != null)
