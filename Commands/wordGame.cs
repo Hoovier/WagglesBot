@@ -24,7 +24,7 @@ namespace CoreWaggles.Commands
             //pick a random line from the 8letter.txt
             int lineNum = rand.Next(40160);
             //read single line from file
-            string chosen = File.ReadLines("8letter.txt").Skip(lineNum).First();
+            string chosen = File.ReadLines("TXTResources/8letter.txt").Skip(lineNum).First();
             //scramble it
             Console.WriteLine("Solution: " + chosen);
             string scrambled = new string(chosen.ToCharArray().OrderBy(s => (rand.Next(2) % 2) == 0).ToArray());

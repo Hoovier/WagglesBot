@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="8letter.txt">
+    <None Update="TXTResources\8letter.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Commands\MateResponses\heart.JSON">
@@ -54,13 +54,13 @@
     <None Update="Keys.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="oicoTimeStamp.txt">
+    <None Update="TXTResources\oicoTimeStamp.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="redditTokens.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="sowpods.txt">
+    <None Update="TXTResources\sowpods.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

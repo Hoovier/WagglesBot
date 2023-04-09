@@ -38,7 +38,7 @@ namespace WagglesBot
             Global.MateMessageReactChance = JsonConvert.DeserializeObject<Dictionary<ulong, int>>(mess);
             //Waggles = 0, Mona = 1
             string[] keys = System.IO.File.ReadAllLines("Keys.txt");
-            string botToken = keys[0];
+            string botToken = keys[1];
             using (var services = ConfigureServices())
             {
                 var client = services.GetRequiredService<DiscordSocketClient>();
@@ -444,7 +444,7 @@ namespace WagglesBot
                 XPathExpression query = navigator.Compile(dateQuery);
                 query.SetContext(manager);
                 var latestVideoUpload = navigator.Evaluate(query).ToString();
-                var fakeDate = System.IO.File.ReadAllText("oicoTimeStamp.txt"); //Yesterdays Oico vid published.
+                var fakeDate = System.IO.File.ReadAllText("TXTResources/oicoTimeStamp.txt"); //Yesterdays Oico vid published.
 
                 // Compare `latestVideoUpload` with your cached/stored Oico date.
                 if (String.Compare(latestVideoUpload, fakeDate) > 0)
@@ -455,7 +455,7 @@ namespace WagglesBot
                     var latestVideoUrl = navigator.Evaluate(query).ToString();
 
                     // Don't forget to update your cached date!
-                    File.WriteAllText("oicoTimeStamp.txt", latestVideoUpload);
+                    File.WriteAllText("TXTResources/oicoTimeStamp.txt", latestVideoUpload);
                     //return new URL to where it was called
                     return latestVideoUrl;
                 }
