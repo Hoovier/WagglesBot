@@ -542,6 +542,32 @@ namespace CoreWaggles.Commands
             }
         }
 
+        public static List<string> pickQuotesList(ulong serverID, ulong userID)
+        {
+            using var con = new SQLiteConnection(cs);
+            con.Open();
+            using var commd = new SQLiteCommand($"SELECT COUNT(Message) FROM Quotes WHERE ServerID={serverID} AND UserID = {userID} ORDER BY rowid LIMIT 5", con);
+            using SQLiteDataReader rdr = commd.ExecuteReader();
+            rdr.Read();
+            int numberOfQuotes = rdr.GetInt32(0);
+            if (numberOfQuotes == 0)
+            {
+                return new List<string>();
+            }
+            rdr.Close();
+
+           
+            commd.CommandText = $"SELECT Message FROM Quotes  WHERE ServerID={serverID} AND UserID = {userID} ORDER BY rowid";
+            using SQLiteDataReader msgs = commd.ExecuteReader();
+            List<string> quotesList = new List<string>();
+            while (msgs.Read())
+            {
+                quotesList.Add(msgs.GetString(0));
+                
+            }
+            return quotesList;
+
+        }
 
         public static string pickQuote(ulong serverID, ulong userID)
         {
